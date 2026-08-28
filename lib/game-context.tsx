@@ -81,13 +81,13 @@ async function fetchLeague(): Promise<LeagueSnap> {
   return json as LeagueSnap;
 }
 
-async function postAction(body: unknown) {
+async function postAction<T = LeagueSnap>(body: unknown): Promise<T> {
   const res = await fetch("/api/league/action", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const json = (await readJson(res)) as { error?: string };
+  const json = (await readJson(res)) as T & { error?: string };
   if (!res.ok) throw new Error(json.error ?? "İşlem başarısız");
   return json;
 }
