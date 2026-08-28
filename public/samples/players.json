@@ -1,0 +1,29 @@
+[
+  {
+    "name": "Erlung Haland",
+    "nationality": "Almanya",
+    "nationality_code": "de",
+    "position": "FV",
+    "age": 24,
+    "attack": 94,
+    "defense": 48
+  },
+  {
+    "name": "Lucas Silva",
+    "nationality": "Brezilya",
+    "nationality_code": "br",
+    "position": "OS",
+    "age": 27,
+    "attack": 88,
+    "defense": 76
+  },
+  {
+    "name": "Miko Vartan",
+    "nationality": "Türkiye",
+    "nationality_code": "tr",
+    "position": "OS",
+    "age": 23,
+    "attack": 86,
+    "defense": 71
+  }
+]
