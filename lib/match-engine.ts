@@ -67,6 +67,9 @@ function jitter(rand: () => number, p: PitchPoint, n = 6): PitchPoint {
 }
 
 function pickBy<T>(rand: () => number, items: T[], weight: (item: T) => number): T {
+  if (items.length === 0) {
+    throw new Error("empty pick");
+  }
   const weights = items.map(weight);
   const sum = weights.reduce((a, b) => a + b, 0) || 1;
   let r = rand() * sum;
@@ -75,6 +78,11 @@ function pickBy<T>(rand: () => number, items: T[], weight: (item: T) => number):
     if (r <= 0) return items[i]!;
   }
   return items[items.length - 1]!;
+}
+
+function safePick<T>(rand: () => number, preferred: T[], fallback: T[], weight: (item: T) => number): T {
+  const pool = preferred.length ? preferred : fallback;
+  return pickBy(rand, pool, weight);
 }
 
 const EVENT = {
@@ -152,7 +160,7 @@ export function simulateMatch(
   const defenders = (side: SimSide) => side.starters.filter((p) => p.position === "DEF");
   const gk = (side: SimSide) => side.starters.find((p) => p.position === "KL") ?? side.starters[0]!;
 
-  const eventChance = (hs.tempo + as.tempo) / 2 * 0.42;
+  const eventChance = ((hs.tempo + as.tempo) / 2) * 0.17;
 
   for (let minute = 2; minute <= 90; minute++) {
     if (rand() > eventChance && minute !== 45 && minute !== 90) continue;
@@ -162,8 +170,8 @@ export function simulateMatch(
     const attS = homeHas ? hs : as;
     const defS = homeHas ? as : hs;
     const side: "home" | "away" = homeHas ? "home" : "away";
-    const actor = pickBy(rand, attackers(att), (p) => rating(p, "attack") + 8);
-    const marker = pickBy(rand, defenders(def), (p) => rating(p, "defense") + 8);
+    const actor = safePick(rand, attackers(att), att.starters, (p) => rating(p, "attack") + 8);
+    const marker = safePick(rand, defenders(def), def.starters, (p) => rating(p, "defense") + 8);
     const keeper = gk(def);
     const from = jitter(rand, slotPos(att.team.formation, actor.slotKey, homeHas));
     const towardGoal: PitchPoint = homeHas ? { x: 94, y: 50 } : { x: 6, y: 50 };
@@ -216,8 +224,8 @@ export function simulateMatch(
       continue;
     }
 
-    if (roll < 0.38) {
-      const dest = pickBy(rand, att.starters, (p) => (p.position === "FV" ? 3 : 1));
+    if (roll < 0.48) {
+      const dest = safePick(rand, att.starters, att.starters, (p) => (p.position === "FV" ? 3 : 1));
       push(
         minute,
         EVENT.PASS,
@@ -237,7 +245,7 @@ export function simulateMatch(
       continue;
     }
 
-    if (roll < 0.5) {
+    if (roll < 0.62) {
       push(
         minute,
         EVENT.CHANCE,
@@ -257,7 +265,7 @@ export function simulateMatch(
       continue;
     }
 
-    if (roll < 0.6) {
+    if (roll < 0.72) {
       push(
         minute,
         EVENT.CORNER,
@@ -284,9 +292,11 @@ export function simulateMatch(
     );
 
     const shotQuality = attS.attack * attS.conversion * (0.75 + rand() * 0.5);
-    const saveQuality = defS.defense * (0.8 + rand() * 0.45) * (keeper.defense / 80);
-    const onTarget = rand() < 0.62;
-    const isGoal = onTarget && shotQuality > saveQuality * (0.92 + rand() * 0.35);
+    const saveQuality = defS.defense * (0.85 + rand() * 0.4) * (keeper.defense / 72);
+    const onTarget = rand() < 0.55;
+    const gap = shotQuality - saveQuality;
+    const goalChance = clamp(0.09 + gap / 320, 0.04, 0.3);
+    const isGoal = onTarget && rand() < goalChance;
 
     if (isGoal) {
       if (homeHas) homeScore += 1;
@@ -368,14 +378,15 @@ export function buildSimSide(
   team: Team,
   roster: Array<TeamPlayer & { player: Player }>,
 ): SimSide {
-  const starters = roster
-    .filter((r) => r.is_starter)
-    .slice(0, 11)
-    .map((r) => ({
-      ...r.player,
-      energy: r.energy,
-      form: r.form,
-      slotKey: r.squad_position || "gk",
-    }));
+  const chosen = [
+    ...roster.filter((r) => r.is_starter),
+    ...roster.filter((r) => !r.is_starter),
+  ].slice(0, 11);
+  const starters = chosen.map((r) => ({
+    ...r.player,
+    energy: r.energy,
+    form: r.form,
+    slotKey: r.squad_position || "gk",
+  }));
   return { team, starters };
 }

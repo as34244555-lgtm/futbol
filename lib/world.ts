@@ -86,6 +86,33 @@ export function autoSelectStarters(roster: TeamPlayer[], players: Player[], form
   return updated;
 }
 
+function takePosition(pool: Player[], position: Player["position"], n: number): { taken: Player[]; rest: Player[] } {
+  const matches = pool.filter((p) => p.position === position);
+  const others = pool.filter((p) => p.position !== position);
+  return { taken: matches.slice(0, n), rest: [...matches.slice(n), ...others] };
+}
+
+function pickBalancedSquad(pool: Player[], strength: number, size = 18): { squad: Player[]; rest: Player[] } {
+  const target = 62 + strength * 28;
+  let rest = [...pool].sort(
+    (a, b) => Math.abs(a.overall - target) - Math.abs(b.overall - target) || b.overall - a.overall,
+  );
+  const squad: Player[] = [];
+  const quotas: Array<[Player["position"], number]> = [
+    ["KL", 2],
+    ["DEF", 6],
+    ["OS", 6],
+    ["FV", 4],
+  ];
+  for (const [pos, n] of quotas) {
+    const chunk = takePosition(rest, pos, n);
+    squad.push(...chunk.taken);
+    rest = chunk.rest;
+  }
+  while (squad.length < size && rest.length) squad.push(rest.shift()!);
+  return { squad: squad.slice(0, size), rest: [...squad.slice(size), ...rest] };
+}
+
 function assignSquad(
   team: Team,
   pool: Player[],
@@ -108,11 +135,6 @@ function assignSquad(
   return { remaining, rows: filled };
 }
 
-function sortForClub(players: Player[], strength: number): Player[] {
-  const target = 62 + strength * 28;
-  return [...players].sort((a, b) => Math.abs(a.overall - target) - Math.abs(b.overall - target) || b.overall - a.overall);
-}
-
 export function createFreshWorld(): GameWorld {
   const catalog = generateCatalog(240);
   const agency = emptyTeam(SYSTEM_TEAM_ID, "Lig Ajansı", null, "#334155", "#e2e8f0", 0, 10);
@@ -120,17 +142,15 @@ export function createFreshWorld(): GameWorld {
     emptyTeam(teamId(i + 1), c.name, null, c.kit_primary, c.kit_secondary, 8000 + i * 400, 10),
   );
 
-  let pool = [...catalog].sort((a, b) => b.overall - a.overall);
+  let pool = [...catalog];
   const allRows: TeamPlayer[] = [];
   const listings: TransferListing[] = [];
 
   for (let i = 0; i < aiTeams.length; i++) {
     const club = aiTeams[i]!;
-    const ranked = sortForClub(pool, AI_CLUBS[i]!.strength);
-    const pick = ranked.slice(0, 18);
-    const pickIds = new Set(pick.map((p) => p.id));
-    pool = pool.filter((p) => !pickIds.has(p.id));
-    const { rows } = assignSquad(club, pick, 18, () => Math.random());
+    const { squad, rest } = pickBalancedSquad(pool, AI_CLUBS[i]!.strength, 18);
+    pool = rest;
+    const { rows } = assignSquad(club, squad, squad.length, () => Math.random());
     allRows.push(...rows);
   }
 
@@ -186,11 +206,13 @@ export function createUserTeam(world: GameWorld, profile: Profile, teamName: str
   const userTeam = emptyTeam(uid("team"), teamName, profile.id, KIT_USER_PRIMARY, KIT_USER_SECONDARY);
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
   const byId = new Map(world.players.map((p) => [p.id, p]));
-  const ranked = [...agencyPlayers].sort((a, b) => (byId.get(b.player_id)?.overall ?? 0) - (byId.get(a.player_id)?.overall ?? 0));
-  // Give a competitive-but-not-OP starter pack from mid-tier agency players
-  const pack = ranked.slice(12, 36).slice(0, 18);
+  const agencyCatalog = agencyPlayers
+    .map((tp) => byId.get(tp.player_id))
+    .filter((p): p is Player => Boolean(p));
+  const { squad } = pickBalancedSquad(agencyCatalog, 0.7, 18);
+  const squadIds = new Set(squad.map((p) => p.id));
+  const pack = agencyPlayers.filter((tp) => squadIds.has(tp.player_id)).slice(0, 18);
   const packIds = new Set(pack.map((p) => p.id));
-  const listedIds = new Set(pack.map((p) => p.id));
 
   const moved: TeamPlayer[] = pack.map((p) => ({
     ...p,
@@ -209,11 +231,8 @@ export function createUserTeam(world: GameWorld, profile: Profile, teamName: str
     profile,
     userTeamId: userTeam.id,
     teams: [...world.teams, userTeam],
-    teamPlayers: [
-      ...world.teamPlayers.filter((tp) => !packIds.has(tp.id)),
-      ...filled,
-    ],
-    listings: world.listings.filter((l) => !listedIds.has(l.team_player_id)),
+    teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
+    listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
   };
 }
 

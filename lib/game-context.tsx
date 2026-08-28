@@ -9,15 +9,12 @@ import type {
   Tactic,
   Team,
 } from "./types";
-import { buildSimSide, simulateMatch } from "./match-engine";
+import { simulateGameWeek } from "./season";
 import {
-  applyMatchResult,
   autoSelectStarters,
   createFreshWorld,
   createUserTeam,
   generateWeekFixtures,
-  recoverEnergy,
-  rosterOf,
   type GameWorld,
 } from "./world";
 import { uid } from "./utils";
@@ -285,80 +282,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [patch]);
 
   const playWeek = useCallback((): MatchSimulationResult | string => {
-    let result: MatchSimulationResult | string = "Maç oynatılamadı.";
-    patch((w) => {
-      if (!w.userTeamId) {
-        result = "Takım yok.";
-        return w;
-      }
-      let matches = w.matches.filter((m) => m.week === w.week);
-      let next = matches.length ? w : { ...w, matches: [...w.matches, ...generateWeekFixtures(w)] };
-      matches = next.matches.filter((m) => m.week === next.week);
-      const userFx = matches.find(
-        (m) => m.status === "pending" && (m.home_team_id === next.userTeamId || m.away_team_id === next.userTeamId),
-      );
-      if (!userFx) {
-        result = "Bu hafta fikstürünüz yok (bay). Hafta ilerletildi.";
-        const advanced = recoverEnergy({ ...next, week: next.week + 1 });
-        return advanced;
-      }
-
-      const simulateSide = (team: Team) => {
-        const roster = rosterOf(next, team.id);
-        let used = roster;
-        if (roster.filter((r) => r.is_starter).length < 11) {
-          const filled = autoSelectStarters(
-            next.teamPlayers.filter((tp) => tp.team_id === team.id),
-            next.players,
-            team.formation,
-          );
-          next = {
-            ...next,
-            teamPlayers: [...next.teamPlayers.filter((tp) => tp.team_id !== team.id), ...filled],
-          };
-          used = rosterOf(next, team.id);
-        }
-        return buildSimSide(team, used);
-      };
-
-      let acc = next;
-      const completed = [];
-      let userSim: MatchSimulationResult | null = null;
-
-      for (const fx of matches.filter((m) => m.status === "pending")) {
-        const home = acc.teams.find((t) => t.id === fx.home_team_id);
-        const away = acc.teams.find((t) => t.id === fx.away_team_id);
-        if (!home || !away) continue;
-        const sim = simulateMatch(simulateSide(home), simulateSide(away), acc.week, hashSeed(fx.id + acc.week));
-        sim.match.id = fx.id;
-        sim.logs = sim.logs.map((l) => ({ ...l, match_id: fx.id }));
-        const isUser = fx.id === userFx.id;
-        if (isUser) userSim = sim;
-        acc = applyMatchResult(acc, home.id, away.id, sim.match.home_score, sim.match.away_score);
-        completed.push({
-          ...fx,
-          home_score: sim.match.home_score,
-          away_score: sim.match.away_score,
-          status: "completed" as const,
-          played_at: sim.match.played_at,
-        });
-        if (isUser) {
-          acc = { ...acc, matchLogs: [...acc.matchLogs, ...sim.logs], lastSim: sim };
-        }
-      }
-
-      const completedIds = new Set(completed.map((m) => m.id));
-      acc = {
-        ...acc,
-        matches: [...acc.matches.filter((m) => !completedIds.has(m.id)), ...completed],
-        week: acc.week + 1,
-      };
-      acc = recoverEnergy(acc);
-      if (userSim) result = userSim;
-      return acc;
-    });
-    return result;
-  }, [patch]);
+    const out = simulateGameWeek(world);
+    setWorld(out.world);
+    return out.result;
+  }, [world]);
 
   const importPlayers = useCallback((players: Player[], mode: "merge" | "replace") => {
     patch((w) => {
@@ -448,13 +375,4 @@ export function useGame() {
   const ctx = useContext(GameContext);
   if (!ctx) throw new Error("useGame must be used within GameProvider");
   return ctx;
-}
-
-function hashSeed(s: string): number {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) {
-    h ^= s.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
 }

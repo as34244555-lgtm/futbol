@@ -10,7 +10,7 @@ import { useMemo, useState } from "react";
 
 export default function MatchPage() {
   const { world, userTeam, playWeek, ensureWeekFixtures } = useGame();
-  const [sim, setSim] = useState<MatchSimulationResult | null>(world.lastSim);
+  const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -20,11 +20,15 @@ export default function MatchPage() {
       m.status === "pending" &&
       (m.home_team_id === userTeam?.id || m.away_team_id === userTeam?.id),
   );
-  const home = world.teams.find((t) => t.id === (sim?.match.home_team_id ?? next?.home_team_id));
-  const away = world.teams.find((t) => t.id === (sim?.match.away_team_id ?? next?.away_team_id));
-  const opp = next && userTeam
-    ? world.teams.find((t) => t.id === (next.home_team_id === userTeam.id ? next.away_team_id : next.home_team_id))
-    : null;
+  const active = sim ?? null;
+  const homeId = active?.match.home_team_id ?? next?.home_team_id;
+  const awayId = active?.match.away_team_id ?? next?.away_team_id;
+  const home = world.teams.find((t) => t.id === homeId);
+  const away = world.teams.find((t) => t.id === awayId);
+  const opp =
+    next && userTeam
+      ? world.teams.find((t) => t.id === (next.home_team_id === userTeam.id ? next.away_team_id : next.home_team_id))
+      : null;
 
   const homeRoster = useMemo(() => (home ? rosterOf(world, home.id) : []), [world, home]);
   const awayRoster = useMemo(() => (away ? rosterOf(world, away.id) : []), [world, away]);
@@ -40,11 +44,11 @@ export default function MatchPage() {
         Aynı hesaplama <code className="text-neon">/api/simulate-match</code> serverless rotasında da çalışır.
       </p>
 
-      {!sim && (
+      {!active && (
         <div className="mb-8 rounded-3xl border border-white/10 bg-ink-800/70 p-6">
           <p className="text-sm text-slate-400">Hafta {world.week}</p>
           <p className="font-display text-4xl">
-            {opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil"}
+            {opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Button variant="ghost" onClick={ensureWeekFixtures}>
@@ -55,22 +59,32 @@ export default function MatchPage() {
               onClick={() => {
                 setBusy(true);
                 setError(null);
-                const res = playWeek();
-                if (typeof res === "string") setError(res);
-                else setSim(res);
-                setBusy(false);
+                try {
+                  const res = playWeek();
+                  if (typeof res === "string") setError(res);
+                  else setSim(res);
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : "Simülasyon hatası");
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
               {busy ? "Simüle ediliyor…" : "Maçı başlat"}
             </Button>
+            {world.lastSim && (
+              <Button variant="outline" onClick={() => setSim(world.lastSim)}>
+                Son maçı tekrar izle
+              </Button>
+            )}
           </div>
           {error && <p className="mt-4 text-sm text-rose-300">{error}</p>}
         </div>
       )}
 
-      {sim && home && away && (
+      {active && home && away && (
         <MatchSimulation
-          result={sim}
+          result={active}
           home={home}
           away={away}
           homeRoster={homeRoster}
