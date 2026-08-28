@@ -32,8 +32,7 @@ yarn-error.log*
 .vercel
 
 # typescript
-*.tsbuildinfo
-next-env.d.ts
+# next-env.d.ts is generated but should be deployed with the app
 
 # local league snapshot
 /data
