@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FORMATION_SLOTS } from "@/lib/formations";
 import type { MatchSimulationResult, Player, Team, TeamPlayer, TimelineEvent } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
+import { delayForEvent, densifyTimeline } from "@/lib/match-playback";
 import { cn } from "@/lib/utils";
 
 type Roster = TeamPlayer & { player: Player };
@@ -39,20 +40,24 @@ export function MatchSimulation({
   awayRoster: Roster[];
   onClose?: () => void;
 }) {
-  const events = result.timeline;
+  const events = useMemo(() => densifyTimeline(result, home.name, away.name), [result, home.name, away.name]);
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
-  const event = events[Math.min(idx, events.length - 1)]!;
-  const prev = idx > 0 ? events[idx - 1] : null;
 
   useEffect(() => {
-    if (!playing) return;
-    const gap = Math.max(0, event.minute - (prev?.minute ?? 0));
-    const sameMinute = Boolean(prev && prev.minute === event.minute);
-    let delay = sameMinute ? 420 / speed : Math.max(720, Math.min(1100, 900 * Math.max(1, gap))) / speed;
-    if (event.eventType === "goal") delay = Math.max(delay, 1500 / speed);
-    if (event.eventType === "whistle") delay = Math.max(delay, 1000 / speed);
+    setIdx(0);
+    setPlaying(true);
+    setSpeed(1);
+  }, [result.match.id]);
+
+  const safeIdx = events.length ? Math.min(idx, events.length - 1) : 0;
+  const event = events[safeIdx];
+  const prev = safeIdx > 0 ? events[safeIdx - 1]! : null;
+
+  useEffect(() => {
+    if (!playing || !event || events.length === 0) return;
+    const delay = delayForEvent(event, prev, speed);
     const t = window.setTimeout(() => {
       setIdx((i) => {
         if (i >= events.length - 1) {
@@ -63,9 +68,9 @@ export function MatchSimulation({
       });
     }, delay);
     return () => window.clearTimeout(t);
-  }, [playing, idx, speed, events.length, event.eventType, event.minute, prev]);
+  }, [playing, safeIdx, speed, events.length, event, prev]);
 
-  const commentary = events.slice(Math.max(0, idx - 8), idx + 1).reverse();
+  const commentary = events.slice(Math.max(0, safeIdx - 12), safeIdx + 1).reverse();
 
   const homeStarters = useMemo(
     () => homeRoster.filter((r) => r.is_starter).slice(0, 11),
@@ -76,26 +81,34 @@ export function MatchSimulation({
     [awayRoster],
   );
 
+  if (!event) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-ink-900 p-6 text-slate-400">
+        Anlatım yüklenemedi. Maçı tekrar başlatın.
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4 lg:grid-cols-[1.4fr_0.8fr]">
-      <div className="overflow-hidden rounded-3xl border border-white/10 bg-ink-900">
+      <div className="order-2 overflow-hidden rounded-3xl border border-white/10 bg-ink-900 lg:order-1">
         <div className="flex items-center justify-between bg-black/40 px-4 py-3">
           <TeamScore name={home.name} score={event.score[0]} kit={home.kit_primary} align="left" />
           <div className="text-center">
             <p className="font-display text-3xl tabular-nums text-white">
               {String(event.minute).padStart(2, "0")}&apos;
             </p>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Liga Nova</p>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Canlı · {speed}x</p>
           </div>
           <TeamScore name={away.name} score={event.score[1]} kit={away.kit_primary} align="right" />
         </div>
         <div
           className={cn(
-            "border-b border-white/10 px-4 py-2 text-center text-sm",
-            event.eventType === "goal" ? "bg-gold/15 text-gold" : "bg-black/35 text-slate-200",
+            "min-h-[3.5rem] border-b border-white/10 px-4 py-3 text-center text-base font-medium",
+            event.eventType === "goal" ? "bg-gold/15 text-gold" : "bg-black/35 text-slate-100",
           )}
         >
-          <span className="mr-2 font-mono text-xs text-slate-400">{String(event.minute).padStart(2, "0")}&apos;</span>
+          <span className="mr-2 font-mono text-sm text-slate-400">{String(event.minute).padStart(2, "0")}&apos;</span>
           {event.description}
         </div>
         <div className="relative">
@@ -182,25 +195,22 @@ export function MatchSimulation({
           )}
         </div>
       </div>
-      <div className="flex max-h-[640px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-ink-900">
+      <div className="order-1 flex max-h-[720px] min-h-[280px] flex-col overflow-hidden rounded-3xl border border-neon/30 bg-ink-900 lg:order-2">
         <div className="border-b border-white/10 px-4 py-3">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Canlı Anlatım</p>
-          <p className="font-display text-2xl">
+          <p className="text-xs uppercase tracking-[0.2em] text-neon">Canlı Anlatım</p>
+          <p className="font-display text-3xl">
             {event.score[0]} - {event.score[1]}
           </p>
-          <p className="mt-1 text-sm text-slate-300">{event.description}</p>
+          <p className="mt-1 text-sm text-slate-200">{event.description}</p>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-3">
           {commentary.map((c, i) => (
             <div
-              key={`${c.minute}-${c.eventType}-${i}`}
+              key={`${c.minute}-${c.eventType}-${c.description}-${i}`}
               className={cn(
                 "rounded-xl border px-3 py-2 text-sm",
-                c.eventType === "goal"
-                  ? "border-gold/40 bg-gold/10 text-gold"
-                  : c.eventType === "shot"
-                    ? "border-rose-500/30 bg-rose-500/10"
-                    : "border-white/10 bg-white/5",
+                i === 0 ? "border-neon/40 bg-neon/10" : "border-white/10 bg-white/5",
+                c.eventType === "goal" && "border-gold/40 bg-gold/10 text-gold",
               )}
             >
               <span className="mr-2 font-mono text-xs text-slate-400">{c.minute}&apos;</span>

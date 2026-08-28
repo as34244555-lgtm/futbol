@@ -210,7 +210,7 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
   const existing = world.teams.find((t) => t.user_id === userId);
   if (existing) return { world, team: existing };
   const [kit_primary, kit_secondary] = nextHumanKit(world);
-  const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary);
+  const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary, 15_000);
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
   const byId = new Map(world.players.map((p) => [p.id, p]));
   let agencyCatalog = agencyPlayers

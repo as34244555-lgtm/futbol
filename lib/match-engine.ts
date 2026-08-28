@@ -425,6 +425,51 @@ export function simulateMatch(
   };
 }
 
+/** Bot-bot maçları için hızlı skor; tam anlatım yok. */
+export function simulateScoreOnly(
+  home: SimSide,
+  away: SimSide,
+  week: number,
+  seed = Date.now(),
+): MatchSimulationResult {
+  const rand = seededRandom(seed >>> 0);
+  const hs = sideStrength(home);
+  const as = sideStrength(away);
+  const homeL = clamp(1.35 + (hs.attack - as.defense) / 48, 0.7, 3.4);
+  const awayL = clamp(1.15 + (as.attack - hs.defense) / 48, 0.55, 3.1);
+  let homeScore = poisson(rand, homeL);
+  let awayScore = poisson(rand, awayL);
+  if (homeScore + awayScore === 0 && rand() < 0.82) {
+    if (rand() < 0.55) homeScore = 1;
+    else awayScore = 1;
+  }
+  const match: Match = {
+    id: uid("match"),
+    home_team_id: home.team.id,
+    away_team_id: away.team.id,
+    home_score: homeScore,
+    away_score: awayScore,
+    status: "completed",
+    played_at: new Date().toISOString(),
+    week,
+  };
+  return {
+    match,
+    logs: [],
+    timeline: [
+      {
+        minute: 90,
+        second: 0,
+        eventType: "whistle",
+        description: `Maç sona erdi! ${home.team.name} ${homeScore} - ${awayScore} ${away.team.name}`,
+        ball: { x: 50, y: 50 },
+        team: "neutral",
+        score: [homeScore, awayScore],
+      },
+    ],
+  };
+}
+
 export function buildSimSide(team: Team, roster: Array<TeamPlayer & { player: Player }>): SimSide {
   const chosen = [...roster.filter((r) => r.is_starter), ...roster.filter((r) => !r.is_starter)].slice(0, 11);
   const starters = chosen.map((r) => ({

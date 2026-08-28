@@ -54,10 +54,18 @@ type GameContextValue = {
   autoPick: () => Promise<void>;
   listForSale: (teamPlayerId: string, price: number) => Promise<string | null>;
   cancelListing: (listingId: string) => Promise<void>;
-  buyListing: (listingId: string) => Promise<string | null>;
+  buyListing: (input: {
+    listingId: string;
+    teamPlayerId?: string;
+    playerId?: string;
+    sellerTeamId?: string;
+    price?: number;
+  }) => Promise<string | null>;
   ensureWeekFixtures: () => Promise<void>;
   playWeek: () => Promise<MatchSimulationResult | string>;
   importPlayers: (players: Player[], mode: "merge" | "replace") => Promise<void>;
+  watching: boolean;
+  setWatching: (v: boolean) => void;
 };
 
 const GameContext = createContext<GameContextValue | null>(null);
@@ -106,6 +114,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     roomCode: "NOVA",
   });
   const [ready, setReady] = useState(false);
+  const [watching, setWatching] = useState(false);
 
   const apply = useCallback((s: LeagueSnap) => setSnap(s), []);
 
@@ -121,9 +130,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     void refresh();
-    const t = window.setInterval(() => void refresh(), 4000);
+    const t = window.setInterval(() => {
+      if (!watching) void refresh();
+    }, 4000);
     return () => window.clearInterval(t);
-  }, [refresh]);
+  }, [refresh, watching]);
 
   const userTeam = useMemo(
     () =>
@@ -193,14 +204,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     apply(await postAction({ type: "cancelListing", listingId }));
   }, [apply]);
 
-  const buyListing = useCallback(async (listingId: string) => {
-    try {
-      apply(await postAction({ type: "buyListing", listingId }));
-      return null;
-    } catch (e) {
-      return e instanceof Error ? e.message : "Satın alınamadı";
-    }
-  }, [apply]);
+  const buyListing = useCallback(
+    async (input: {
+      listingId: string;
+      teamPlayerId?: string;
+      playerId?: string;
+      sellerTeamId?: string;
+      price?: number;
+    }) => {
+      try {
+        apply(await postAction({ type: "buyListing", ...input }));
+        return null;
+      } catch (e) {
+        return e instanceof Error ? e.message : "Satın alınamadı";
+      }
+    },
+    [apply],
+  );
 
   const ensureWeekFixtures = useCallback(async () => {
     apply(await postAction({ type: "ensureFixtures" }));
@@ -246,6 +266,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       ensureWeekFixtures,
       playWeek,
       importPlayers,
+      watching,
+      setWatching,
     }),
     [
       ready,
@@ -264,6 +286,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       ensureWeekFixtures,
       playWeek,
       importPlayers,
+      watching,
     ],
   );
 

@@ -235,9 +235,15 @@ export async function listForSale(session: SessionHint, teamPlayerId: string, pr
     if (doc.world.listings.some((l) => l.team_player_id === teamPlayerId && l.status === "active")) {
       throw new ActionError("Bu oyuncu zaten listelenmiş.");
     }
-    if (tp.is_starter) throw new ActionError("İlk 11'dekini satmadan önce yedekten yerleştirin.");
+    const unseated = doc.world.teamPlayers.map((row) =>
+      row.id === tp.id ? { ...row, is_starter: false, squad_position: null } : row,
+    );
+    const roster = unseated.filter((row) => row.team_id === team.id);
+    const others = unseated.filter((row) => row.team_id !== team.id);
+    const filled = autoSelectStarters(roster, doc.world.players, team.formation);
     const world = {
       ...doc.world,
+      teamPlayers: [...others, ...filled],
       listings: [
         ...doc.world.listings,
         {
@@ -272,29 +278,63 @@ export async function cancelListing(session: SessionHint, listingIdArg: string) 
   });
 }
 
-export async function buyListing(session: SessionHint, listingIdArg: string) {
+export type BuyPayload = {
+  listingId: string;
+  teamPlayerId?: string;
+  playerId?: string;
+  sellerTeamId?: string;
+  price?: number;
+};
+
+export async function buyListing(session: SessionHint, payload: string | BuyPayload) {
+  const input: BuyPayload = typeof payload === "string" ? { listingId: payload } : payload;
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
     const team = teamOf(doc, session.sub);
-    const listing = doc.world.listings.find((l) => l.id === listingIdArg && l.status === "active");
-    if (!listing) throw new ActionError("İlan bulunamadı.");
-    if (listing.seller_team_id === team.id) throw new ActionError("Kendi ilanınızı satın alamazsınız.");
-    if (team.coins < listing.price) throw new ActionError("Yetersiz bütçe.");
-    const tp = doc.world.teamPlayers.find((x) => x.id === listing.team_player_id);
+    const active = doc.world.listings.filter((l) => l.status === "active");
+    let listing = active.find((l) => l.id === input.listingId);
+    if (!listing && input.teamPlayerId) {
+      listing = active.find((l) => l.team_player_id === input.teamPlayerId);
+    }
+    if (!listing && input.playerId) {
+      listing = active.find((l) => {
+        const row = doc.world.teamPlayers.find((x) => x.id === l.team_player_id);
+        return row?.player_id === input.playerId;
+      });
+    }
+    if (!listing && input.sellerTeamId && input.playerId) {
+      listing = active.find((l) => {
+        if (l.seller_team_id !== input.sellerTeamId) return false;
+        const row = doc.world.teamPlayers.find((x) => x.id === l.team_player_id);
+        return row?.player_id === input.playerId;
+      });
+    }
+
+    let tp = listing ? doc.world.teamPlayers.find((x) => x.id === listing!.team_player_id) : undefined;
+    if (!tp && input.playerId) {
+      tp = doc.world.teamPlayers.find((x) => x.player_id === input.playerId);
+    }
     if (!tp) throw new ActionError("Oyuncu kaydı yok.");
+    if (tp.team_id === team.id) throw new ActionError("Bu oyuncu zaten kadronuzda.");
+
+    const price = Math.round(listing?.price ?? input.price ?? 0);
+    if (price <= 0) throw new ActionError("İlan bulunamadı.");
+    const sellerId = listing?.seller_team_id ?? tp.team_id;
+    if (sellerId === team.id) throw new ActionError("Kendi ilanınızı satın alamazsınız.");
+    if (team.coins < price) throw new ActionError("Yetersiz bütçe.");
     const squadSize = doc.world.teamPlayers.filter((x) => x.team_id === team.id).length;
     if (squadSize >= 28) throw new ActionError("Kadro dolu (maks. 28).");
+
+    const soldId = listing?.id;
     const world = {
       ...doc.world,
       teams: doc.world.teams.map((t) => {
-        if (t.id === team.id) return { ...t, coins: t.coins - listing.price };
-        if (t.id === listing.seller_team_id && t.id !== SYSTEM_TEAM_ID) {
-          return { ...t, coins: t.coins + listing.price };
-        }
+        if (t.id === team.id) return { ...t, coins: t.coins - price };
+        if (t.id === sellerId && t.id !== SYSTEM_TEAM_ID) return { ...t, coins: t.coins + price };
         return t;
       }),
       teamPlayers: doc.world.teamPlayers.map((row) =>
-        row.id === tp.id
+        row.id === tp!.id
           ? {
               ...row,
               id: rowId(team.id, row.player_id),
@@ -305,9 +345,12 @@ export async function buyListing(session: SessionHint, listingIdArg: string) {
             }
           : row,
       ),
-      listings: doc.world.listings.map((l) =>
-        l.id === listingIdArg && l.status === "active" ? { ...l, status: "sold" as const } : l,
-      ),
+      listings: doc.world.listings.map((l) => {
+        const row = doc.world.teamPlayers.find((x) => x.id === l.team_player_id);
+        const samePlayer = row?.player_id === tp!.player_id;
+        if (l.status === "active" && (l.id === soldId || samePlayer)) return { ...l, status: "sold" as const };
+        return l;
+      }),
     };
     const next = { ...doc, world };
     return { doc: next, result: snapshot(next, session.sub) };
@@ -331,9 +374,9 @@ export async function playMatch(session: SessionHint) {
     const out = playUserMatch(doc.world, team.id);
     const lastSim = { ...doc.lastSim };
     if (typeof out.result !== "string") {
-      lastSim[team.id] = out.result;
-      if (out.result.match.home_team_id) lastSim[out.result.match.home_team_id] = out.result;
-      if (out.result.match.away_team_id) lastSim[out.result.match.away_team_id] = out.result;
+      lastSim[team.id] = { ...out.result, logs: [] };
+      if (out.result.match.home_team_id) lastSim[out.result.match.home_team_id] = lastSim[team.id]!;
+      if (out.result.match.away_team_id) lastSim[out.result.match.away_team_id] = lastSim[team.id]!;
     }
     const next: LeagueDocument = {
       ...doc,

@@ -1,6 +1,7 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
 import { prepareWeek } from "../lib/season";
 import { createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
+import { densifyTimeline } from "../lib/match-playback";
 import { listingId } from "../lib/utils";
 
 function assert(cond: unknown, msg: string): asserts cond {
@@ -69,6 +70,22 @@ for (let i = 0; i < 16; i++) {
 }
 const avgGoals = totalGoals / 16;
 assert(avgGoals >= 1.5, `expected ~2-4 goals, got avg ${avgGoals.toFixed(2)}`);
+
+const dense = densifyTimeline(
+  {
+    match: { id: "m", home_team_id: "h", away_team_id: "a", home_score: 2, away_score: 1, status: "completed", played_at: "", week: 1 },
+    logs: [],
+    timeline: [
+      { minute: 1, second: 0, eventType: "kickoff", description: "başla", ball: { x: 50, y: 50 }, team: "neutral", score: [0, 0] },
+      { minute: 90, second: 0, eventType: "whistle", description: "bitti", ball: { x: 50, y: 50 }, team: "neutral", score: [2, 1] },
+    ],
+  },
+  "Ev",
+  "Dep",
+);
+assert(dense.length >= 90, `densify too short ${dense.length}`);
+assert(dense.some((e) => e.minute === 44 && e.description.length > 8), "filler commentary missing");
+assert(dense[dense.length - 1]!.score[0] === 2, "final score kept");
 
 console.log(
   JSON.stringify({

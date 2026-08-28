@@ -1,4 +1,4 @@
-import { buildSimSide, simulateMatch } from "./match-engine";
+import { buildSimSide, simulateMatch, simulateScoreOnly } from "./match-engine";
 import type { GameWorld, MatchSimulationResult, Team } from "./types";
 import {
   applyMatchResult,
@@ -56,7 +56,10 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
   const homeSide = buildSimSide(home, rosterOf(acc, home.id));
   const awaySide = buildSimSide(away, rosterOf(acc, away.id));
   if (homeSide.starters.length < 8 || awaySide.starters.length < 8) return null;
-  const sim = simulateMatch(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)));
+  const humanGame = Boolean(home.user_id || away.user_id);
+  const sim = humanGame
+    ? simulateMatch(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)))
+    : simulateScoreOnly(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)));
   sim.match.id = fx.id;
   sim.match.home_team_id = home.id;
   sim.match.away_team_id = away.id;

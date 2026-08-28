@@ -15,7 +15,7 @@ type Body =
   | { type: "autoPick" }
   | { type: "listForSale"; teamPlayerId: string; price: number }
   | { type: "cancelListing"; listingId: string }
-  | { type: "buyListing"; listingId: string }
+  | { type: "buyListing"; listingId: string; teamPlayerId?: string; playerId?: string; sellerTeamId?: string; price?: number }
   | { type: "ensureFixtures" }
   | { type: "playMatch" }
   | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" };
@@ -40,7 +40,15 @@ export async function POST(req: Request) {
         case "cancelListing":
           return NextResponse.json(await actions.cancelListing(session, body.listingId));
         case "buyListing":
-          return NextResponse.json(await actions.buyListing(session, body.listingId));
+          return NextResponse.json(
+            await actions.buyListing(session, {
+              listingId: body.listingId,
+              teamPlayerId: body.teamPlayerId,
+              playerId: body.playerId,
+              sellerTeamId: body.sellerTeamId,
+              price: body.price,
+            }),
+          );
         case "ensureFixtures":
           return NextResponse.json(await actions.ensureFixtures(session));
         case "playMatch":

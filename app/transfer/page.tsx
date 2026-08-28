@@ -128,7 +128,13 @@ export default function TransferPage() {
                   <Button
                     size="sm"
                     onClick={async () => {
-                      const err = await buyListing(r.listing.id);
+                      const err = await buyListing({
+                        listingId: r.listing.id,
+                        teamPlayerId: r.tp?.id,
+                        playerId: r.player?.id,
+                        sellerTeamId: r.listing.seller_team_id,
+                        price: r.listing.price,
+                      });
                       setMsg(err ?? `${r.player!.name} kadroya katıldı.`);
                     }}
                   >
