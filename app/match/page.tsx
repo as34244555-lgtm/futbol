@@ -10,7 +10,7 @@ import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
 export default function MatchPage() {
-  const { world, userTeam, playWeek, ensureWeekFixtures, setWatching } = useGame();
+  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching } = useGame();
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -63,8 +63,8 @@ export default function MatchPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
       <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-slate-400">
-        İki menajer karşılaşınca maç <strong>bir kez</strong> simüle edilir; iki ekranda da aynı skor çıkar. Biri
-        başlatır, diğeri “Maçı izle” ile aynı anlatımı görür. Hafta, ikiniz de sonucu açınca ilerler.
+        Karşılıklı maç <strong>bir kez</strong> oynanır: bir ekranda 3-0, diğerinde 0-1 olmaz. Biri başlatır,
+        diğeri “Maçı izle” ile aynı skoru görür. Hafta, ikiniz de sonucu açınca ilerler.
       </p>
 
       {!active && (

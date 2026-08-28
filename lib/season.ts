@@ -1,5 +1,5 @@
 import { buildSimSide, simulateMatch, simulateScoreOnly } from "./match-engine";
-import type { GameWorld, MatchSimulationResult, Team } from "./types";
+import type { GameWorld, Match, MatchSimulationResult, Team } from "./types";
 import {
   applyMatchResult,
   autoSelectStarters,
@@ -95,6 +95,7 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
             away_score: sim.match.away_score,
             status: "completed" as const,
             played_at: sim.match.played_at,
+            replay: humanGame ? { timeline: sim.timeline, motm: sim.motm } : m.replay,
           }
         : m,
     ),
@@ -146,22 +147,22 @@ function pickStoredSim(
   return lastSim[fx.id] ?? (fx.home_team_id ? lastSim[fx.home_team_id] : undefined) ?? (fx.away_team_id ? lastSim[fx.away_team_id] : undefined) ?? null;
 }
 
-function replayView(world: GameWorld, fx: { id: string; home_team_id: string | null; away_team_id: string | null; week: number; home_score: number; away_score: number }): MatchSimulationResult | null {
-  const home = world.teams.find((t) => t.id === fx.home_team_id);
-  const away = world.teams.find((t) => t.id === fx.away_team_id);
-  if (!home || !away) return null;
-  const acc = ensureEleven(ensureEleven(world, home), away);
-  const homeSide = buildSimSide(home, rosterOf(acc, home.id));
-  const awaySide = buildSimSide(away, rosterOf(acc, away.id));
-  if (homeSide.starters.length < 8 || awaySide.starters.length < 8) return null;
-  const sim = simulateMatch(homeSide, awaySide, fx.week, matchSeed(fx));
-  sim.match.id = fx.id;
-  sim.match.home_team_id = home.id;
-  sim.match.away_team_id = away.id;
-  sim.match.home_score = fx.home_score;
-  sim.match.away_score = fx.away_score;
-  sim.match.status = "completed";
-  return sim;
+function viewFromDone(fx: Match, stored: MatchSimulationResult | null): MatchSimulationResult {
+  const match: Match = { ...fx, status: "completed" };
+  if (stored) {
+    return {
+      ...stored,
+      match: { ...stored.match, ...match, replay: fx.replay },
+      timeline: stored.timeline.length ? stored.timeline : (fx.replay?.timeline ?? stored.timeline),
+      motm: stored.motm ?? fx.replay?.motm,
+    };
+  }
+  return {
+    match,
+    logs: [],
+    timeline: fx.replay?.timeline ?? [],
+    motm: fx.replay?.motm,
+  };
 }
 
 export function playUserMatch(
@@ -197,22 +198,7 @@ export function playUserMatch(
 
   if (done) {
     const claimed = closeWeekIfReady(claimMatch(next, done.id, userTeamId));
-    const stored = pickStoredSim(lastSim, done);
-    const view =
-      stored ??
-      replayView(next, {
-        id: done.id,
-        home_team_id: done.home_team_id,
-        away_team_id: done.away_team_id,
-        week: done.week,
-        home_score: done.home_score,
-        away_score: done.away_score,
-      });
-    if (!view) return { world: claimed, result: "Bu haftaki maçınız zaten oynandı." };
-    view.match.home_score = done.home_score;
-    view.match.away_score = done.away_score;
-    view.match.id = done.id;
-    return { world: claimed, result: view };
+    return { world: claimed, result: viewFromDone(done, pickStoredSim(lastSim, done)) };
   }
 
   next = closeWeekIfReady(next);

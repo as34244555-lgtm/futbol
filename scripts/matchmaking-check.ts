@@ -55,6 +55,12 @@ assert(second.result.match.home_score === first.result.match.home_score, "home s
 assert(second.result.match.away_score === first.result.match.away_score, "away score must match");
 assert(second.world.week === live.week + 1, `week advances after both watch, got ${second.world.week}`);
 
+const again = playUserMatch(first.world, b.team.id, {});
+assert(typeof again.result !== "string", `B must get stored score without lastSim, got ${again.result}`);
+assert(again.result.match.home_score === first.result.match.home_score, "stored home score must match without lastSim");
+assert(again.result.match.away_score === first.result.match.away_score, "stored away score must match without lastSim");
+assert((again.result.timeline?.length ?? 0) > 0, "replay timeline must be stored on the match");
+
 console.log(
   JSON.stringify({
     bots: bots.length,

@@ -98,6 +98,11 @@ export type Match = {
   week: number;
   /** İnsan-insan maçında hafta, her iki menajer de sonucu açana kadar kapanmaz. */
   claimed_by?: string[];
+  /** İlk simülasyonun anlatımı; ikinci menajer aynı skoru izler, yeniden zar atılmaz. */
+  replay?: {
+    timeline: TimelineEvent[];
+    motm?: MatchSimulationResult["motm"];
+  };
 };
 
 export type MatchLog = {
