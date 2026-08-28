@@ -26,24 +26,22 @@ npm run dev
 
 Lig dosyası: `data/league.json` (git’e girmez).
 
-## Vercel dağıtımı
+## Kalıcı site (Vercel)
 
-1. Repo’yu Vercel’e bağlayın (framework: Next.js).
-2. Supabase SQL Editor’de `supabase/schema.sql` çalıştırın.
-3. Vercel Environment Variables:
+GitHub reposu zaten Vercel projesine bağlı: [agelistirici/futbol](https://vercel.com/agelistirici/futbol).
 
-```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-SUPABASE_SERVICE_ROLE_KEY
-AUTH_SECRET
-```
+Kalıcı adres (GitHub homepage): [https://futbol-ashen.vercel.app](https://futbol-ashen.vercel.app)
 
-Service role anahtarı yalnızca sunucu fonksiyonlarında kullanılır. `AUTH_SECRET` oturum imzasıdır.
+`main` hâlâ boş starter olduğu için production şu an oyunu göstermiyor. Bu PR merge edilince Liga Nova o adrese gelir; sonraki `main` push’ları otomatik yayınlanır.
 
-Supabase yoksa Vercel instance belleği kullanılır; bu, soğuk başlangıçta ligi sıfırlar. Üretim çoklu oyuncu için Supabase zorunludur.
+1. Bu PR’yi GitHub’da **Merge** edin: https://github.com/as34244555-lgtm/futbol/pull/1
+2. Vercel → [Deployment Protection](https://vercel.com/agelistirici/futbol/settings/deployment-protection) — Production korumasını kapatın. Açıksa site Vercel girişi ister, herkese açık olmaz.
+3. Vercel → [Domains](https://vercel.com/agelistirici/futbol/settings/domains) — `futbol-ashen.vercel.app` (veya kendi alan adınız) Production’a bağlı olsun.
+4. Environment Variable: `AUTH_SECRET` = uzun rastgele metin (oturum çerezi).
 
-Geçici önizleme (oturum gerekmez): `npx vercel deploy --temporary --yes`
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/import?s=https://github.com/as34244555-lgtm/futbol)
+
+Arkadaşlarınla **aynı ligin kaybolmaması** için ücretsiz [Supabase](https://supabase.com) projesi açıp `supabase/schema.sql` çalıştırın ve Vercel’e ekleyin: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Supabase yoksa site kalıcıdır ama lig soğuk başlangıçta sıfırlanabilir.
 
 ## API
 

@@ -19,8 +19,8 @@ function filler(minute: number, home: string, away: string): string {
 }
 
 function fromLogs(logs: MatchLog[]): TimelineEvent[] {
-  let hs = 0;
-  let as = 0;
+  const hs = 0;
+  const as = 0;
   return logs.map((l) => {
     const isGoal = l.event_type === "goal";
     // logs don't say which side; keep last known from description if possible
