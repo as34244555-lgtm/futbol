@@ -15,19 +15,31 @@ export default function MatchPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const unclaimedMatch = userTeam
+    ? [...world.matches]
+        .reverse()
+        .find(
+          (m) =>
+            m.status === "completed" &&
+            (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id) &&
+            !(m.claimed_by ?? []).includes(userTeam.id),
+        )
+    : undefined;
   const myWeekMatch = world.matches.find(
     (m) =>
       userTeam &&
       m.week === world.week &&
       (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id),
   );
-  const waitingToWatch = Boolean(
+  const waitingToWatch = Boolean(unclaimedMatch);
+  const alreadyPlayed = Boolean(
     userTeam &&
+      !waitingToWatch &&
       myWeekMatch &&
       myWeekMatch.status === "completed" &&
-      !(myWeekMatch.claimed_by ?? []).includes(userTeam.id),
+      (myWeekMatch.claimed_by ?? []).includes(userTeam.id),
   );
-  const next = myWeekMatch;
+  const next = unclaimedMatch ?? myWeekMatch;
   const active = sim ?? null;
   const homeId = active?.match.home_team_id ?? next?.home_team_id;
   const awayId = active?.match.away_team_id ?? next?.away_team_id;
@@ -63,8 +75,8 @@ export default function MatchPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
       <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-slate-400">
-        Karşılıklı maç <strong>bir kez</strong> oynanır: bir ekranda 3-0, diğerinde 0-1 olmaz. Biri başlatır,
-        diğeri “Maçı izle” ile aynı skoru görür. Hafta, ikiniz de sonucu açınca ilerler.
+        Karşılıklı maç <strong>bir kez</strong> oynanır. Biri başlatır, diğeri “Maçı izle” der. Bot maçından sonra
+        lig sonraki haftaya geçer; aynı skor tekrarlanmaz.
       </p>
 
       {!active && (
@@ -83,12 +95,18 @@ export default function MatchPage() {
               Skor {next.home_score} - {next.away_score}. Rakip maçı bitirdi; siz de aynı karşılaşmayı izleyin.
             </p>
           )}
+          {alreadyPlayed && next && (
+            <p className="mt-3 text-sm text-neon">
+              Bu hafta {next.home_score} - {next.away_score} bitti
+              {opp?.user_id ? ". Rakip izleyince sonraki hafta açılır." : "."} Aynı maç yeniden oynanmaz.
+            </p>
+          )}
           <div className="mt-6 flex flex-wrap gap-3">
             <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
               Fikstürü oluştur
             </Button>
             <Button
-              disabled={busy}
+              disabled={busy || alreadyPlayed}
               onClick={async () => {
                 setBusy(true);
                 setError(null);
@@ -103,7 +121,7 @@ export default function MatchPage() {
                 }
               }}
             >
-              {busy ? "Hazırlanıyor…" : waitingToWatch ? "Maçı izle" : "Maçı başlat"}
+              {busy ? "Hazırlanıyor…" : waitingToWatch ? "Maçı izle" : alreadyPlayed ? "Hafta bitti" : "Maçı başlat"}
             </Button>
             {lastSim && (
               <Button variant="outline" onClick={() => setSim(lastSim)}>

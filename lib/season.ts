@@ -33,10 +33,6 @@ function ensureEleven(world: GameWorld, team: Team): GameWorld {
   };
 }
 
-function isHuman(team: Team): boolean {
-  return Boolean(team.user_id);
-}
-
 function involvesTeam(m: { home_team_id: string | null; away_team_id: string | null }, teamId: string) {
   return m.home_team_id === teamId || m.away_team_id === teamId;
 }
@@ -55,14 +51,28 @@ function claimMatch(world: GameWorld, matchId: string, teamId: string): GameWorl
   };
 }
 
+function teamById(world: GameWorld, id: string | null) {
+  return id ? world.teams.find((t) => t.id === id) : undefined;
+}
+
+function isHumanVsHuman(world: GameWorld, fx: { home_team_id: string | null; away_team_id: string | null }) {
+  return Boolean(teamById(world, fx.home_team_id)?.user_id && teamById(world, fx.away_team_id)?.user_id);
+}
+
+/** İnsan-insan maçı henüz simüle edilmediyse hafta kilitli kalır. İzlemek haftayı tutmaz. */
 function humansPending(world: GameWorld): boolean {
-  const humanIds = new Set(world.teams.filter(isHuman).map((t) => t.id));
-  return [...humanIds].some((id) => {
-    const fx = world.matches.find((m) => m.week === world.week && involvesTeam(m, id));
-    if (!fx) return false;
-    if (fx.status === "pending") return true;
-    return !(fx.claimed_by ?? []).includes(id);
-  });
+  return world.matches.some(
+    (m) => m.week === world.week && m.status === "pending" && isHumanVsHuman(world, m),
+  );
+}
+
+function alreadyPlayedMessage(world: GameWorld, fx: Match, userTeamId: string) {
+  const opp = teamById(world, fx.home_team_id === userTeamId ? fx.away_team_id : fx.home_team_id);
+  const score = `${fx.home_score}-${fx.away_score}`;
+  if (opp?.user_id) {
+    return `Bu hafta ${score} bitti. Rakip maçı izleyince lig sonraki haftaya geçer; aynı maç yeniden oynanmaz.`;
+  }
+  return `Bu haftaki maçınız ${score} bitti.`;
 }
 
 function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | null; away_team_id: string | null; week: number }) {
@@ -105,7 +115,7 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
 
 /** İnsan maçlarını bekletmeden bot-bot fikstürlerini aynı hafta oynatır. */
 export function resolveBotFixtures(world: GameWorld): GameWorld {
-  const humanIds = new Set(world.teams.filter(isHuman).map((t) => t.id));
+  const humanIds = new Set(world.teams.filter((t) => t.user_id).map((t) => t.id));
   let acc = world;
   const pending = acc.matches.filter((m) => m.week === acc.week && m.status === "pending");
   for (const fx of pending) {
@@ -175,6 +185,19 @@ export function playUserMatch(
 } {
   let next = prepareWeek(world);
 
+  const unclaimed = [...next.matches]
+    .reverse()
+    .find(
+      (m) =>
+        m.status === "completed" &&
+        involvesTeam(m, userTeamId) &&
+        !(m.claimed_by ?? []).includes(userTeamId),
+    );
+  if (unclaimed) {
+    const claimed = closeWeekIfReady(claimMatch(next, unclaimed.id, userTeamId));
+    return { world: claimed, result: viewFromDone(unclaimed, pickStoredSim(lastSim, unclaimed)) };
+  }
+
   const pending = next.matches.find(
     (m) => m.week === next.week && m.status === "pending" && involvesTeam(m, userTeamId),
   );
@@ -185,20 +208,11 @@ export function playUserMatch(
     return { world: closeWeekIfReady(claimed), result: played.sim };
   }
 
-  const done =
-    next.matches.find((m) => m.week === next.week && m.status === "completed" && involvesTeam(m, userTeamId)) ??
-    [...next.matches]
-      .reverse()
-      .find(
-        (m) =>
-          m.status === "completed" &&
-          involvesTeam(m, userTeamId) &&
-          !(m.claimed_by ?? []).includes(userTeamId),
-      );
-
+  const done = next.matches.find((m) => m.week === next.week && m.status === "completed" && involvesTeam(m, userTeamId));
   if (done) {
-    const claimed = closeWeekIfReady(claimMatch(next, done.id, userTeamId));
-    return { world: claimed, result: viewFromDone(done, pickStoredSim(lastSim, done)) };
+    const closed = closeWeekIfReady(next);
+    if (closed.week !== next.week) return playUserMatch(closed, userTeamId, lastSim);
+    return { world: next, result: alreadyPlayedMessage(next, done, userTeamId) };
   }
 
   next = closeWeekIfReady(next);
