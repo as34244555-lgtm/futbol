@@ -158,6 +158,7 @@ export type ManagerInfo = {
   teamName: string;
   lastSeen: string | null;
   online: boolean;
+  kind: "human" | "bot";
 };
 
 export type LeagueDocument = {

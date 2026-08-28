@@ -8,8 +8,9 @@ Vercel serverless API + (üretimde) Supabase paylaşılan durum.
 - Tüm menajerler **aynı lige** girer (transfer pazarı, fikstür, puan durumu ortak).
 - Kayıt/giriş httpOnly oturum çerezi ile yapılır.
 - Maç ve transfer `POST /api/league/action` üzerinden Vercel fonksiyonunda atomik işlenir.
-- İnsan vs insan: rakibin son kayıtlı 11’i ve taktiği kullanılır (asenkron).
-- Hafta, tüm insan maçları bitince kapanır; kalan AI–AI maçları o an çözülür.
+- İnsan vs insan: ligde bekleyen başka gerçek menajer varsa onunla eşleşirsiniz; yoksa bot menajerle oynarsınız.
+- 18 bot kulüp pazarı ve fikstürü doldurur (her bot ~6 satış ilanı).
+- Hafta, tüm insan maçları bitince kapanır; kalan bot–bot maçları o an çözülür.
 
 ## Yerel geliştirme
 

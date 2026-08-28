@@ -19,6 +19,7 @@ export type LeagueSnap = {
   managers: ManagerInfo[];
   backend: "supabase" | "file" | "memory";
   humans: number;
+  bots: number;
 };
 
 const emptyWorld: GameWorld = {
@@ -41,6 +42,7 @@ type GameContextValue = {
   managers: ManagerInfo[];
   backend: LeagueSnap["backend"];
   humans: number;
+  bots: number;
   register: (username: string, password: string, teamName: string) => Promise<string | null>;
   login: (username: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
@@ -83,6 +85,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     managers: [],
     backend: "file",
     humans: 0,
+    bots: 0,
   });
   const [ready, setReady] = useState(false);
 
@@ -201,6 +204,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       managers: snap.managers,
       backend: snap.backend,
       humans: snap.humans,
+      bots: snap.bots ?? 0,
       register,
       login,
       logout,

@@ -12,7 +12,7 @@ import Link from "next/link";
 import { useMemo } from "react";
 
 export default function DashboardPage() {
-  const { world, userTeam, managers, ensureWeekFixtures } = useGame();
+  const { world, userTeam, managers, ensureWeekFixtures, humans, bots } = useGame();
   const roster = useMemo(
     () => (userTeam ? rosterOf(world, userTeam.id) : []),
     [world, userTeam],
@@ -60,7 +60,7 @@ export default function DashboardPage() {
             <p className="text-slate-300">
               Hafta {world.week}: {next?.home_team_id === userTeam?.id ? "Ev sahibi" : "Deplasman"} —{" "}
               <span className="text-neon">{opponent.name}</span>
-              {opponent.user_id ? " · insan menajer" : " · AI"}
+              {opponent.user_id ? " · insan menajer" : " · bot menajer"}
             </p>
           ) : (
             <p className="text-slate-400">Fikstür henüz yok. Maç ekranından haftayı başlatın.</p>
@@ -85,19 +85,38 @@ export default function DashboardPage() {
         )}
       </div>
       <h2 className="font-display mt-10 text-2xl">Menajer odası</h2>
+      <p className="mt-1 text-sm text-slate-500">
+        {humans} gerçek menajer · {bots} bot. İki gerçek menajer aynı anda bekliyorsa birbirleriyle eşleşir.
+      </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {managers.map((m) => (
-          <div key={m.userId} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-800 px-4 py-3">
+          <div
+            key={m.userId}
+            className={`flex items-center justify-between rounded-2xl border px-4 py-3 ${
+              m.kind === "bot" ? "border-white/5 bg-ink-800/50" : "border-white/10 bg-ink-800"
+            }`}
+          >
             <div>
               <p className="font-medium">{m.username}</p>
               <p className="text-xs text-slate-500">{m.teamName}</p>
             </div>
-            <span className={m.online ? "text-xs text-neon" : "text-xs text-slate-500"}>
-              {m.online ? "çevrimiçi" : "çevrimdışı"}
-            </span>
+            <div className="text-right">
+              <span
+                className={
+                  m.kind === "human"
+                    ? "text-[10px] uppercase tracking-wider text-gold"
+                    : "text-[10px] uppercase tracking-wider text-slate-500"
+                }
+              >
+                {m.kind === "human" ? "insan" : "bot"}
+              </span>
+              <p className={m.online ? "text-xs text-neon" : "text-xs text-slate-500"}>
+                {m.kind === "bot" ? "hazır" : m.online ? "çevrimiçi" : "çevrimdışı"}
+              </p>
+            </div>
           </div>
         ))}
-        {managers.length === 0 && <p className="text-sm text-slate-500">Henüz başka menajer yok.</p>}
+        {managers.length === 0 && <p className="text-sm text-slate-500">Henüz menajer yok.</p>}
       </div>
       <h2 className="font-display mt-10 text-2xl">Yıldızlar</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

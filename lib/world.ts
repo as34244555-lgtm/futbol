@@ -125,7 +125,7 @@ function assignSquad(
 }
 
 export function createFreshWorld(): GameWorld {
-  const catalog = generateCatalog(240);
+  const catalog = generateCatalog(420);
   const agency = emptyTeam(SYSTEM_TEAM_ID, "Lig Ajansı", null, "#334155", "#e2e8f0", 0, 10);
   const aiTeams = AI_CLUBS.map((c, i) =>
     emptyTeam(teamId(i + 1), c.name, null, c.kit_primary, c.kit_secondary, 8000 + i * 400, 10),
@@ -176,7 +176,7 @@ export function createFreshWorld(): GameWorld {
     }
   }
 
-  return {
+  const world: GameWorld = {
     players: catalog,
     teams: [agency, ...aiTeams],
     teamPlayers: allRows,
@@ -186,6 +186,7 @@ export function createFreshWorld(): GameWorld {
     week: 1,
     season: 1,
   };
+  return ensureBotWorld(world);
 }
 
 export const HUMAN_KITS: Array<[string, string]> = [
@@ -334,36 +335,202 @@ export function recoverEnergy(world: GameWorld): GameWorld {
   };
 }
 
+export function isBotTeam(t: Team): boolean {
+  return !t.user_id && t.id !== SYSTEM_TEAM_ID;
+}
+
+export function makeFixture(home: Team, away: Team, week: number): Match {
+  return {
+    id: uid("fx"),
+    home_team_id: home.id,
+    away_team_id: away.id,
+    home_score: 0,
+    away_score: 0,
+    status: "pending",
+    played_at: new Date().toISOString(),
+    week,
+  };
+}
+
+function involves(m: Match, teamId: string): boolean {
+  return m.home_team_id === teamId || m.away_team_id === teamId;
+}
+
+function opponentId(m: Match, teamId: string): string | null {
+  if (m.home_team_id === teamId) return m.away_team_id;
+  if (m.away_team_id === teamId) return m.home_team_id;
+  return null;
+}
+
+/** Gerçek menajerler birbirine eşleşir; tek kalan botla oynar. */
+export function ensureHumanMatchmaking(world: GameWorld): GameWorld {
+  const week = world.week;
+  const humans = leagueTeams(world).filter((t) => t.user_id);
+  const bots = leagueTeams(world).filter((t) => !t.user_id);
+  const completedIds = new Set(
+    world.matches
+      .filter((m) => m.week === week && m.status === "completed")
+      .flatMap((m) => [m.home_team_id, m.away_team_id]),
+  );
+
+  const rematchable: Team[] = [];
+  for (const h of humans) {
+    if (completedIds.has(h.id)) continue;
+    const fx = world.matches.find((m) => m.week === week && m.status === "pending" && involves(m, h.id));
+    if (!fx) {
+      rematchable.push(h);
+      continue;
+    }
+    const opp = opponentId(fx, h.id);
+    const oppTeam = world.teams.find((t) => t.id === opp);
+    if (!oppTeam?.user_id) rematchable.push(h);
+  }
+
+  let matches = [...world.matches];
+  const paired = new Set<string>();
+  for (let i = 0; i + 1 < rematchable.length; i += 2) {
+    const a = rematchable[i]!;
+    const b = rematchable[i + 1]!;
+    matches = matches.filter(
+      (m) => !(m.week === week && m.status === "pending" && (involves(m, a.id) || involves(m, b.id))),
+    );
+    const swap = week % 2 === 0;
+    matches.push(makeFixture(swap ? b : a, swap ? a : b, week));
+    paired.add(a.id);
+    paired.add(b.id);
+  }
+
+  const leftover = rematchable.filter((h) => !paired.has(h.id));
+  for (const h of leftover) {
+    if (matches.some((m) => m.week === week && m.status === "pending" && involves(m, h.id))) continue;
+    const bot = freeBotForHuman(matches, bots, week);
+    if (bot) matches.push(makeFixture(week % 2 === 0 ? h : bot, week % 2 === 0 ? bot : h, week));
+  }
+
+  matches = fillIdleBots(matches, bots, week);
+  return { ...world, matches };
+}
+
+function weekBusy(matches: Match[], week: number): Set<string> {
+  return new Set(
+    matches
+      .filter((m) => m.week === week && (m.status === "pending" || m.status === "completed"))
+      .flatMap((m) => [m.home_team_id, m.away_team_id])
+      .filter((id): id is string => Boolean(id)),
+  );
+}
+
+function freeBotForHuman(matches: Match[], bots: Team[], week: number): Team | undefined {
+  const busy = weekBusy(matches, week);
+  const idle = bots.find((t) => !busy.has(t.id));
+  if (idle) return idle;
+  const botVsBot = matches.find((m) => {
+    if (m.week !== week || m.status !== "pending") return false;
+    const home = bots.some((t) => t.id === m.home_team_id);
+    const away = bots.some((t) => t.id === m.away_team_id);
+    return home && away;
+  });
+  if (!botVsBot) return undefined;
+  const idx = matches.indexOf(botVsBot);
+  if (idx >= 0) matches.splice(idx, 1);
+  return bots.find((t) => t.id === botVsBot.home_team_id);
+}
+
+function fillIdleBots(matches: Match[], bots: Team[], week: number): Match[] {
+  const next = [...matches];
+  const idle = bots.filter((t) => !weekBusy(next, week).has(t.id));
+  for (let i = 0; i + 1 < idle.length; i += 2) {
+    next.push(makeFixture(idle[i]!, idle[i + 1]!, week));
+  }
+  return next;
+}
+
 export function generateWeekFixtures(world: GameWorld): Match[] {
-  const clubs = leagueTeams(world).sort((a, b) => a.name.localeCompare(b.name, "tr"));
-  if (clubs.length < 2) return [];
-  const bye = clubs.length % 2 === 1 ? ({ id: "__bye__" } as Team) : null;
-  const arr: Team[] = bye ? [...clubs, bye] : [...clubs];
-  const n = arr.length;
-  const rounds = n - 1;
-  const weekIndex = ((world.week - 1) % rounds) + 1;
-  for (let r = 1; r < weekIndex; r++) {
-    const fixed = arr[0];
-    const rest = arr.slice(1);
-    rest.unshift(rest.pop()!);
-    arr.splice(0, arr.length, fixed!, ...rest);
-  }
+  const humans = leagueTeams(world).filter((t) => t.user_id);
+  const bots = leagueTeams(world).filter((t) => !t.user_id);
+  if (humans.length + bots.length < 2) return [];
+  const week = world.week;
+  const rotate = (arr: Team[]) => {
+    const copy = [...arr].sort((a, b) => a.id.localeCompare(b.id));
+    const n = ((week - 1) % Math.max(1, copy.length)) % copy.length;
+    return copy.slice(n).concat(copy.slice(0, n));
+  };
+  const used = new Set<string>();
   const matches: Match[] = [];
-  for (let i = 0; i < n / 2; i++) {
-    const home = arr[i]!;
-    const away = arr[n - 1 - i]!;
-    if (!home || !away || home.id === away.id || home.id === "__bye__" || away.id === "__bye__") continue;
-    const swap = world.week % 2 === 0;
-    matches.push({
-      id: uid("fx"),
-      home_team_id: swap ? away.id : home.id,
-      away_team_id: swap ? home.id : away.id,
-      home_score: 0,
-      away_score: 0,
-      status: "pending",
-      played_at: new Date().toISOString(),
-      week: world.week,
-    });
+  const push = (home: Team, away: Team) => {
+    used.add(home.id);
+    used.add(away.id);
+    matches.push(makeFixture(home, away, week));
+  };
+
+  const rh = rotate(humans);
+  for (let i = 0; i + 1 < rh.length; i += 2) push(rh[i]!, rh[i + 1]!);
+  const leftoverH = rh.filter((h) => !used.has(h.id));
+  const rb = rotate(bots);
+  for (const h of leftoverH) {
+    const bot = rb.find((b) => !used.has(b.id));
+    if (bot) push(h, bot);
   }
+  const restBots = rb.filter((b) => !used.has(b.id));
+  for (let i = 0; i + 1 < restBots.length; i += 2) push(restBots[i]!, restBots[i + 1]!);
   return matches;
+}
+
+export function seedBotListings(world: GameWorld, perClub = 6): GameWorld {
+  const byId = new Map(world.players.map((p) => [p.id, p]));
+  const listed = new Set(
+    world.listings.filter((l) => l.status === "active").map((l) => l.team_player_id),
+  );
+  const extra: TransferListing[] = [];
+  for (const club of leagueTeams(world).filter((t) => !t.user_id)) {
+    const have = world.listings.filter((l) => l.seller_team_id === club.id && l.status === "active").length;
+    const need = Math.max(0, perClub - have);
+    if (need === 0) continue;
+    const benches = world.teamPlayers.filter(
+      (r) => r.team_id === club.id && !r.is_starter && !listed.has(r.id),
+    );
+    for (const r of benches.slice(0, need)) {
+      const player = byId.get(r.player_id);
+      extra.push({
+        id: uid("tm"),
+        team_player_id: r.id,
+        seller_team_id: club.id,
+        price: Math.max(300, Math.round((player?.base_value ?? 800) * (0.95 + Math.random() * 0.45))),
+        status: "active",
+        created_at: new Date().toISOString(),
+      });
+      listed.add(r.id);
+    }
+  }
+  if (!extra.length) return world;
+  return { ...world, listings: [...world.listings, ...extra] };
+}
+
+export function ensureBotWorld(world: GameWorld): GameWorld {
+  const have = new Set(world.teams.map((t) => t.name));
+  const missing = AI_CLUBS.filter((c) => !have.has(c.name));
+  let next = world;
+  if (missing.length) {
+    const extraPlayers = generateExtraPlayers(missing.length * 24, 3000 + world.players.length);
+    let pool = [...extraPlayers];
+    const newTeams: Team[] = [];
+    const newRows: TeamPlayer[] = [];
+    missing.forEach((c, i) => {
+      const team = emptyTeam(teamId(100 + i), c.name, null, c.kit_primary, c.kit_secondary, 7500 + i * 250, 10);
+      const { squad, rest } = pickBalancedSquad(pool, c.strength, 18);
+      pool = rest;
+      const { rows } = assignSquad(team, squad, squad.length, () => Math.random());
+      newTeams.push(team);
+      newRows.push(...rows);
+    });
+    next = {
+      ...next,
+      players: [...next.players, ...extraPlayers],
+      teams: [...next.teams, ...newTeams],
+      teamPlayers: [...next.teamPlayers, ...newRows],
+    };
+  }
+  const seeded = seedBotListings(next, 6);
+  if (seeded === world && missing.length === 0) return world;
+  return seeded;
 }

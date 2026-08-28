@@ -25,12 +25,12 @@ const FEATURES = [
   {
     icon: Radio,
     title: "Çoklu oyuncu ligi",
-    text: "Vercel üzerinde paylaşılan lig: transfer, insan vs insan maç ve canlı puan durumu.",
+    text: "Az insan olsa da bot menajerler ligi doldurur. İki gerçek menajer varsa onlar birbirleriyle eşleşir.",
   },
 ];
 
 export default function LandingPage() {
-  const { ready, userTeam, humans, backend } = useGame();
+  const { ready, userTeam, humans, bots, backend } = useGame();
   const hasSave = ready && Boolean(userTeam);
 
   return (
@@ -56,15 +56,15 @@ export default function LandingPage() {
       <main className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-24 pt-8 lg:grid-cols-2">
         <div>
           <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">
-            Çoklu oyuncu · Vercel · {humans} menajer
+            Çoklu oyuncu · Vercel · {humans} insan · {bots} bot
           </p>
           <h1 className="font-display text-5xl leading-[0.95] sm:text-7xl">
             Aynı lige gir.
             <span className="block text-neon">Rakibini yen.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-slate-300">
-            Paylaşılan Liga Nova sunucusunda diğer menajerlerle transfer yapın, insan veya AI rakiple maça çıkın.
-            Maç motoru Vercel serverless fonksiyonunda milisaniyede çalışır.
+            Paylaşılan Liga Nova sunucusunda diğer menajerlerle transfer yapın. Gerçek oyuncu azsa 18 bot
+            menajer ligi doldurur; ikinci insan girince onunla eşleşirsiniz.
             {backend === "memory" ? " Üretimde Supabase servis anahtarı ekleyin." : ""}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

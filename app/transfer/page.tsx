@@ -5,6 +5,7 @@ import { PositionChip } from "@/components/ui/Stats";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 import { flagUrl } from "@/lib/nations";
+import { botManagerName } from "@/lib/catalog";
 import { SYSTEM_TEAM_ID } from "@/lib/types";
 import { formatCoins } from "@/lib/utils";
 import Image from "next/image";
@@ -42,7 +43,8 @@ export default function TransferPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Pazar</p>
       <h1 className="font-display mb-2 text-5xl">Transfer piyasası</h1>
       <p className="mb-6 text-slate-400">
-        Lig ajansı serbest futbolcuları listeler. AI kulüpler ve sizin satışlarınız da burada.
+        Lig ajansı serbest futbolcuları listeler. Bot kulüpler kadro dışı oyuncularını satar; gerçek menajer
+        ilanları da burada görünür.
       </p>
       <div className="mb-6 flex flex-wrap gap-3">
         <input
@@ -88,7 +90,7 @@ export default function TransferPage() {
             </tr>
           </thead>
           <tbody>
-            {market.slice(0, 60).map((r) => (
+            {market.slice(0, 80).map((r) => (
               <tr key={r.listing.id} className="border-t border-white/5">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
@@ -113,7 +115,13 @@ export default function TransferPage() {
                 </td>
                 <td className="font-semibold">{r.player!.overall}</td>
                 <td className="text-slate-400">
-                  {r.seller?.id === SYSTEM_TEAM_ID ? "Lig Ajansı" : r.seller?.name}
+                  {r.seller?.id === SYSTEM_TEAM_ID
+                    ? "Lig Ajansı"
+                    : r.seller?.user_id
+                      ? `${r.seller.name} · insan`
+                      : r.seller
+                        ? `${r.seller.name} · ${botManagerName(r.seller.name)}`
+                        : "—"}
                 </td>
                 <td className="text-gold">{formatCoins(r.listing.price)} ₡</td>
                 <td className="pr-4 text-right">

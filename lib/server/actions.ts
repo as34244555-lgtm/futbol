@@ -10,7 +10,15 @@ import type {
   Tactic,
 } from "@/lib/types";
 import { ONLINE_MS, SYSTEM_TEAM_ID } from "@/lib/types";
-import { autoSelectStarters, createUserTeam, generateWeekFixtures, leagueTeams } from "@/lib/world";
+import { botManagerName } from "@/lib/catalog";
+import {
+  autoSelectStarters,
+  createUserTeam,
+  ensureBotWorld,
+  ensureHumanMatchmaking,
+  generateWeekFixtures,
+  leagueTeams,
+} from "@/lib/world";
 import { uid } from "@/lib/utils";
 
 export class ActionError extends Error {
@@ -22,7 +30,7 @@ export class ActionError extends Error {
 
 export function publicManagers(doc: LeagueDocument): ManagerInfo[] {
   const now = Date.now();
-  return doc.accounts.map((a) => {
+  const humans: ManagerInfo[] = doc.accounts.map((a) => {
     const team = doc.world.teams.find((t) => t.user_id === a.id);
     const seen = doc.lastSeen[a.id] ?? null;
     return {
@@ -32,8 +40,22 @@ export function publicManagers(doc: LeagueDocument): ManagerInfo[] {
       teamName: team?.name ?? "—",
       lastSeen: seen,
       online: Boolean(seen && now - new Date(seen).getTime() < ONLINE_MS),
+      kind: "human" as const,
     };
   });
+  const claimed = new Set(humans.map((h) => h.teamId));
+  const bots: ManagerInfo[] = leagueTeams(doc.world)
+    .filter((t) => !t.user_id && !claimed.has(t.id))
+    .map((t) => ({
+      userId: `bot:${t.id}`,
+      username: botManagerName(t.name),
+      teamId: t.id,
+      teamName: t.name,
+      lastSeen: new Date().toISOString(),
+      online: true,
+      kind: "bot" as const,
+    }));
+  return [...humans, ...bots];
 }
 
 export function snapshot(doc: LeagueDocument, userId: string) {
@@ -46,6 +68,7 @@ export function snapshot(doc: LeagueDocument, userId: string) {
     managers: publicManagers(doc),
     backend: persistenceMode(),
     humans: leagueTeams(doc.world).filter((t) => t.user_id).length,
+    bots: leagueTeams(doc.world).filter((t) => !t.user_id).length,
   };
 }
 
@@ -69,11 +92,17 @@ export async function registerManager(username: string, password: string, teamNa
       passwordHash: hashPassword(password),
       created_at: new Date().toISOString(),
     };
-    const joined = createUserTeam(doc.world, account.id, t);
+    const joined = createUserTeam(ensureBotWorld(doc.world), account.id, t);
+    let world = joined.world;
+    if (!world.matches.some((m) => m.week === world.week)) {
+      world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
+    } else {
+      world = ensureHumanMatchmaking(world);
+    }
     const next: LeagueDocument = {
       ...doc,
       accounts: [...doc.accounts, account],
-      world: joined.world,
+      world,
       lastSeen: { ...doc.lastSeen, [account.id]: new Date().toISOString() },
     };
     return {
@@ -255,10 +284,13 @@ export async function buyListing(userId: string, listingId: string) {
 
 export async function ensureFixtures(userId: string) {
   return mutateLeague((doc) => {
-    if (doc.world.matches.some((m) => m.week === doc.world.week)) {
-      return { doc, result: snapshot(doc, userId) };
+    teamOf(doc, userId);
+    let world = ensureBotWorld(doc.world);
+    if (!world.matches.some((m) => m.week === world.week)) {
+      world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
+    } else {
+      world = ensureHumanMatchmaking(world);
     }
-    const world = { ...doc.world, matches: [...doc.world.matches, ...generateWeekFixtures(doc.world)] };
     const next = { ...doc, world };
     return { doc: next, result: snapshot(next, userId) };
   });
@@ -338,6 +370,7 @@ export async function getSnapshot(userId: string | null) {
       managers: publicManagers(doc),
       backend: persistenceMode(),
       humans: leagueTeams(doc.world).filter((t) => t.user_id).length,
+      bots: leagueTeams(doc.world).filter((t) => !t.user_id).length,
     };
   }
   return snapshot(doc, userId);

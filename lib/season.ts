@@ -3,6 +3,8 @@ import type { GameWorld, MatchSimulationResult, Team } from "./types";
 import {
   applyMatchResult,
   autoSelectStarters,
+  ensureBotWorld,
+  ensureHumanMatchmaking,
   generateWeekFixtures,
   recoverEnergy,
   rosterOf,
@@ -93,9 +95,12 @@ export function playUserMatch(world: GameWorld, userTeamId: string): {
   world: GameWorld;
   result: MatchSimulationResult | string;
 } {
-  let next = world.matches.some((m) => m.week === world.week)
-    ? world
-    : { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
+  let next = ensureBotWorld(world);
+  if (!next.matches.some((m) => m.week === next.week)) {
+    next = { ...next, matches: [...next.matches, ...generateWeekFixtures(next)] };
+  } else {
+    next = ensureHumanMatchmaking(next);
+  }
 
   const userFx = next.matches.find(
     (m) =>

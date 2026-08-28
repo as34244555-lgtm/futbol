@@ -20,7 +20,8 @@ export default function PlayPage() {
       <p className="text-xs uppercase tracking-[0.3em] text-gold">Paylaşılan lig</p>
       <h1 className="font-display mt-2 text-5xl">Lige katıl</h1>
       <p className="mt-3 text-slate-400">
-        Aynı Vercel uygulamasındaki diğer menajerlerle transfer ve maç yaparsınız. Şifre oturum çerezinde tutulur.
+        Aynı sunucudaki diğer menajerlerle transfer ve maç yaparsınız. Gerçek oyuncu yoksa bot menajerlerle
+        oynarsınız; ikinci insan girince onunla eşleşirsiniz.
       </p>
       <form
         className="mt-8 space-y-4"

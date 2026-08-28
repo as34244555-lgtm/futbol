@@ -114,15 +114,33 @@ export function generateExtraPlayers(count: number, startIndex = 2000): Player[]
   return sample.map((p, i) => ({ ...p, id: catalogId(startIndex + i + 1) }));
 }
 
-export const AI_CLUBS: Array<{ name: string; kit_primary: string; kit_secondary: string; strength: number }> = [
-  { name: "Bosphorus FC", kit_primary: "#1d4ed8", kit_secondary: "#f8fafc", strength: 0.92 },
-  { name: "Anatolia United", kit_primary: "#b45309", kit_secondary: "#111827", strength: 0.88 },
-  { name: "Karadeniz Storm", kit_primary: "#0f766e", kit_secondary: "#ecfeff", strength: 0.84 },
-  { name: "Aegean Wolves", kit_primary: "#4338ca", kit_secondary: "#e0e7ff", strength: 0.8 },
-  { name: "Cappadocia SK", kit_primary: "#9f1239", kit_secondary: "#fff1f2", strength: 0.78 },
-  { name: "Golden Horn", kit_primary: "#a16207", kit_secondary: "#0f172a", strength: 0.74 },
-  { name: "Taurus Lions", kit_primary: "#b45309", kit_secondary: "#fffbeb", strength: 0.7 },
-  { name: "Marmara City", kit_primary: "#0369a1", kit_secondary: "#f0f9ff", strength: 0.68 },
-  { name: "Galata North", kit_primary: "#be123c", kit_secondary: "#fef2f2", strength: 0.66 },
-  { name: "Smyrna Athletic", kit_primary: "#365314", kit_secondary: "#ecfccb", strength: 0.62 },
+export const AI_CLUBS: Array<{
+  name: string;
+  kit_primary: string;
+  kit_secondary: string;
+  strength: number;
+  manager: string;
+}> = [
+  { name: "Bosphorus FC", kit_primary: "#1d4ed8", kit_secondary: "#f8fafc", strength: 0.92, manager: "Bot Kaya" },
+  { name: "Anatolia United", kit_primary: "#b45309", kit_secondary: "#111827", strength: 0.88, manager: "Bot Deniz" },
+  { name: "Karadeniz Storm", kit_primary: "#0f766e", kit_secondary: "#ecfeff", strength: 0.84, manager: "Bot Yaman" },
+  { name: "Aegean Wolves", kit_primary: "#4338ca", kit_secondary: "#e0e7ff", strength: 0.8, manager: "Bot Ege" },
+  { name: "Cappadocia SK", kit_primary: "#9f1239", kit_secondary: "#fff1f2", strength: 0.78, manager: "Bot Peri" },
+  { name: "Golden Horn", kit_primary: "#a16207", kit_secondary: "#0f172a", strength: 0.74, manager: "Bot Haliç" },
+  { name: "Taurus Lions", kit_primary: "#b45309", kit_secondary: "#fffbeb", strength: 0.7, manager: "Bot Toros" },
+  { name: "Marmara City", kit_primary: "#0369a1", kit_secondary: "#f0f9ff", strength: 0.68, manager: "Bot Mavi" },
+  { name: "Galata North", kit_primary: "#be123c", kit_secondary: "#fef2f2", strength: 0.66, manager: "Bot Kuzey" },
+  { name: "Smyrna Athletic", kit_primary: "#365314", kit_secondary: "#ecfccb", strength: 0.62, manager: "Bot İzmir" },
+  { name: "Thrace United", kit_primary: "#7c3aed", kit_secondary: "#ede9fe", strength: 0.76, manager: "Bot Trakya" },
+  { name: "Pontus Rovers", kit_primary: "#0e7490", kit_secondary: "#cffafe", strength: 0.64, manager: "Bot Pontus" },
+  { name: "Lycian Stars", kit_primary: "#c2410c", kit_secondary: "#ffedd5", strength: 0.72, manager: "Bot Likya" },
+  { name: "Hatti Warriors", kit_primary: "#b91c1c", kit_secondary: "#fee2e2", strength: 0.69, manager: "Bot Hatti" },
+  { name: "Ionia Coast", kit_primary: "#0369a1", kit_secondary: "#e0f2fe", strength: 0.61, manager: "Bot Ionia" },
+  { name: "Phrygia FC", kit_primary: "#a21caf", kit_secondary: "#fae8ff", strength: 0.67, manager: "Bot Frig" },
+  { name: "Troy Athletic", kit_primary: "#854d0e", kit_secondary: "#fef9c3", strength: 0.73, manager: "Bot Truva" },
+  { name: "Ankara Volt", kit_primary: "#15803d", kit_secondary: "#dcfce7", strength: 0.65, manager: "Bot Volt" },
 ];
+
+export function botManagerName(teamName: string): string {
+  return AI_CLUBS.find((c) => c.name === teamName)?.manager ?? `Bot ${teamName.split(" ")[0]}`;
+}

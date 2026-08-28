@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
-import { createFreshWorld } from "@/lib/world";
+import { createFreshWorld, ensureBotWorld } from "@/lib/world";
 import type { LeagueDocument } from "@/lib/types";
 import { persistenceMode, supabaseAdmin } from "./supabase-admin";
 
@@ -70,7 +70,13 @@ async function writeSupabase(doc: LeagueDocument, expectedVersion: number) {
   return next;
 }
 
-async function load(): Promise<LeagueDocument> {
+function withBots(doc: LeagueDocument): { doc: LeagueDocument; changed: boolean } {
+  const world = ensureBotWorld(doc.world);
+  if (world === doc.world) return { doc, changed: false };
+  return { doc: { ...doc, world }, changed: true };
+}
+
+async function loadRaw(): Promise<LeagueDocument> {
   const mode = persistenceMode();
   if (mode === "supabase") return readSupabase();
   if (mode === "file") return readFileDoc();
@@ -92,9 +98,10 @@ export async function mutateLeague<T>(
 ): Promise<T> {
   const run = async () => {
     for (let attempt = 0; attempt < 4; attempt++) {
-      const current = await load();
+      const current = await loadRaw();
       const version = current.version;
-      const { doc, result } = await fn(structuredClone(current));
+      const hydrated = withBots(current).doc;
+      const { doc, result } = await fn(structuredClone(hydrated));
       try {
         await save(doc, version);
         return result;
@@ -120,7 +127,14 @@ export async function mutateLeague<T>(
 }
 
 export async function readLeague(): Promise<LeagueDocument> {
-  return load();
+  const current = await loadRaw();
+  const { doc, changed } = withBots(current);
+  if (!changed) return doc;
+  try {
+    return await save(doc, current.version);
+  } catch {
+    return doc;
+  }
 }
 
 export { persistenceMode };

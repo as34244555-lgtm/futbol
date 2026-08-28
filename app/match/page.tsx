@@ -4,6 +4,7 @@ import { GameShell } from "@/components/GameShell";
 import { MatchSimulation } from "@/components/MatchSimulation";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
+import { botManagerName } from "@/lib/catalog";
 import type { MatchSimulationResult } from "@/lib/types";
 import { rosterOf } from "@/lib/world";
 import { useMemo, useState } from "react";
@@ -40,8 +41,8 @@ export default function MatchPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
       <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-slate-400">
-        Motor 90 dakikalık olay zincirini Vercel serverless üzerinde milisaniyede üretir. İnsan rakibin son kayıtlı
-        11&apos;i ve taktiği kullanılır — rakibin çevrimiçi olması gerekmez.
+        Motor 90 dakikalık olay zincirini milisaniyede üretir. Başka gerçek menajer varsa onunla eşleşirsiniz;
+        yoksa bot menajerle oynarsınız. Rakibin son kayıtlı 11&apos;i kullanılır.
       </p>
 
       {!active && (
@@ -51,7 +52,9 @@ export default function MatchPage() {
             {opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
           </p>
           {opp && (
-            <p className="mt-1 text-sm text-slate-400">{opp.user_id ? "İnsan menajer" : "AI kulüp"}</p>
+            <p className="mt-1 text-sm text-slate-400">
+              {opp.user_id ? "İnsan menajer" : `Bot menajer · ${botManagerName(opp.name)}`}
+            </p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
             <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>

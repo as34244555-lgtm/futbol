@@ -57,7 +57,11 @@ export default function LeaguePage() {
                   <td className="px-4 py-3 font-mono">{i + 1}</td>
                   <td className="font-medium">
                     {t.name}
-                    {t.user_id ? <span className="ml-2 text-[10px] uppercase tracking-wider text-gold">insan</span> : null}
+                    {t.user_id ? (
+                      <span className="ml-2 text-[10px] uppercase tracking-wider text-gold">insan</span>
+                    ) : (
+                      <span className="ml-2 text-[10px] uppercase tracking-wider text-slate-500">bot</span>
+                    )}
                   </td>
                   <td>{t.played}</td>
                   <td>{t.won}</td>
