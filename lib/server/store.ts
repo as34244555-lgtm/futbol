@@ -4,7 +4,7 @@ import { createFreshWorld, ensureBotWorld } from "@/lib/world";
 import type { LeagueDocument } from "@/lib/types";
 import { persistenceMode, supabaseAdmin } from "./supabase-admin";
 
-const FILE = path.join(process.cwd(), "data", "league.json");
+const FILE = path.join(process.cwd(), process.env.LEAGUE_DATA_DIR || "data", process.env.LEAGUE_FILE || "league.json");
 
 const g = globalThis as unknown as {
   __ligaDoc?: LeagueDocument;

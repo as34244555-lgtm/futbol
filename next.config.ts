@@ -6,6 +6,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "flagcdn.com" },
     ],
   },
+  outputFileTracingExcludes: {
+    "*": ["./data/**"],
+  },
 };
 
 export default nextConfig;

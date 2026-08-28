@@ -43,6 +43,8 @@ Service role anahtarı yalnızca sunucu fonksiyonlarında kullanılır. `AUTH_SE
 
 Supabase yoksa Vercel instance belleği kullanılır; bu, soğuk başlangıçta ligi sıfırlar. Üretim çoklu oyuncu için Supabase zorunludur.
 
+Geçici önizleme (oturum gerekmez): `npx vercel deploy --temporary --yes`
+
 ## API
 
 - `GET /api/league` — paylaşılan anlık görüntü + çevrimiçi menajerler
