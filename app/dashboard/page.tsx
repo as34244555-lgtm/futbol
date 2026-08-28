@@ -1,0 +1,103 @@
+"use client";
+
+import { GameShell } from "@/components/GameShell";
+import { PlayerCard } from "@/components/PlayerCard";
+import { TacticsPitch } from "@/components/TacticsPitch";
+import { Button } from "@/components/ui/Button";
+import { useGame } from "@/lib/game-context";
+import { TACTIC_LABEL } from "@/lib/types";
+import { rosterOf } from "@/lib/world";
+import { formatCoins } from "@/lib/utils";
+import Link from "next/link";
+import { useMemo } from "react";
+
+export default function DashboardPage() {
+  const { world, userTeam, ensureWeekFixtures } = useGame();
+  const roster = useMemo(
+    () => (userTeam ? rosterOf(world, userTeam.id) : []),
+    [world, userTeam],
+  );
+  const starters = roster.filter((r) => r.is_starter);
+  const next = world.matches.find(
+    (m) =>
+      m.week === world.week &&
+      m.status === "pending" &&
+      (m.home_team_id === userTeam?.id || m.away_team_id === userTeam?.id),
+  );
+  const oppId = next
+    ? next.home_team_id === userTeam?.id
+      ? next.away_team_id
+      : next.home_team_id
+    : null;
+  const opponent = world.teams.find((t) => t.id === oppId);
+
+  return (
+    <GameShell>
+      <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kulüp paneli</p>
+          <h1 className="font-display text-5xl">{userTeam?.name}</h1>
+        </div>
+        <Button variant="ghost" onClick={ensureWeekFixtures}>
+          Fikstürü hazırla
+        </Button>
+      </div>
+      <div className="grid gap-4 md:grid-cols-4">
+        <Stat title="Bütçe" value={`${formatCoins(userTeam?.coins ?? 0)} ₡`} />
+        <Stat title="Puan / Küme" value={`${userTeam?.points} · ${userTeam?.division}`} />
+        <Stat title="Kadro" value={`${roster.length} oyuncu`} />
+        <Stat title="Taktik" value={`${userTeam?.formation} · ${userTeam ? TACTIC_LABEL[userTeam.tactics] : ""}`} />
+      </div>
+      <div className="mt-6 grid gap-6 lg:grid-cols-2">
+        <div className="rounded-3xl border border-white/10 bg-ink-800/60 p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="font-display text-2xl">Sıradaki maç</h2>
+            <Link href="/match">
+              <Button size="sm">Maça git</Button>
+            </Link>
+          </div>
+          {opponent ? (
+            <p className="text-slate-300">
+              Hafta {world.week}: {next?.home_team_id === userTeam?.id ? "Ev sahibi" : "Deplasman"} —{" "}
+              <span className="text-neon">{opponent.name}</span>
+            </p>
+          ) : (
+            <p className="text-slate-400">Fikstür henüz yok. Maç ekranından haftayı başlatın.</p>
+          )}
+          <div className="mt-4 grid grid-cols-3 gap-3 text-center text-sm">
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-slate-500">G</p>
+              <p className="font-display text-3xl">{userTeam?.won}</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-slate-500">B</p>
+              <p className="font-display text-3xl">{userTeam?.drawn}</p>
+            </div>
+            <div className="rounded-xl bg-white/5 p-3">
+              <p className="text-slate-500">M</p>
+              <p className="font-display text-3xl">{userTeam?.lost}</p>
+            </div>
+          </div>
+        </div>
+        {userTeam && (
+          <TacticsPitch formation={userTeam.formation} roster={starters} kit={userTeam.kit_primary} />
+        )}
+      </div>
+      <h2 className="font-display mt-10 text-2xl">Yıldızlar</h2>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {starters.slice(0, 6).map((r) => (
+          <PlayerCard key={r.id} player={r.player} row={r} />
+        ))}
+      </div>
+    </GameShell>
+  );
+}
+
+function Stat({ title, value }: { title: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-ink-800/70 p-4">
+      <p className="text-xs uppercase tracking-wider text-slate-500">{title}</p>
+      <p className="mt-1 font-display text-3xl">{value}</p>
+    </div>
+  );
+}
