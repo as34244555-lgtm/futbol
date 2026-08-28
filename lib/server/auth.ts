@@ -22,7 +22,9 @@ export function sessionSecret(): string {
   return process.env.AUTH_SECRET || process.env.SESSION_SECRET || "liga-nova-dev-secret-change-me";
 }
 
-export function signSession(payload: { sub: string; name: string; teamId: string; teamName?: string }): string {
+export type SessionPayload = { sub: string; name: string; teamId: string; teamName?: string };
+
+export function signSession(payload: SessionPayload): string {
   const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 14 * 24 * 60 * 60 * 1000 })).toString(
     "base64url",
   );
