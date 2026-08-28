@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     ],
   },
   outputFileTracingExcludes: {
-    "*": ["./data/**", "./.vercel/**", "./.git/**", "./scripts/**"],
+    "*": ["./data/**", "./.vercel/**", "./.git/**", "./scripts/**", "./**/*.tsbuildinfo"],
   },
 };
 
