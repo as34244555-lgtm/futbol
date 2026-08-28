@@ -44,7 +44,7 @@ assert(oppBA === a.team.id, `B should face A, faced ${oppBA}`);
 const live = prepareWeek(b.world);
 const first = playUserMatch(live, a.team.id);
 assert(typeof first.result !== "string", `A should play, got ${first.result}`);
-assert(first.world.week === live.week, `week must stay ${live.week} until B watches, got ${first.world.week}`);
+assert(first.world.week === live.week + 1, `week must move after the match is simulated once, got ${first.world.week}`);
 const fxAfterA = first.world.matches.find(
   (m) => m.status === "completed" && (m.home_team_id === a.team.id || m.away_team_id === a.team.id),
 );
@@ -53,13 +53,17 @@ const second = playUserMatch(first.world, b.team.id, { [a.team.id]: first.result
 assert(typeof second.result !== "string", `B should watch same match, got ${second.result}`);
 assert(second.result.match.home_score === first.result.match.home_score, "home score must match");
 assert(second.result.match.away_score === first.result.match.away_score, "away score must match");
-assert(second.world.week === live.week + 1, `week advances after both watch, got ${second.world.week}`);
+assert(second.result.match.id === first.result.match.id, "B must watch the same fixture, not a new week");
 
 const again = playUserMatch(first.world, b.team.id, {});
 assert(typeof again.result !== "string", `B must get stored score without lastSim, got ${again.result}`);
 assert(again.result.match.home_score === first.result.match.home_score, "stored home score must match without lastSim");
 assert(again.result.match.away_score === first.result.match.away_score, "stored away score must match without lastSim");
 assert((again.result.timeline?.length ?? 0) > 0, "replay timeline must be stored on the match");
+
+const aAgain = playUserMatch(first.world, a.team.id);
+assert(typeof aAgain.result !== "string", `A week 2 should be a new match, got ${aAgain.result}`);
+assert(aAgain.result.match.id !== first.result.match.id, "A must not replay the same H2H fixture");
 
 console.log(
   JSON.stringify({
