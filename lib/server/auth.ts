@@ -32,7 +32,7 @@ export function signSession(payload: SessionPayload): string {
   return `${body}.${sig}`;
 }
 
-export function readSession(token: string | undefined): { sub: string; name: string; teamId: string } | null {
+export function readSession(token: string | undefined): SessionPayload | null {
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
