@@ -120,16 +120,13 @@ export function MatchSimulation({
                 event={event}
               />
             ))}
-            <motion.circle
-              cx={mapX(event.ball.x)}
-              cy={mapY(event.ball.y)}
-              r={1.15}
-              fill="white"
-              stroke="#111"
-              strokeWidth={0.25}
-              animate={{ cx: mapX(event.ball.x), cy: mapY(event.ball.y) }}
+            <motion.g
+              initial={{ x: mapX(event.ball.x), y: mapY(event.ball.y) }}
+              animate={{ x: mapX(event.ball.x), y: mapY(event.ball.y) }}
               transition={{ type: "spring", stiffness: 70, damping: 18 }}
-            />
+            >
+              <circle r={1.15} cx={0} cy={0} fill="white" stroke="#111" strokeWidth={0.25} />
+            </motion.g>
           </svg>
           <AnimatePresence>
             {event.eventType === "goal" && (
@@ -248,16 +245,18 @@ function PlayerDot({
   const x = baseX + (event.ball.x - baseX) * pull;
   const y = baseY + (event.ball.y - baseY) * pull;
   return (
-    <motion.g animate={{ x: 0 }} transition={{ type: "spring", stiffness: 50, damping: 18 }}>
-      <motion.circle
-        cx={mapX(x)}
-        cy={mapY(y)}
+    <motion.g
+      initial={{ x: mapX(x), y: mapY(y) }}
+      animate={{ x: mapX(x), y: mapY(y) }}
+      transition={{ type: "spring", stiffness: 60, damping: 16 }}
+    >
+      <circle
+        cx={0}
+        cy={0}
         r={involved ? 2.4 : 1.9}
         fill={kit}
         stroke="white"
         strokeWidth={0.25}
-        animate={{ cx: mapX(x), cy: mapY(y) }}
-        transition={{ type: "spring", stiffness: 60, damping: 16 }}
       />
     </motion.g>
   );

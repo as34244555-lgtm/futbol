@@ -109,6 +109,13 @@ function pickBalancedSquad(pool: Player[], strength: number, size = 18): { squad
     squad.push(...chunk.taken);
     rest = chunk.rest;
   }
+  if (!squad.some((p) => p.position === "KL")) {
+    const stolen = takePosition(rest, "KL", 1);
+    if (stolen.taken[0]) {
+      squad[0] = stolen.taken[0];
+      rest = stolen.rest;
+    }
+  }
   while (squad.length < size && rest.length) squad.push(rest.shift()!);
   return { squad: squad.slice(0, size), rest: [...squad.slice(size), ...rest] };
 }

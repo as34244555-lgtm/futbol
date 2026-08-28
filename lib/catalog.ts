@@ -71,15 +71,15 @@ export function generateCatalog(count = 240): Player[] {
   });
 
   const positions: Position[] = [
-    ...Array(28).fill("KL"),
-    ...Array(80).fill("DEF"),
-    ...Array(76).fill("OS"),
-    ...Array(56).fill("FV"),
+    ...Array(42).fill("KL"),
+    ...Array(74).fill("DEF"),
+    ...Array(70).fill("OS"),
+    ...Array(54).fill("FV"),
   ];
 
   for (let i = STAR_PLAYERS.length; i < count; i++) {
     const nation = NATIONS[i % NATIONS.length]!;
-    const position = positions[i % positions.length]!;
+    const position = positions[(i - STAR_PLAYERS.length) % positions.length]!;
     const roll = rand();
     const band = roll > 0.92 ? "star" : roll > 0.62 ? "good" : roll > 0.28 ? "avg" : "youth";
     const { attack, defense } = statFor(rand, band, position);
