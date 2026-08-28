@@ -20,6 +20,7 @@ export default function LoginPage() {
       <h1 className="font-display mt-2 text-5xl">Giriş yap</h1>
       <form
         className="mt-8 space-y-4"
+        autoComplete="off"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -36,6 +37,8 @@ export default function LoginPage() {
             className="mt-1 w-full rounded-xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-neon focus:ring-2"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+            name="username"
             required
           />
         </label>
@@ -46,6 +49,8 @@ export default function LoginPage() {
             className="mt-1 w-full rounded-xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-neon focus:ring-2"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            autoComplete="current-password"
+            name="password"
             required
           />
         </label>

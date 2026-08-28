@@ -71,7 +71,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <p className="mt-6 px-3 text-[10px] uppercase tracking-wider text-slate-500">
-          {backend === "supabase" ? "Vercel + Supabase" : backend === "file" ? "Yerel lig sunucusu" : "Bellek (dev)"} · {humans} menajer
+          {backend === "supabase" ? "Vercel + Supabase" : backend === "file" ? "Yerel lig sunucusu" : "Bellek (dev)"} · {humans} insan
         </p>
         <button
           className="mt-auto flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-500 hover:text-rose-300"

@@ -25,6 +25,7 @@ export default function PlayPage() {
       </p>
       <form
         className="mt-8 space-y-4"
+        autoComplete="off"
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
@@ -75,6 +76,7 @@ function Field({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
+        autoComplete={type === "password" ? "new-password" : "off"}
         required
       />
     </label>
