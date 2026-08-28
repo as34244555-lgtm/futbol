@@ -53,11 +53,11 @@ export function MatchSimulation({
 
   const safeIdx = events.length ? Math.min(idx, events.length - 1) : 0;
   const event = events[safeIdx];
-  const prev = safeIdx > 0 ? events[safeIdx - 1]! : null;
 
   useEffect(() => {
-    if (!playing || !event || events.length === 0) return;
-    const delay = delayForEvent(event, prev, speed);
+    if (!playing || events.length === 0) return;
+    const current = events[Math.min(idx, events.length - 1)];
+    const delay = delayForEvent(current ?? events[0]!, null, speed);
     const t = window.setTimeout(() => {
       setIdx((i) => {
         if (i >= events.length - 1) {
@@ -68,7 +68,7 @@ export function MatchSimulation({
       });
     }, delay);
     return () => window.clearTimeout(t);
-  }, [playing, safeIdx, speed, events.length, event, prev]);
+  }, [playing, idx, speed, events, result.match.id]);
 
   const commentary = events.slice(Math.max(0, safeIdx - 12), safeIdx + 1).reverse();
 

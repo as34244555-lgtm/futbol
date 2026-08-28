@@ -83,7 +83,7 @@ const dense = densifyTimeline(
   "Ev",
   "Dep",
 );
-assert(dense.length >= 90, `densify too short ${dense.length}`);
+assert(dense.length === 90, `densify should be 90 minutes, got ${dense.length}`);
 assert(dense.some((e) => e.minute === 44 && e.description.length > 8), "filler commentary missing");
 assert(dense[dense.length - 1]!.score[0] === 2, "final score kept");
 

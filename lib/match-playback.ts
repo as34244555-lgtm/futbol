@@ -62,10 +62,13 @@ export function densifyTimeline(
   for (let minute = 1; minute <= 90; minute++) {
     const hits = byMinute.get(minute);
     if (hits?.length) {
-      for (const ev of hits) {
-        score = [ev.score[0], ev.score[1]];
-        out.push(ev);
-      }
+      const pick =
+        hits.find((e) => e.eventType === "goal") ??
+        hits.find((e) => e.eventType === "shot") ??
+        hits.find((e) => e.eventType === "chance") ??
+        hits[hits.length - 1]!;
+      score = [pick.score[0], pick.score[1]];
+      out.push(pick);
       continue;
     }
     const whistle = minute === 45 || minute === 90;
@@ -97,11 +100,9 @@ export function densifyTimeline(
   return out;
 }
 
-export function delayForEvent(event: TimelineEvent, prev: TimelineEvent | null, speed: number): number {
-  const sameMinute = Boolean(prev && prev.minute === event.minute);
-  if (event.eventType === "goal") return Math.max(2000, 2400 / speed);
-  if (event.eventType === "whistle") return Math.max(1100, 1400 / speed);
-  if (sameMinute) return Math.max(380, 520 / speed);
-  // ~1.4 sn / oyun dakikası @ 1x → 90 dk ≈ 2 dakika seyir
-  return Math.max(1100, 1400 / speed);
+export function delayForEvent(event: TimelineEvent, _prev: TimelineEvent | null, speed: number): number {
+  if (event.eventType === "goal") return Math.max(2200, 2600 / speed);
+  if (event.eventType === "whistle") return Math.max(1200, 1600 / speed);
+  // Tam 90 tik: 1x ≈ 1.7 sn/dk → maç ~2.5 dakika
+  return Math.max(1500, 1700 / speed);
 }
