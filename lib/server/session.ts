@@ -8,7 +8,7 @@ export async function getSession() {
   return readSession(jar.get(COOKIE)?.value);
 }
 
-export async function setSessionCookie(payload: { sub: string; name: string; teamId: string }) {
+export async function setSessionCookie(payload: { sub: string; name: string; teamId: string; teamName?: string }) {
   const jar = await cookies();
   jar.set(COOKIE, signSession(payload), {
     httpOnly: true,

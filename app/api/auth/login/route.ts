@@ -8,7 +8,7 @@ export async function POST(req: Request) {
   try {
     const body = (await req.json()) as { username?: string; password?: string };
     const session = await loginManager(body.username ?? "", body.password ?? "");
-    await setSessionCookie({ sub: session.userId, name: session.username, teamId: session.teamId });
+    await setSessionCookie({ sub: session.userId, name: session.username, teamId: session.teamId, teamName: session.teamName });
     return NextResponse.json({ ok: true, ...session });
   } catch (e) {
     return NextResponse.json(

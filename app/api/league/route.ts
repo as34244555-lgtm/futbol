@@ -6,6 +6,6 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const session = await getSession();
-  if (session) return NextResponse.json(await ping(session.sub));
+  if (session) return NextResponse.json(await ping(session));
   return NextResponse.json(await getSnapshot(null));
 }

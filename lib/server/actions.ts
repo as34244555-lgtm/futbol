@@ -107,7 +107,7 @@ export async function registerManager(username: string, password: string, teamNa
     };
     return {
       doc: next,
-      result: { userId: account.id, username: u, teamId: joined.team.id },
+      result: { userId: account.id, username: u, teamId: joined.team.id, teamName: joined.team.name },
     };
   });
 }
@@ -124,7 +124,7 @@ export async function loginManager(username: string, password: string) {
     doc: { ...d, lastSeen: { ...d.lastSeen, [account.id]: new Date().toISOString() } },
     result: true,
   }));
-  return { userId: account.id, username: account.username, teamId: team.id };
+  return { userId: account.id, username: account.username, teamId: team.id, teamName: team.name };
 }
 
 function teamOf(doc: LeagueDocument, userId: string) {
@@ -133,11 +133,49 @@ function teamOf(doc: LeagueDocument, userId: string) {
   return team;
 }
 
-export async function ping(userId: string) {
-  return mutateLeague((doc) => ({
-    doc: { ...doc, lastSeen: { ...doc.lastSeen, [userId]: new Date().toISOString() } },
-    result: snapshot({ ...doc, lastSeen: { ...doc.lastSeen, [userId]: new Date().toISOString() } }, userId),
-  }));
+type SessionHint = { sub: string; name: string; teamId: string; teamName?: string };
+
+/** Vercel bellek modunda soğuk başlangıçta oturumdaki menajeri lige geri yazar. */
+export function withSessionUser(doc: LeagueDocument, session: SessionHint): LeagueDocument {
+  if (doc.world.teams.some((t) => t.user_id === session.sub)) return doc;
+  const base = (session.teamName?.trim() || `${session.name} SK`).slice(0, 32);
+  let name = base;
+  let n = 2;
+  while (doc.world.teams.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+    name = `${base} ${n++}`;
+  }
+  let username = session.name;
+  let u = 2;
+  while (doc.accounts.some((a) => a.username.toLowerCase() === username.toLowerCase())) {
+    username = `${session.name}${u++}`;
+  }
+  const account = {
+    id: session.sub,
+    username,
+    passwordHash: "session-restore",
+    created_at: new Date().toISOString(),
+  };
+  const joined = createUserTeam(ensureBotWorld(doc.world), account.id, name);
+  let world = joined.world;
+  if (!world.matches.some((m) => m.week === world.week)) {
+    world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
+  } else {
+    world = ensureHumanMatchmaking(world);
+  }
+  return {
+    ...doc,
+    accounts: [...doc.accounts, account],
+    world,
+    lastSeen: { ...doc.lastSeen, [account.id]: new Date().toISOString() },
+  };
+}
+
+export async function ping(session: SessionHint) {
+  return mutateLeague((doc) => {
+    const ready = withSessionUser(doc, session);
+    const next = { ...ready, lastSeen: { ...ready.lastSeen, [session.sub]: new Date().toISOString() } };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
 }
 
 export async function setFormation(userId: string, formation: Formation) {
@@ -282,9 +320,10 @@ export async function buyListing(userId: string, listingId: string) {
   });
 }
 
-export async function ensureFixtures(userId: string) {
+export async function ensureFixtures(session: SessionHint) {
   return mutateLeague((doc) => {
-    teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    teamOf(doc, session.sub);
     let world = ensureBotWorld(doc.world);
     if (!world.matches.some((m) => m.week === world.week)) {
       world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
@@ -292,13 +331,14 @@ export async function ensureFixtures(userId: string) {
       world = ensureHumanMatchmaking(world);
     }
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function playMatch(userId: string) {
+export async function playMatch(session: SessionHint) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const out = playUserMatch(doc.world, team.id);
     const lastSim = { ...doc.lastSim };
     if (typeof out.result !== "string") {
@@ -310,11 +350,11 @@ export async function playMatch(userId: string) {
       ...doc,
       world: out.world,
       lastSim,
-      lastSeen: { ...doc.lastSeen, [userId]: new Date().toISOString() },
+      lastSeen: { ...doc.lastSeen, [session.sub]: new Date().toISOString() },
     };
     return {
       doc: next,
-      result: { snap: snapshot(next, userId), match: typeof out.result === "string" ? null : out.result, error: typeof out.result === "string" ? out.result : null },
+      result: { snap: snapshot(next, session.sub), match: typeof out.result === "string" ? null : out.result, error: typeof out.result === "string" ? out.result : null },
     };
   });
 }

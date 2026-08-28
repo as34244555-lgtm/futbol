@@ -41,9 +41,9 @@ export async function POST(req: Request) {
       case "buyListing":
         return NextResponse.json(await actions.buyListing(uid, body.listingId));
       case "ensureFixtures":
-        return NextResponse.json(await actions.ensureFixtures(uid));
+        return NextResponse.json(await actions.ensureFixtures(session));
       case "playMatch":
-        return NextResponse.json(await actions.playMatch(uid));
+        return NextResponse.json(await actions.playMatch(session));
       case "importPlayers":
         return NextResponse.json(await actions.importPlayers(uid, body.players, body.mode));
       default:

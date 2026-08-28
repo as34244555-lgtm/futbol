@@ -22,7 +22,7 @@ export function sessionSecret(): string {
   return process.env.AUTH_SECRET || process.env.SESSION_SECRET || "liga-nova-dev-secret-change-me";
 }
 
-export function signSession(payload: { sub: string; name: string; teamId: string }): string {
+export function signSession(payload: { sub: string; name: string; teamId: string; teamName?: string }): string {
   const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 14 * 24 * 60 * 60 * 1000 })).toString(
     "base64url",
   );
@@ -43,10 +43,11 @@ export function readSession(token: string | undefined): { sub: string; name: str
       sub: string;
       name: string;
       teamId: string;
+      teamName?: string;
       exp: number;
     };
     if (data.exp < Date.now()) return null;
-    return { sub: data.sub, name: data.name, teamId: data.teamId };
+    return { sub: data.sub, name: data.name, teamId: data.teamId, teamName: data.teamName };
   } catch {
     return null;
   }
