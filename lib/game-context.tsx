@@ -60,10 +60,25 @@ type GameContextValue = {
 
 const GameContext = createContext<GameContextValue | null>(null);
 
+async function readJson(res: Response): Promise<unknown> {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    const gone = /deployment has been removed|The deploy/i.test(text);
+    throw new Error(
+      gone
+        ? "Geçici site kapanmış. Yeni adresi açın veya sayfayı yenileyin."
+        : text.replace(/\s+/g, " ").slice(0, 180) || "Sunucu yanıtı okunamadı.",
+    );
+  }
+}
+
 async function fetchLeague(): Promise<LeagueSnap> {
   const res = await fetch("/api/league", { cache: "no-store" });
+  const json = await readJson(res);
   if (!res.ok) throw new Error("Lig yüklenemedi");
-  return res.json();
+  return json as LeagueSnap;
 }
 
 async function postAction(body: unknown) {
@@ -72,7 +87,7 @@ async function postAction(body: unknown) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
-  const json = await res.json();
+  const json = (await readJson(res)) as { error?: string };
   if (!res.ok) throw new Error(json.error ?? "İşlem başarısız");
   return json;
 }
@@ -118,8 +133,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ username, password, teamName }),
     });
-    const json = await res.json();
-    if (!res.ok) return (json.error as string) ?? "Kayıt başarısız";
+    const json = (await readJson(res)) as { error?: string };
+    if (!res.ok) return json.error ?? "Kayıt başarısız";
     await refresh();
     return null;
   }, [refresh]);
@@ -130,8 +145,8 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ username, password }),
     });
-    const json = await res.json();
-    if (!res.ok) return (json.error as string) ?? "Giriş başarısız";
+    const json = (await readJson(res)) as { error?: string };
+    if (!res.ok) return json.error ?? "Giriş başarısız";
     await refresh();
     return null;
   }, [refresh]);

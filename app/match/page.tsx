@@ -34,8 +34,6 @@ export default function MatchPage() {
   const homeRoster = useMemo(() => (home ? rosterOf(world, home.id) : []), [world, home]);
   const awayRoster = useMemo(() => (away ? rosterOf(world, away.id) : []), [world, away]);
 
-  if (!userTeam) return null;
-
   return (
     <GameShell>
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
@@ -49,7 +47,7 @@ export default function MatchPage() {
         <div className="mb-8 rounded-3xl border border-white/10 bg-ink-800/70 p-6">
           <p className="text-sm text-slate-400">Hafta {world.week}</p>
           <p className="font-display text-4xl">
-            {opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
+            {userTeam && opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
           </p>
           {opp && (
             <p className="mt-1 text-sm text-slate-400">
@@ -99,12 +97,12 @@ export default function MatchPage() {
         />
       )}
 
-      {world.matches.filter((m) => m.status === "completed" && (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id)).length > 0 && (
+      {world.matches.filter((m) => userTeam && m.status === "completed" && (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id)).length > 0 && (
         <div className="mt-10">
           <h2 className="font-display mb-3 text-2xl">Son sonuçlarınız</h2>
           <div className="space-y-2">
             {world.matches
-              .filter((m) => m.status === "completed" && (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id))
+              .filter((m) => userTeam && m.status === "completed" && (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id))
               .slice(-8)
               .reverse()
               .map((m) => {

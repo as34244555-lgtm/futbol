@@ -5,7 +5,7 @@ import { getSession } from "@/lib/server/session";
 import type { Formation, Player, Tactic } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const maxDuration = 15;
+export const maxDuration = 60;
 
 type Body =
   | { type: "setFormation"; formation: Formation }

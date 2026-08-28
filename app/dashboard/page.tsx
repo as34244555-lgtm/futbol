@@ -52,7 +52,7 @@ export default function DashboardPage() {
         <div className="rounded-3xl border border-white/10 bg-ink-800/60 p-4">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-display text-2xl">Sıradaki maç</h2>
-            <Link href="/match">
+            <Link href="/match" prefetch={false}>
               <Button size="sm">Maça git</Button>
             </Link>
           </div>
