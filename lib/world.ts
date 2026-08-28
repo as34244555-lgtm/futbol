@@ -352,7 +352,13 @@ export function makeFixture(home: Team, away: Team, week: number): Match {
     status: "pending",
     played_at: new Date().toISOString(),
     week,
+    claimed_by: [],
   };
+}
+
+function pairHumans(a: Team, b: Team, week: number): [Team, Team] {
+  const [lo, hi] = a.id < b.id ? [a, b] : [b, a];
+  return week % 2 === 0 ? [hi, lo] : [lo, hi];
 }
 
 function involves(m: Match, teamId: string): boolean {
@@ -391,14 +397,15 @@ export function ensureHumanMatchmaking(world: GameWorld): GameWorld {
 
   let matches = [...world.matches];
   const paired = new Set<string>();
+  rematchable.sort((x, y) => x.id.localeCompare(y.id));
   for (let i = 0; i + 1 < rematchable.length; i += 2) {
     const a = rematchable[i]!;
     const b = rematchable[i + 1]!;
     matches = matches.filter(
       (m) => !(m.week === week && m.status === "pending" && (involves(m, a.id) || involves(m, b.id))),
     );
-    const swap = week % 2 === 0;
-    matches.push(makeFixture(swap ? b : a, swap ? a : b, week));
+    const [home, away] = pairHumans(a, b, week);
+    matches.push(makeFixture(home, away, week));
     paired.add(a.id);
     paired.add(b.id);
   }

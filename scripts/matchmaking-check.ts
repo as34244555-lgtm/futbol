@@ -1,5 +1,6 @@
 import { createUserTeam, ensureHumanMatchmaking, generateWeekFixtures, leagueTeams } from "../lib/world";
 import { createFreshWorld } from "../lib/world";
+import { playUserMatch, prepareWeek } from "../lib/season";
 import { SYSTEM_TEAM_ID } from "../lib/types";
 
 function assert(cond: unknown, msg: string): asserts cond {
@@ -39,6 +40,20 @@ const oppAB = opponentOf(world, a.team.id);
 const oppBA = opponentOf(world, b.team.id);
 assert(oppAB === b.team.id, `A should face B, faced ${oppAB}`);
 assert(oppBA === a.team.id, `B should face A, faced ${oppBA}`);
+
+const live = prepareWeek(b.world);
+const first = playUserMatch(live, a.team.id);
+assert(typeof first.result !== "string", `A should play, got ${first.result}`);
+assert(first.world.week === live.week, `week must stay ${live.week} until B watches, got ${first.world.week}`);
+const fxAfterA = first.world.matches.find(
+  (m) => m.status === "completed" && (m.home_team_id === a.team.id || m.away_team_id === a.team.id),
+);
+assert(fxAfterA, "A vs B must be completed after first click");
+const second = playUserMatch(first.world, b.team.id, { [a.team.id]: first.result, [fxAfterA.id]: first.result });
+assert(typeof second.result !== "string", `B should watch same match, got ${second.result}`);
+assert(second.result.match.home_score === first.result.match.home_score, "home score must match");
+assert(second.result.match.away_score === first.result.match.away_score, "away score must match");
+assert(second.world.week === live.week + 1, `week advances after both watch, got ${second.world.week}`);
 
 console.log(
   JSON.stringify({

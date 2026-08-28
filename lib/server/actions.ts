@@ -377,12 +377,14 @@ export async function playMatch(session: SessionHint) {
     const team = teamOf(doc, session.sub);
     const coinsBefore = team.coins;
     const pointsBefore = team.points;
-    const out = playUserMatch(doc.world, team.id);
+    const out = playUserMatch(doc.world, team.id, doc.lastSim);
     const lastSim = { ...doc.lastSim };
     if (typeof out.result !== "string") {
-      lastSim[team.id] = { ...out.result, logs: [] };
-      if (out.result.match.home_team_id) lastSim[out.result.match.home_team_id] = lastSim[team.id]!;
-      if (out.result.match.away_team_id) lastSim[out.result.match.away_team_id] = lastSim[team.id]!;
+      const sim = { ...out.result, logs: [] };
+      lastSim[team.id] = sim;
+      lastSim[out.result.match.id] = sim;
+      if (out.result.match.home_team_id) lastSim[out.result.match.home_team_id] = sim;
+      if (out.result.match.away_team_id) lastSim[out.result.match.away_team_id] = sim;
     }
     const next: LeagueDocument = {
       ...doc,

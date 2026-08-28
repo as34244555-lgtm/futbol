@@ -96,6 +96,8 @@ export type Match = {
   status: MatchStatus;
   played_at: string;
   week: number;
+  /** İnsan-insan maçında hafta, her iki menajer de sonucu açana kadar kapanmaz. */
+  claimed_by?: string[];
 };
 
 export type MatchLog = {

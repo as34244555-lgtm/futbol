@@ -37,14 +37,32 @@ function isHuman(team: Team): boolean {
   return Boolean(team.user_id);
 }
 
+function involvesTeam(m: { home_team_id: string | null; away_team_id: string | null }, teamId: string) {
+  return m.home_team_id === teamId || m.away_team_id === teamId;
+}
+
+function matchSeed(fx: { home_team_id: string | null; away_team_id: string | null; week: number }) {
+  const ids = [fx.home_team_id, fx.away_team_id].filter(Boolean).sort().join(":");
+  return hashSeed(`${fx.week}:${ids}`);
+}
+
+function claimMatch(world: GameWorld, matchId: string, teamId: string): GameWorld {
+  return {
+    ...world,
+    matches: world.matches.map((m) =>
+      m.id === matchId ? { ...m, claimed_by: [...new Set([...(m.claimed_by ?? []), teamId])] } : m,
+    ),
+  };
+}
+
 function humansPending(world: GameWorld): boolean {
   const humanIds = new Set(world.teams.filter(isHuman).map((t) => t.id));
-  return world.matches.some(
-    (m) =>
-      m.week === world.week &&
-      m.status === "pending" &&
-      ((m.home_team_id && humanIds.has(m.home_team_id)) || (m.away_team_id && humanIds.has(m.away_team_id))),
-  );
+  return [...humanIds].some((id) => {
+    const fx = world.matches.find((m) => m.week === world.week && involvesTeam(m, id));
+    if (!fx) return false;
+    if (fx.status === "pending") return true;
+    return !(fx.claimed_by ?? []).includes(id);
+  });
 }
 
 function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | null; away_team_id: string | null; week: number }) {
@@ -58,8 +76,8 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
   if (homeSide.starters.length < 8 || awaySide.starters.length < 8) return null;
   const humanGame = Boolean(home.user_id || away.user_id);
   const sim = humanGame
-    ? simulateMatch(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)))
-    : simulateScoreOnly(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)));
+    ? simulateMatch(homeSide, awaySide, fx.week, matchSeed(fx))
+    : simulateScoreOnly(homeSide, awaySide, fx.week, matchSeed(fx));
   sim.match.id = fx.id;
   sim.match.home_team_id = home.id;
   sim.match.away_team_id = away.id;
@@ -120,32 +138,83 @@ export function prepareWeek(world: GameWorld): GameWorld {
   return resolveBotFixtures(next);
 }
 
-export function playUserMatch(world: GameWorld, userTeamId: string): {
+function pickStoredSim(
+  lastSim: Record<string, MatchSimulationResult> | undefined,
+  fx: { id: string; home_team_id: string | null; away_team_id: string | null },
+): MatchSimulationResult | null {
+  if (!lastSim) return null;
+  return lastSim[fx.id] ?? (fx.home_team_id ? lastSim[fx.home_team_id] : undefined) ?? (fx.away_team_id ? lastSim[fx.away_team_id] : undefined) ?? null;
+}
+
+function replayView(world: GameWorld, fx: { id: string; home_team_id: string | null; away_team_id: string | null; week: number; home_score: number; away_score: number }): MatchSimulationResult | null {
+  const home = world.teams.find((t) => t.id === fx.home_team_id);
+  const away = world.teams.find((t) => t.id === fx.away_team_id);
+  if (!home || !away) return null;
+  const acc = ensureEleven(ensureEleven(world, home), away);
+  const homeSide = buildSimSide(home, rosterOf(acc, home.id));
+  const awaySide = buildSimSide(away, rosterOf(acc, away.id));
+  if (homeSide.starters.length < 8 || awaySide.starters.length < 8) return null;
+  const sim = simulateMatch(homeSide, awaySide, fx.week, matchSeed(fx));
+  sim.match.id = fx.id;
+  sim.match.home_team_id = home.id;
+  sim.match.away_team_id = away.id;
+  sim.match.home_score = fx.home_score;
+  sim.match.away_score = fx.away_score;
+  sim.match.status = "completed";
+  return sim;
+}
+
+export function playUserMatch(
+  world: GameWorld,
+  userTeamId: string,
+  lastSim?: Record<string, MatchSimulationResult>,
+): {
   world: GameWorld;
   result: MatchSimulationResult | string;
 } {
   let next = prepareWeek(world);
 
-  const userFx = next.matches.find(
-    (m) =>
-      m.week === next.week &&
-      m.status === "pending" &&
-      (m.home_team_id === userTeamId || m.away_team_id === userTeamId),
+  const pending = next.matches.find(
+    (m) => m.week === next.week && m.status === "pending" && involvesTeam(m, userTeamId),
   );
-
-  if (!userFx) {
-    const already = next.matches.find(
-      (m) =>
-        m.week === next.week &&
-        m.status === "completed" &&
-        (m.home_team_id === userTeamId || m.away_team_id === userTeamId),
-    );
-    if (already) return { world: next, result: "Bu haftaki maçınız zaten oynandı." };
-    next = closeWeekIfReady(next);
-    return { world: next, result: "Bu hafta fikstürünüz yok (bay). Lig haftası güncellendi." };
+  if (pending) {
+    const played = simulateOne(next, pending);
+    if (!played) return { world: next, result: "Maç oynatılamadı." };
+    const claimed = claimMatch(played.world, pending.id, userTeamId);
+    return { world: closeWeekIfReady(claimed), result: played.sim };
   }
 
-  const played = simulateOne(next, userFx);
-  if (!played) return { world: next, result: "Maç oynatılamadı." };
-  return { world: closeWeekIfReady(played.world), result: played.sim };
+  const done =
+    next.matches.find((m) => m.week === next.week && m.status === "completed" && involvesTeam(m, userTeamId)) ??
+    [...next.matches]
+      .reverse()
+      .find(
+        (m) =>
+          m.status === "completed" &&
+          involvesTeam(m, userTeamId) &&
+          !(m.claimed_by ?? []).includes(userTeamId),
+      );
+
+  if (done) {
+    const claimed = closeWeekIfReady(claimMatch(next, done.id, userTeamId));
+    const stored = pickStoredSim(lastSim, done);
+    const view =
+      stored ??
+      replayView(next, {
+        id: done.id,
+        home_team_id: done.home_team_id,
+        away_team_id: done.away_team_id,
+        week: done.week,
+        home_score: done.home_score,
+        away_score: done.away_score,
+      });
+    if (!view) return { world: claimed, result: "Bu haftaki maçınız zaten oynandı." };
+    view.match.home_score = done.home_score;
+    view.match.away_score = done.away_score;
+    view.match.id = done.id;
+    return { world: claimed, result: view };
+  }
+
+  next = closeWeekIfReady(next);
+  return { world: next, result: "Bu hafta fikstürünüz yok (bay). Lig haftası güncellendi." };
 }
