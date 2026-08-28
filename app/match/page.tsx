@@ -9,7 +9,7 @@ import { rosterOf } from "@/lib/world";
 import { useMemo, useState } from "react";
 
 export default function MatchPage() {
-  const { world, userTeam, playWeek, ensureWeekFixtures } = useGame();
+  const { world, userTeam, playWeek, ensureWeekFixtures, lastSim } = useGame();
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -40,8 +40,8 @@ export default function MatchPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
       <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-slate-400">
-        Motor 90 dakikalık olay zincirini milisaniyede üretir; 2D saha top, oyuncu ve anlatımı oynatır.
-        Aynı hesaplama <code className="text-neon">/api/simulate-match</code> serverless rotasında da çalışır.
+        Motor 90 dakikalık olay zincirini Vercel serverless üzerinde milisaniyede üretir. İnsan rakibin son kayıtlı
+        11&apos;i ve taktiği kullanılır — rakibin çevrimiçi olması gerekmez.
       </p>
 
       {!active && (
@@ -50,17 +50,20 @@ export default function MatchPage() {
           <p className="font-display text-4xl">
             {opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
           </p>
+          {opp && (
+            <p className="mt-1 text-sm text-slate-400">{opp.user_id ? "İnsan menajer" : "AI kulüp"}</p>
+          )}
           <div className="mt-6 flex flex-wrap gap-3">
-            <Button variant="ghost" onClick={ensureWeekFixtures}>
+            <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
               Fikstürü oluştur
             </Button>
             <Button
               disabled={busy}
-              onClick={() => {
+              onClick={async () => {
                 setBusy(true);
                 setError(null);
                 try {
-                  const res = playWeek();
+                  const res = await playWeek();
                   if (typeof res === "string") setError(res);
                   else setSim(res);
                 } catch (e) {
@@ -72,8 +75,8 @@ export default function MatchPage() {
             >
               {busy ? "Simüle ediliyor…" : "Maçı başlat"}
             </Button>
-            {world.lastSim && (
-              <Button variant="outline" onClick={() => setSim(world.lastSim)}>
+            {lastSim && (
+              <Button variant="outline" onClick={() => setSim(lastSim)}>
                 Son maçı tekrar izle
               </Button>
             )}

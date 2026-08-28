@@ -58,7 +58,7 @@ export default function ImportPage() {
               setLog((json.errors ?? [json.error]).join?.("\n") ?? "API hatası");
               return;
             }
-            importPlayers(json.players, mode);
+            await importPlayers(json.players, mode);
             setLog(`${json.players.length} oyuncu içe aktarıldı (${mode}).`);
           }}
         >

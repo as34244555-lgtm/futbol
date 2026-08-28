@@ -55,7 +55,10 @@ export default function LeaguePage() {
                   className={cn("border-t border-white/5", mine && "bg-neon/10 text-neon")}
                 >
                   <td className="px-4 py-3 font-mono">{i + 1}</td>
-                  <td className="font-medium">{t.name}</td>
+                  <td className="font-medium">
+                    {t.name}
+                    {t.user_id ? <span className="ml-2 text-[10px] uppercase tracking-wider text-gold">insan</span> : null}
+                  </td>
                   <td>{t.played}</td>
                   <td>{t.won}</td>
                   <td>{t.drawn}</td>

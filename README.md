@@ -1,41 +1,53 @@
-# Liga Nova — Futbol Menajerlik ve Transfer Oyunu
+# Liga Nova — Çoklu oyunculu futbol menajerliği
 
-Telifsiz, istatistik tabanlı, 2D canlı saha simülasyonlu futbol menajerlik oyunu.
+Telifsiz, istatistik tabanlı, 2D canlı saha simülasyonlu **çoklu oyuncu** ligi.
+Vercel serverless API + (üretimde) Supabase paylaşılan durum.
 
-- **Stack:** Next.js 15 (App Router) · TypeScript · Tailwind CSS · Framer Motion · Lucide · Vercel-uyumlu
-- **Veri:** Supabase PostgreSQL şeması hazır; yerel demo tarayıcı kaydı ile çalışır
-- **Lisans:** Kurgusal oyuncu ve kulüp adları; ülkeler ve bayraklar kamuya açık veri
+## Nasıl çalışır?
 
-## Özellikler
+- Tüm menajerler **aynı lige** girer (transfer pazarı, fikstür, puan durumu ortak).
+- Kayıt/giriş httpOnly oturum çerezi ile yapılır.
+- Maç ve transfer `POST /api/league/action` üzerinden Vercel fonksiyonunda atomik işlenir.
+- İnsan vs insan: rakibin son kayıtlı 11’i ve taktiği kullanılır (asenkron).
+- Hafta, tüm insan maçları bitince kapanır; kalan AI–AI maçları o an çözülür.
 
-- Menajer kariyeri, kulüp kurma, 10 AI rakip (Bosphorus FC, Anatolia United, …)
-- 240+ kurgusal futbolcu kataloğu (KL / DEF / OS / FV)
-- Formasyon (4-3-3, 4-4-2, 3-5-2, 4-2-3-1, 5-3-2, 3-4-3) ve 5 oyun stili
-- Transfer piyasası, enerji / form, lig puan tablosu
-- Milisaniyelik maç motoru + 2D saha animasyonu ve canlı anlatım
-- Community JSON/CSV içe aktarma (`/import`, `POST /api/import-database`)
-
-## Geliştirme
+## Yerel geliştirme
 
 ```bash
 npm install
-cp .env.example .env.local   # isteğe bağlı — Supabase
 npm run dev
 ```
 
-Aç: [http://localhost:3000](http://localhost:3000)
+İki tarayıcı / gizli pencere açın:
 
-## Supabase
+1. `http://localhost:3000/play` — menajer A
+2. `http://localhost:3000/play` — menajer B
 
-1. `supabase/schema.sql` dosyasını SQL Editor’de çalıştırın.
-2. `.env.local` içine proje URL ve anon key yazın.
-3. Demo kayıt şu an `localStorage` (`futbol-save-v1`) üzerindedir; şema 7 tablo + RLS ile buluta taşınacak şekilde tasarlandı.
+Lig dosyası: `data/league.json` (git’e girmez).
 
-İsteğe bağlı kolonlar (`nationality_code`, `week`, `kit_*`, lig istatistikleri) spec’teki 7 tabloyu bozmadan genişletir.
+## Vercel dağıtımı
+
+1. Repo’yu Vercel’e bağlayın (framework: Next.js).
+2. Supabase SQL Editor’de `supabase/schema.sql` çalıştırın.
+3. Vercel Environment Variables:
+
+```
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+SUPABASE_SERVICE_ROLE_KEY
+AUTH_SECRET
+```
+
+Service role anahtarı yalnızca sunucu fonksiyonlarında kullanılır. `AUTH_SECRET` oturum imzasıdır.
+
+Supabase yoksa Vercel instance belleği kullanılır; bu, soğuk başlangıçta ligi sıfırlar. Üretim çoklu oyuncu için Supabase zorunludur.
 
 ## API
 
-- `POST /api/simulate-match` — 11’e 11 kadro alır, 90 dk olay zincirini üretir (Vercel serverless).
-- `POST /api/import-database` — JSON veya CSV oyuncu kataloğu doğrular.
-
-Örnek dosyalar: `public/samples/players.json`, `public/samples/players.csv`.
+- `GET /api/league` — paylaşılan anlık görüntü + çevrimiçi menajerler
+- `POST /api/auth/register` `{ username, password, teamName }`
+- `POST /api/auth/login` `{ username, password }`
+- `POST /api/auth/logout`
+- `POST /api/league/action` — kadro, taktik, transfer, maç
+- `POST /api/simulate-match` — saf simülasyon motoru
+- `POST /api/import-database` — JSON/CSV doğrulama

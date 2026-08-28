@@ -31,7 +31,7 @@ export default function SquadPage() {
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kadro</p>
           <h1 className="font-display text-5xl">İlk 11 ve yedekler</h1>
         </div>
-        <Button onClick={autoPick} variant="outline">
+        <Button onClick={() => void autoPick()} variant="outline">
           Otomatik diziliş
         </Button>
       </div>
@@ -60,7 +60,7 @@ export default function SquadPage() {
                   onClick={() => {
                     setSelected(r.id);
                     if (slot) {
-                      assignSlot(slot, r.id);
+                      void assignSlot(slot, r.id);
                       setSlot(null);
                     }
                   }}
@@ -83,8 +83,8 @@ export default function SquadPage() {
                     <Button
                       size="sm"
                       variant="gold"
-                      onClick={() => {
-                        const err = listForSale(r.id, price);
+                      onClick={async () => {
+                        const err = await listForSale(r.id, price);
                         setMsg(err ?? `${r.player.name} transfer listesine eklendi.`);
                       }}
                     >

@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import { Flag, Radio, Swords, Users } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 
@@ -25,14 +24,13 @@ const FEATURES = [
   },
   {
     icon: Radio,
-    title: "Transfer & Lig",
-    text: "Pazar, formasyon, enerji/form ve küme puanı tek kayıtta akar.",
+    title: "Çoklu oyuncu ligi",
+    text: "Vercel üzerinde paylaşılan lig: transfer, insan vs insan maç ve canlı puan durumu.",
   },
 ];
 
 export default function LandingPage() {
-  const { ready, userTeam, continueGame } = useGame();
-  const router = useRouter();
+  const { ready, userTeam, humans, backend } = useGame();
   const hasSave = ready && Boolean(userTeam);
 
   return (
@@ -41,40 +39,41 @@ export default function LandingPage() {
       <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
         <p className="font-display text-3xl tracking-wide text-neon">LIGA NOVA</p>
         <div className="flex gap-2">
-          {hasSave && (
-            <Button
-              variant="ghost"
-              onClick={() => {
-                continueGame();
-                router.push("/dashboard");
-              }}
-            >
-              Devam et
-            </Button>
+          {hasSave ? (
+            <Link href="/dashboard">
+              <Button variant="ghost">Panele dön</Button>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost">Giriş</Button>
+            </Link>
           )}
           <Link href="/play">
-            <Button>Yeni kariyer</Button>
+            <Button>Lige katıl</Button>
           </Link>
         </div>
       </header>
       <main className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-24 pt-8 lg:grid-cols-2">
         <div>
-          <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">Telifsiz · İstatistik · Simülasyon</p>
+          <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">
+            Çoklu oyuncu · Vercel · {humans} menajer
+          </p>
           <h1 className="font-display text-5xl leading-[0.95] sm:text-7xl">
-            Kendi kulübünü kur.
-            <span className="block text-neon">Sahayı yönet.</span>
+            Aynı lige gir.
+            <span className="block text-neon">Rakibini yen.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-slate-300">
-            Next.js ve Supabase altyapısına uygun, 2D canlı saha simülasyonlu futbol menajerlik oyunu.
-            Hayali takımlar, kurgusal yıldızlar, gerçek ülkeler.
+            Paylaşılan Liga Nova sunucusunda diğer menajerlerle transfer yapın, insan veya AI rakiple maça çıkın.
+            Maç motoru Vercel serverless fonksiyonunda milisaniyede çalışır.
+            {backend === "memory" ? " Üretimde Supabase servis anahtarı ekleyin." : ""}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/play">
               <Button size="lg">Menajer ol</Button>
             </Link>
-            <Link href="/play">
+            <Link href="/login">
               <Button size="lg" variant="outline">
-                Bosphorus FC evrenine gir
+                Giriş yap
               </Button>
             </Link>
           </div>

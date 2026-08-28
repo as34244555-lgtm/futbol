@@ -67,7 +67,7 @@ export default function TransferPage() {
                 <span>
                   {r.player!.name} · {formatCoins(r.listing.price)} ₡
                 </span>
-                <Button size="sm" variant="ghost" onClick={() => cancelListing(r.listing.id)}>
+                <Button size="sm" variant="ghost" onClick={() => void cancelListing(r.listing.id)}>
                   Geri çek
                 </Button>
               </div>
@@ -119,8 +119,8 @@ export default function TransferPage() {
                 <td className="pr-4 text-right">
                   <Button
                     size="sm"
-                    onClick={() => {
-                      const err = buyListing(r.listing.id);
+                    onClick={async () => {
+                      const err = await buyListing(r.listing.id);
                       setMsg(err ?? `${r.player!.name} kadroya katıldı.`);
                     }}
                   >

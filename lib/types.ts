@@ -127,6 +127,47 @@ export type MatchSimulationResult = {
   motm?: { playerId: string; name: string; team: "home" | "away" };
 };
 
+export type GameWorld = {
+  players: Player[];
+  teams: Team[];
+  teamPlayers: TeamPlayer[];
+  listings: TransferListing[];
+  matches: Match[];
+  matchLogs: MatchLog[];
+  week: number;
+  season: number;
+};
+
+export type Account = {
+  id: string;
+  username: string;
+  passwordHash: string;
+  created_at: string;
+};
+
+export type SessionUser = {
+  id: string;
+  username: string;
+  teamId: string;
+};
+
+export type ManagerInfo = {
+  userId: string;
+  username: string;
+  teamId: string;
+  teamName: string;
+  lastSeen: string | null;
+  online: boolean;
+};
+
+export type LeagueDocument = {
+  version: number;
+  world: GameWorld;
+  accounts: Account[];
+  lastSim: Record<string, MatchSimulationResult>;
+  lastSeen: Record<string, string>;
+};
+
 export type SquadSlot = {
   key: string;
   position: Position;
@@ -150,3 +191,4 @@ export type CommunityPlayerRow = {
 export const SAVE_KEY = "futbol-save-v1";
 export const SYSTEM_TEAM_ID = "00000000-0000-4000-8000-000000agency0";
 export const USER_TEAM_SLOT = "user";
+export const ONLINE_MS = 25_000;

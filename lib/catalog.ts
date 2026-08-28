@@ -109,6 +109,11 @@ export function generateCatalog(count = 240): Player[] {
   return players;
 }
 
+export function generateExtraPlayers(count: number, startIndex = 2000): Player[] {
+  const sample = generateCatalog(Math.max(40, count + 10)).slice(10, 10 + count);
+  return sample.map((p, i) => ({ ...p, id: catalogId(startIndex + i + 1) }));
+}
+
 export const AI_CLUBS: Array<{ name: string; kit_primary: string; kit_secondary: string; strength: number }> = [
   { name: "Bosphorus FC", kit_primary: "#1d4ed8", kit_secondary: "#f8fafc", strength: 0.92 },
   { name: "Anatolia United", kit_primary: "#b45309", kit_secondary: "#111827", strength: 0.88 },

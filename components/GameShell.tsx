@@ -28,7 +28,7 @@ const NAV = [
 ];
 
 export function GameShell({ children }: { children: React.ReactNode }) {
-  const { ready, userTeam, world, resetSave } = useGame();
+  const { ready, userTeam, me, world, backend, humans, logout } = useGame();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -49,7 +49,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
       <aside className="hidden border-r border-white/10 bg-ink-900/80 p-4 lg:flex lg:flex-col">
         <Link href="/dashboard" className="mb-8 px-2">
           <p className="font-display text-3xl tracking-wide text-neon">LIGA NOVA</p>
-          <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Menajerlik</p>
+          <p className="text-[10px] uppercase tracking-[0.25em] text-slate-500">Çoklu oyuncu</p>
         </Link>
         <nav className="space-y-1">
           {NAV.map((item) => {
@@ -70,15 +70,18 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+        <p className="mt-6 px-3 text-[10px] uppercase tracking-wider text-slate-500">
+          {backend === "supabase" ? "Vercel + Supabase" : backend === "file" ? "Yerel lig sunucusu" : "Bellek (dev)"} · {humans} menajer
+        </p>
         <button
           className="mt-auto flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-500 hover:text-rose-300"
-          onClick={() => {
-            resetSave();
+          onClick={async () => {
+            await logout();
             router.push("/");
           }}
         >
           <LogOut className="h-4 w-4" />
-          Kayıtı sıfırla
+          Çıkış
         </button>
       </aside>
       <div>
@@ -91,7 +94,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             <p className="font-semibold">{userTeam.name}</p>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-4 text-sm">
-            <Meta label="Menajer" value={world.profile?.username ?? "-"} />
+            <Meta label="Menajer" value={me?.username ?? "-"} />
             <Meta label="Hafta" value={`${world.week}`} />
             <Meta label="Lig" value={`Küme ${userTeam.division}`} />
             <Meta label="Puan" value={`${userTeam.points}`} />

@@ -30,7 +30,7 @@ export default function TacticsPage() {
                   key={f}
                   size="sm"
                   variant={userTeam.formation === f ? "primary" : "ghost"}
-                  onClick={() => setFormation(f)}
+                  onClick={() => void setFormation(f)}
                 >
                   {f}
                 </Button>
@@ -45,7 +45,7 @@ export default function TacticsPage() {
                   key={t}
                   size="sm"
                   variant={userTeam.tactics === t ? "gold" : "ghost"}
-                  onClick={() => setTactics(t)}
+                  onClick={() => void setTactics(t)}
                 >
                   {TACTIC_LABEL[t]}
                 </Button>

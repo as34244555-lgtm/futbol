@@ -152,3 +152,14 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_new_user();
+
+-- Paylaşılan çoklu oyuncu ligi (Vercel serverless kaynak gerçeği)
+create table if not exists public.league_state (
+  id int primary key default 1 check (id = 1),
+  version int not null default 1,
+  payload jsonb not null,
+  updated_at timestamptz default now()
+);
+
+alter table public.league_state enable row level security;
+-- Yazma yalnızca service role (Vercel API). Anon okuyamaz.

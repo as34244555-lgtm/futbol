@@ -1,35 +1,17 @@
-import { AI_CLUBS, generateCatalog } from "./catalog";
+import { AI_CLUBS, generateCatalog, generateExtraPlayers } from "./catalog";
 import { FORMATION_SLOTS } from "./formations";
 import { SYSTEM_TEAM_ID } from "./types";
 import type {
   Formation,
+  GameWorld,
   Match,
-  MatchLog,
-  MatchSimulationResult,
   Player,
-  Profile,
   Team,
   TeamPlayer,
   TransferListing,
 } from "./types";
 import { clamp, teamId, uid } from "./utils";
 
-export type GameWorld = {
-  profile: Profile | null;
-  userTeamId: string | null;
-  players: Player[];
-  teams: Team[];
-  teamPlayers: TeamPlayer[];
-  listings: TransferListing[];
-  matches: Match[];
-  matchLogs: MatchLog[];
-  week: number;
-  season: number;
-  lastSim: MatchSimulationResult | null;
-}
-
-const KIT_USER_PRIMARY = "#3dff8a";
-const KIT_USER_SECONDARY = "#0b1220";
 
 function emptyTeam(
   id: string,
@@ -195,8 +177,6 @@ export function createFreshWorld(): GameWorld {
   }
 
   return {
-    profile: null,
-    userTeamId: null,
     players: catalog,
     teams: [agency, ...aiTeams],
     teamPlayers: allRows,
@@ -205,41 +185,79 @@ export function createFreshWorld(): GameWorld {
     matchLogs: [],
     week: 1,
     season: 1,
-    lastSim: null,
   };
 }
 
-export function createUserTeam(world: GameWorld, profile: Profile, teamName: string): GameWorld {
-  const userTeam = emptyTeam(uid("team"), teamName, profile.id, KIT_USER_PRIMARY, KIT_USER_SECONDARY);
+export const HUMAN_KITS: Array<[string, string]> = [
+  ["#3dff8a", "#0b1220"],
+  ["#38bdf8", "#0b1220"],
+  ["#f472b6", "#0b1220"],
+  ["#facc15", "#0b1220"],
+  ["#fb7185", "#0b1220"],
+  ["#a78bfa", "#0b1220"],
+  ["#fb923c", "#0b1220"],
+  ["#2dd4bf", "#0b1220"],
+];
+
+export function nextHumanKit(world: GameWorld): [string, string] {
+  const used = new Set(world.teams.filter((t) => t.user_id).map((t) => t.kit_primary));
+  return HUMAN_KITS.find((k) => !used.has(k[0])) ?? HUMAN_KITS[world.teams.length % HUMAN_KITS.length]!;
+}
+
+export function createUserTeam(world: GameWorld, userId: string, teamName: string): { world: GameWorld; team: Team } {
+  const [kit_primary, kit_secondary] = nextHumanKit(world);
+  const userTeam = emptyTeam(uid("team"), teamName, userId, kit_primary, kit_secondary);
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
   const byId = new Map(world.players.map((p) => [p.id, p]));
-  const agencyCatalog = agencyPlayers
+  let agencyCatalog = agencyPlayers
     .map((tp) => byId.get(tp.player_id))
     .filter((p): p is Player => Boolean(p));
+
+  let extraPlayers: Player[] = [];
+  if (agencyCatalog.filter((p) => p.position === "KL").length < 2 || agencyCatalog.length < 18) {
+    extraPlayers = generateExtraPlayers(40, 900 + world.players.length);
+    agencyCatalog = [...agencyCatalog, ...extraPlayers];
+  }
+
   const { squad } = pickBalancedSquad(agencyCatalog, 0.7, 18);
   const squadIds = new Set(squad.map((p) => p.id));
-  const pack = agencyPlayers.filter((tp) => squadIds.has(tp.player_id)).slice(0, 18);
-  const packIds = new Set(pack.map((p) => p.id));
+  const fromAgency = agencyPlayers.filter((tp) => squadIds.has(tp.player_id));
+  const fromExtra = squad.filter((p) => extraPlayers.some((e) => e.id === p.id));
+  const packIds = new Set(fromAgency.map((p) => p.id));
 
-  const moved: TeamPlayer[] = pack.map((p) => ({
-    ...p,
-    id: uid("tp"),
-    team_id: userTeam.id,
-    energy: 100,
-    form: 80,
-    is_starter: false,
-    squad_position: null,
-    acquired_at: new Date().toISOString(),
-  }));
-  const filled = autoSelectStarters(moved, world.players, userTeam.formation);
+  const moved: TeamPlayer[] = [
+    ...fromAgency.map((p) => ({
+      ...p,
+      id: uid("tp"),
+      team_id: userTeam.id,
+      energy: 100,
+      form: 80,
+      is_starter: false,
+      squad_position: null,
+      acquired_at: new Date().toISOString(),
+    })),
+    ...fromExtra.map((p) => ({
+      id: uid("tp"),
+      team_id: userTeam.id,
+      player_id: p.id,
+      energy: 100,
+      form: 80,
+      is_starter: false,
+      squad_position: null,
+      acquired_at: new Date().toISOString(),
+    })),
+  ];
+  const filled = autoSelectStarters(moved, [...world.players, ...extraPlayers], userTeam.formation);
 
   return {
-    ...world,
-    profile,
-    userTeamId: userTeam.id,
-    teams: [...world.teams, userTeam],
-    teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
-    listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
+    team: userTeam,
+    world: {
+      ...world,
+      players: extraPlayers.length ? [...world.players, ...extraPlayers] : world.players,
+      teams: [...world.teams, userTeam],
+      teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
+      listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
+    },
   };
 }
 
