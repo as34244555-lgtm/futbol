@@ -71,9 +71,18 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <p className="mt-6 px-3 text-[10px] uppercase tracking-wider text-slate-500">
-          {backend === "supabase" ? "Vercel + Supabase" : backend === "file" ? "Yerel lig sunucusu" : "Bellek"} ·{" "}
-          {humans} insan
+          {backend === "supabase" || backend === "kv"
+            ? "Paylaşılan lig"
+            : backend === "file"
+              ? "Yerel lig sunucusu"
+              : "Bellek (cihazlar ayrışabilir)"}{" "}
+          · {humans} insan
         </p>
+        {backend === "memory" && (
+          <p className="mt-2 px-3 text-[11px] leading-snug text-amber-300/90">
+            İki telefon aynı para/puanı görmüyorsa Vercel → Storage → KV ekleyin; lig o zaman kalıcı paylaşılır.
+          </p>
+        )}
         <button
           className="mt-auto flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-500 hover:text-rose-300"
           onClick={async () => {

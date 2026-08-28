@@ -5,6 +5,7 @@ import { createFreshWorld, ensureBotWorld } from "@/lib/world";
 import type { LeagueDocument } from "@/lib/types";
 import { normalizeRoom } from "@/lib/utils";
 import { persistenceMode, supabaseAdmin } from "./supabase-admin";
+import { readKv, writeKv } from "./remote-kv";
 
 const DATA_DIR = path.join(process.cwd(), process.env.LEAGUE_DATA_DIR || "data");
 const DEFAULT_FILE = path.join(DATA_DIR, process.env.LEAGUE_FILE || "league.json");
@@ -126,6 +127,11 @@ async function loadRaw(): Promise<LeagueDocument> {
   const mode = persistenceMode();
   const room = currentRoom();
   if (mode === "supabase" && room === "NOVA") return readSupabase();
+  if (mode === "kv") {
+    const remote = await readKv(room);
+    if (remote) return remote;
+    return emptyDoc();
+  }
   if (mode === "file") return readFileDoc(room);
   const docs = memDocs();
   if (docs[room]) return structuredClone(docs[room]);
@@ -143,6 +149,7 @@ async function save(doc: LeagueDocument, expectedVersion: number): Promise<Leagu
   const mode = persistenceMode();
   const room = currentRoom();
   if (mode === "supabase" && room === "NOVA") return writeSupabase(doc, expectedVersion);
+  if (mode === "kv") return writeKv(room, doc, expectedVersion);
   const next = { ...doc, version: expectedVersion + 1 };
   if (mode === "file") await writeFileDoc(room, next);
   memDocs()[room] = next;

@@ -28,20 +28,20 @@ Lig dosyası: `data/league.json` (git’e girmez).
 
 ## Kalıcı site (Vercel)
 
-GitHub reposu zaten Vercel projesine bağlı: [agelistirici/futbol](https://vercel.com/agelistirici/futbol).
+Adres: [https://futbol-ashen.vercel.app](https://futbol-ashen.vercel.app)
 
-Kalıcı adres (GitHub homepage): [https://futbol-ashen.vercel.app](https://futbol-ashen.vercel.app)
+Repo Vercel projesine bağlı: [agelistirici/futbol](https://vercel.com/agelistirici/futbol).
 
-`main` hâlâ boş starter olduğu için production şu an oyunu göstermiyor. Bu PR merge edilince Liga Nova o adrese gelir; sonraki `main` push’ları otomatik yayınlanır.
+İki cihazın **aynı para, puan ve transferi** görmesi için Vercel’de ücretsiz KV (Upstash Redis) gerekir. Yoksa her sunucu örneği ayrı lig tutar.
 
-1. Bu PR’yi GitHub’da **Merge** edin: https://github.com/as34244555-lgtm/futbol/pull/1
-2. Vercel → [Deployment Protection](https://vercel.com/agelistirici/futbol/settings/deployment-protection) — Production korumasını kapatın. Açıksa site Vercel girişi ister, herkese açık olmaz.
-3. Vercel → [Domains](https://vercel.com/agelistirici/futbol/settings/domains) — `futbol-ashen.vercel.app` (veya kendi alan adınız) Production’a bağlı olsun.
-4. Environment Variable: `AUTH_SECRET` = uzun rastgele metin (oturum çerezi).
+1. Vercel → proje **futbol** → **Storage** → **Create Database** → **KV**.
+2. Projeye bağlayın (environment variables otomatik gelir: `KV_REST_API_URL`, `KV_REST_API_TOKEN`).
+3. **Deployments** → son production → **Redeploy**.
+4. İki telefonda da aynı oda kodunu kullanın (boşsa `NOVA`).
 
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/import?s=https://github.com/as34244555-lgtm/futbol)
+İsterseniz kendi alan adınızı [Domains](https://vercel.com/agelistirici/futbol/settings/domains) ile ekleyin. `AUTH_SECRET` = uzun rastgele metin.
 
-Arkadaşlarınla **aynı ligin kaybolmaması** için ücretsiz [Supabase](https://supabase.com) projesi açıp `supabase/schema.sql` çalıştırın ve Vercel’e ekleyin: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`. Supabase yoksa site kalıcıdır ama lig soğuk başlangıçta sıfırlanabilir.
+Supabase hâlâ isteğe bağlı alternatif: `supabase/schema.sql` + `NEXT_PUBLIC_SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY`.
 
 ## API
 

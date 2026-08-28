@@ -125,6 +125,8 @@ export type MatchSimulationResult = {
   logs: MatchLog[];
   timeline: TimelineEvent[];
   motm?: { playerId: string; name: string; team: "home" | "away" };
+  coinsDelta?: number;
+  pointsDelta?: number;
 };
 
 export type GameWorld = {

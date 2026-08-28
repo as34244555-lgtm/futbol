@@ -1,4 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
+import { kvConfigured } from "./remote-kv";
 
 export function supabaseAdmin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
@@ -7,8 +8,9 @@ export function supabaseAdmin() {
   return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export function persistenceMode(): "supabase" | "file" | "memory" {
+export function persistenceMode(): "supabase" | "kv" | "file" | "memory" {
   if (supabaseAdmin()) return "supabase";
+  if (kvConfigured()) return "kv";
   if (process.env.VERCEL === "1") return "memory";
   return "file";
 }

@@ -326,6 +326,21 @@ export async function buyListing(session: SessionHint, payload: string | BuyPayl
     if (squadSize >= 28) throw new ActionError("Kadro dolu (maks. 28).");
 
     const soldId = listing?.id;
+    const moved = doc.world.teamPlayers.map((row) =>
+      row.id === tp!.id
+        ? {
+            ...row,
+            id: rowId(team.id, row.player_id),
+            team_id: team.id,
+            is_starter: false,
+            squad_position: null,
+            acquired_at: new Date().toISOString(),
+          }
+        : row,
+    );
+    const buyerRoster = moved.filter((row) => row.team_id === team.id);
+    const others = moved.filter((row) => row.team_id !== team.id);
+    const filled = autoSelectStarters(buyerRoster, doc.world.players, team.formation);
     const world = {
       ...doc.world,
       teams: doc.world.teams.map((t) => {
@@ -333,18 +348,7 @@ export async function buyListing(session: SessionHint, payload: string | BuyPayl
         if (t.id === sellerId && t.id !== SYSTEM_TEAM_ID) return { ...t, coins: t.coins + price };
         return t;
       }),
-      teamPlayers: doc.world.teamPlayers.map((row) =>
-        row.id === tp!.id
-          ? {
-              ...row,
-              id: rowId(team.id, row.player_id),
-              team_id: team.id,
-              is_starter: false,
-              squad_position: null,
-              acquired_at: new Date().toISOString(),
-            }
-          : row,
-      ),
+      teamPlayers: [...others, ...filled],
       listings: doc.world.listings.map((l) => {
         const row = doc.world.teamPlayers.find((x) => x.id === l.team_player_id);
         const samePlayer = row?.player_id === tp!.player_id;
@@ -371,6 +375,8 @@ export async function playMatch(session: SessionHint) {
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
     const team = teamOf(doc, session.sub);
+    const coinsBefore = team.coins;
+    const pointsBefore = team.points;
     const out = playUserMatch(doc.world, team.id);
     const lastSim = { ...doc.lastSim };
     if (typeof out.result !== "string") {
@@ -384,9 +390,16 @@ export async function playMatch(session: SessionHint) {
       lastSim,
       lastSeen: { ...doc.lastSeen, [session.sub]: new Date().toISOString() },
     };
+    const after = next.world.teams.find((t) => t.id === team.id);
     return {
       doc: next,
-      result: { snap: snapshot(next, session.sub), match: typeof out.result === "string" ? null : out.result, error: typeof out.result === "string" ? out.result : null },
+      result: {
+        snap: snapshot(next, session.sub),
+        match: typeof out.result === "string" ? null : out.result,
+        error: typeof out.result === "string" ? out.result : null,
+        coinsDelta: (after?.coins ?? coinsBefore) - coinsBefore,
+        pointsDelta: (after?.points ?? pointsBefore) - pointsBefore,
+      },
     };
   });
 }

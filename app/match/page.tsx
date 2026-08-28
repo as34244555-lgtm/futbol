@@ -124,14 +124,23 @@ export default function MatchPage() {
       )}
 
       {active && home && away && (
-        <MatchSimulation
-          result={active}
-          home={home}
-          away={away}
-          homeRoster={homeRoster}
-          awayRoster={awayRoster}
-          onClose={() => setSim(null)}
-        />
+        <>
+          {(active.coinsDelta || active.pointsDelta) ? (
+            <p className="mb-4 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">
+              Maç ödülü kaydedildi: {active.coinsDelta! >= 0 ? "+" : ""}
+              {active.coinsDelta} ₡
+              {active.pointsDelta ? ` · +${active.pointsDelta} puan` : ""}
+            </p>
+          ) : null}
+          <MatchSimulation
+            result={active}
+            home={home}
+            away={away}
+            homeRoster={homeRoster}
+            awayRoster={awayRoster}
+            onClose={() => setSim(null)}
+          />
+        </>
       )}
 
       {world.matches.filter((m) => userTeam && m.status === "completed" && (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id)).length > 0 && (

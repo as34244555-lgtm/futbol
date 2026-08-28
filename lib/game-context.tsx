@@ -17,7 +17,7 @@ export type LeagueSnap = {
   me: SessionUser | null;
   lastSim: MatchSimulationResult | null;
   managers: ManagerInfo[];
-  backend: "supabase" | "file" | "memory";
+  backend: "supabase" | "file" | "memory" | "kv";
   humans: number;
   bots: number;
   roomCode?: string;
@@ -231,10 +231,16 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       snap: LeagueSnap;
       match: MatchSimulationResult | null;
       error: string | null;
+      coinsDelta?: number;
+      pointsDelta?: number;
     }>({ type: "playMatch" });
     apply(json.snap);
     if (json.error) return json.error as string;
-    return json.match as MatchSimulationResult;
+    return {
+      ...(json.match as MatchSimulationResult),
+      coinsDelta: json.coinsDelta ?? 0,
+      pointsDelta: json.pointsDelta ?? 0,
+    };
   }, [apply]);
 
   const importPlayers = useCallback(async (players: Player[], mode: "merge" | "replace") => {
