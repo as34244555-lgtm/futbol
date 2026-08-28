@@ -21,8 +21,7 @@ export default function PlayPage() {
       <p className="text-xs uppercase tracking-[0.3em] text-gold">Paylaşılan lig</p>
       <h1 className="font-display mt-2 text-5xl">Lige katıl</h1>
       <p className="mt-3 text-slate-400">
-        Aynı oda kodunu giren arkadaşlarınla aynı ligde oynarsın. Kod boşsa herkesin odası NOVA olur. Gerçek
-        oyuncu yoksa botlar her hafta kendi aralarında maç yapar.
+        Aynı oda kodunu giren arkadaşlarınla aynı ligde oynarsın. İkiniz de boş bırakırsanız oda <strong>NOVA</strong> olur — aynı kodu kullanın.
       </p>
       <form
         className="mt-8 space-y-4"

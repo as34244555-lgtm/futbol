@@ -1,5 +1,5 @@
 import { buildSimSide, simulateMatch, simulateScoreOnly } from "./match-engine";
-import type { GameWorld, MatchSimulationResult, Team } from "./types";
+import type { GameWorld, Match, MatchSimulationResult, Team } from "./types";
 import {
   applyMatchResult,
   autoSelectStarters,
@@ -37,14 +37,32 @@ function isHuman(team: Team): boolean {
   return Boolean(team.user_id);
 }
 
+function involvesTeam(m: { home_team_id: string | null; away_team_id: string | null }, teamId: string) {
+  return m.home_team_id === teamId || m.away_team_id === teamId;
+}
+
+function matchSeed(fx: { home_team_id: string | null; away_team_id: string | null; week: number }) {
+  const ids = [fx.home_team_id, fx.away_team_id].filter(Boolean).sort().join(":");
+  return hashSeed(`${fx.week}:${ids}`);
+}
+
+function claimMatch(world: GameWorld, matchId: string, teamId: string): GameWorld {
+  return {
+    ...world,
+    matches: world.matches.map((m) =>
+      m.id === matchId ? { ...m, claimed_by: [...new Set([...(m.claimed_by ?? []), teamId])] } : m,
+    ),
+  };
+}
+
 function humansPending(world: GameWorld): boolean {
   const humanIds = new Set(world.teams.filter(isHuman).map((t) => t.id));
-  return world.matches.some(
-    (m) =>
-      m.week === world.week &&
-      m.status === "pending" &&
-      ((m.home_team_id && humanIds.has(m.home_team_id)) || (m.away_team_id && humanIds.has(m.away_team_id))),
-  );
+  return [...humanIds].some((id) => {
+    const fx = world.matches.find((m) => m.week === world.week && involvesTeam(m, id));
+    if (!fx) return false;
+    if (fx.status === "pending") return true;
+    return !(fx.claimed_by ?? []).includes(id);
+  });
 }
 
 function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | null; away_team_id: string | null; week: number }) {
@@ -58,8 +76,8 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
   if (homeSide.starters.length < 8 || awaySide.starters.length < 8) return null;
   const humanGame = Boolean(home.user_id || away.user_id);
   const sim = humanGame
-    ? simulateMatch(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)))
-    : simulateScoreOnly(homeSide, awaySide, fx.week, hashSeed(fx.id + String(fx.week)));
+    ? simulateMatch(homeSide, awaySide, fx.week, matchSeed(fx))
+    : simulateScoreOnly(homeSide, awaySide, fx.week, matchSeed(fx));
   sim.match.id = fx.id;
   sim.match.home_team_id = home.id;
   sim.match.away_team_id = away.id;
@@ -77,6 +95,7 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
             away_score: sim.match.away_score,
             status: "completed" as const,
             played_at: sim.match.played_at,
+            replay: humanGame ? { timeline: sim.timeline, motm: sim.motm } : m.replay,
           }
         : m,
     ),
@@ -120,32 +139,68 @@ export function prepareWeek(world: GameWorld): GameWorld {
   return resolveBotFixtures(next);
 }
 
-export function playUserMatch(world: GameWorld, userTeamId: string): {
+function pickStoredSim(
+  lastSim: Record<string, MatchSimulationResult> | undefined,
+  fx: { id: string; home_team_id: string | null; away_team_id: string | null },
+): MatchSimulationResult | null {
+  if (!lastSim) return null;
+  return lastSim[fx.id] ?? (fx.home_team_id ? lastSim[fx.home_team_id] : undefined) ?? (fx.away_team_id ? lastSim[fx.away_team_id] : undefined) ?? null;
+}
+
+function viewFromDone(fx: Match, stored: MatchSimulationResult | null): MatchSimulationResult {
+  const match: Match = { ...fx, status: "completed" };
+  if (stored) {
+    return {
+      ...stored,
+      match: { ...stored.match, ...match, replay: fx.replay },
+      timeline: stored.timeline.length ? stored.timeline : (fx.replay?.timeline ?? stored.timeline),
+      motm: stored.motm ?? fx.replay?.motm,
+    };
+  }
+  return {
+    match,
+    logs: [],
+    timeline: fx.replay?.timeline ?? [],
+    motm: fx.replay?.motm,
+  };
+}
+
+export function playUserMatch(
+  world: GameWorld,
+  userTeamId: string,
+  lastSim?: Record<string, MatchSimulationResult>,
+): {
   world: GameWorld;
   result: MatchSimulationResult | string;
 } {
   let next = prepareWeek(world);
 
-  const userFx = next.matches.find(
-    (m) =>
-      m.week === next.week &&
-      m.status === "pending" &&
-      (m.home_team_id === userTeamId || m.away_team_id === userTeamId),
+  const pending = next.matches.find(
+    (m) => m.week === next.week && m.status === "pending" && involvesTeam(m, userTeamId),
   );
-
-  if (!userFx) {
-    const already = next.matches.find(
-      (m) =>
-        m.week === next.week &&
-        m.status === "completed" &&
-        (m.home_team_id === userTeamId || m.away_team_id === userTeamId),
-    );
-    if (already) return { world: next, result: "Bu haftaki maçınız zaten oynandı." };
-    next = closeWeekIfReady(next);
-    return { world: next, result: "Bu hafta fikstürünüz yok (bay). Lig haftası güncellendi." };
+  if (pending) {
+    const played = simulateOne(next, pending);
+    if (!played) return { world: next, result: "Maç oynatılamadı." };
+    const claimed = claimMatch(played.world, pending.id, userTeamId);
+    return { world: closeWeekIfReady(claimed), result: played.sim };
   }
 
-  const played = simulateOne(next, userFx);
-  if (!played) return { world: next, result: "Maç oynatılamadı." };
-  return { world: closeWeekIfReady(played.world), result: played.sim };
+  const done =
+    next.matches.find((m) => m.week === next.week && m.status === "completed" && involvesTeam(m, userTeamId)) ??
+    [...next.matches]
+      .reverse()
+      .find(
+        (m) =>
+          m.status === "completed" &&
+          involvesTeam(m, userTeamId) &&
+          !(m.claimed_by ?? []).includes(userTeamId),
+      );
+
+  if (done) {
+    const claimed = closeWeekIfReady(claimMatch(next, done.id, userTeamId));
+    return { world: claimed, result: viewFromDone(done, pickStoredSim(lastSim, done)) };
+  }
+
+  next = closeWeekIfReady(next);
+  return { world: next, result: "Bu hafta fikstürünüz yok (bay). Lig haftası güncellendi." };
 }

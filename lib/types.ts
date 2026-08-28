@@ -96,6 +96,13 @@ export type Match = {
   status: MatchStatus;
   played_at: string;
   week: number;
+  /** İnsan-insan maçında hafta, her iki menajer de sonucu açana kadar kapanmaz. */
+  claimed_by?: string[];
+  /** İlk simülasyonun anlatımı; ikinci menajer aynı skoru izler, yeniden zar atılmaz. */
+  replay?: {
+    timeline: TimelineEvent[];
+    motm?: MatchSimulationResult["motm"];
+  };
 };
 
 export type MatchLog = {
@@ -125,6 +132,8 @@ export type MatchSimulationResult = {
   logs: MatchLog[];
   timeline: TimelineEvent[];
   motm?: { playerId: string; name: string; team: "home" | "away" };
+  coinsDelta?: number;
+  pointsDelta?: number;
 };
 
 export type GameWorld = {

@@ -1,8 +1,9 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
-import { prepareWeek } from "../lib/season";
-import { createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
+import { playUserMatch, prepareWeek } from "../lib/season";
+import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
 import { listingId } from "../lib/utils";
+import { packLeague, unpackLeague } from "../lib/server/remote-kv";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -86,6 +87,30 @@ const dense = densifyTimeline(
 assert(dense.length === 90, `densify should be 90 minutes, got ${dense.length}`);
 assert(dense.some((e) => e.minute === 44 && e.description.length > 8), "filler commentary missing");
 assert(dense[dense.length - 1]!.score[0] === 2, "final score kept");
+
+const fresh = createUserTeam(createFreshWorld(), "user-reward", "Reward FC");
+const oppTeam = leagueTeams(fresh.world).find((t) => !t.user_id)!;
+const rewarded = applyMatchResult(fresh.world, fresh.team.id, oppTeam.id, 3, 1);
+const meAfter = rewarded.teams.find((t) => t.id === fresh.team.id)!;
+assert(meAfter.points === 3, `win should give 3 points, got ${meAfter.points}`);
+assert(meAfter.coins > fresh.team.coins, "win should add coins");
+assert(meAfter.played === 1 && meAfter.won === 1, "win should count on the table");
+
+const packed = packLeague({ version: 3, world: rewarded, accounts: [], lastSim: {}, lastSeen: {} });
+const unpacked = unpackLeague(packed);
+assert(unpacked.version === 3, "kv pack roundtrip version");
+assert(unpacked.world.teams.find((t) => t.id === fresh.team.id)?.coins === meAfter.coins, "kv pack keeps coins");
+
+const cheap = fresh.world.listings
+  .filter((l) => l.status === "active" && l.seller_team_id !== fresh.team.id)
+  .sort((a, b) => a.price - b.price)[0];
+assert(cheap, "market should have listings");
+assert(cheap.price < fresh.team.coins, "starter budget should buy a cheap listing");
+const played = playUserMatch(prepareWeek(fresh.world), fresh.team.id);
+assert(typeof played.result !== "string", `human match should simulate, got ${played.result}`);
+const afterPlay = played.world.teams.find((t) => t.id === fresh.team.id)!;
+assert(afterPlay.played === 1, "playing a match should increment played");
+assert(afterPlay.coins !== fresh.team.coins, "match reward should change coins");
 
 console.log(
   JSON.stringify({

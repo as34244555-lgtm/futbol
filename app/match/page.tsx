@@ -10,17 +10,24 @@ import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
 export default function MatchPage() {
-  const { world, userTeam, playWeek, ensureWeekFixtures, lastSim, setWatching } = useGame();
+  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching } = useGame();
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const next = world.matches.find(
+  const myWeekMatch = world.matches.find(
     (m) =>
+      userTeam &&
       m.week === world.week &&
-      m.status === "pending" &&
-      (m.home_team_id === userTeam?.id || m.away_team_id === userTeam?.id),
+      (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id),
   );
+  const waitingToWatch = Boolean(
+    userTeam &&
+      myWeekMatch &&
+      myWeekMatch.status === "completed" &&
+      !(myWeekMatch.claimed_by ?? []).includes(userTeam.id),
+  );
+  const next = myWeekMatch;
   const active = sim ?? null;
   const homeId = active?.match.home_team_id ?? next?.home_team_id;
   const awayId = active?.match.away_team_id ?? next?.away_team_id;
@@ -56,8 +63,8 @@ export default function MatchPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
       <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-slate-400">
-        Maç yaklaşık 90 oyun dakikası canlı anlatımla izlenir (1x ≈ 2 dakika). Siz oynarken ligdeki botlar kendi
-        aralarında kapışır; skorları bu sayfada görünür.
+        Karşılıklı maç <strong>bir kez</strong> oynanır: bir ekranda 3-0, diğerinde 0-1 olmaz. Biri başlatır,
+        diğeri “Maçı izle” ile aynı skoru görür. Hafta, ikiniz de sonucu açınca ilerler.
       </p>
 
       {!active && (
@@ -68,7 +75,12 @@ export default function MatchPage() {
           </p>
           {opp && (
             <p className="mt-1 text-sm text-slate-400">
-              {opp.user_id ? "İnsan menajer" : `Bot menajer · ${botManagerName(opp.name)}`}
+              {opp.user_id ? "İnsan menajer · tek maç, tek skor" : `Bot menajer · ${botManagerName(opp.name)}`}
+            </p>
+          )}
+          {waitingToWatch && next && (
+            <p className="mt-3 text-sm text-neon">
+              Skor {next.home_score} - {next.away_score}. Rakip maçı bitirdi; siz de aynı karşılaşmayı izleyin.
             </p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
@@ -91,7 +103,7 @@ export default function MatchPage() {
                 }
               }}
             >
-              {busy ? "Simüle ediliyor…" : "Maçı başlat"}
+              {busy ? "Hazırlanıyor…" : waitingToWatch ? "Maçı izle" : "Maçı başlat"}
             </Button>
             {lastSim && (
               <Button variant="outline" onClick={() => setSim(lastSim)}>
@@ -124,14 +136,23 @@ export default function MatchPage() {
       )}
 
       {active && home && away && (
-        <MatchSimulation
-          result={active}
-          home={home}
-          away={away}
-          homeRoster={homeRoster}
-          awayRoster={awayRoster}
-          onClose={() => setSim(null)}
-        />
+        <>
+          {(active.coinsDelta || active.pointsDelta) ? (
+            <p className="mb-4 rounded-2xl border border-gold/30 bg-gold/10 px-4 py-3 text-sm text-gold">
+              Maç ödülü kaydedildi: {active.coinsDelta! >= 0 ? "+" : ""}
+              {active.coinsDelta} ₡
+              {active.pointsDelta ? ` · +${active.pointsDelta} puan` : ""}
+            </p>
+          ) : null}
+          <MatchSimulation
+            result={active}
+            home={home}
+            away={away}
+            homeRoster={homeRoster}
+            awayRoster={awayRoster}
+            onClose={() => setSim(null)}
+          />
+        </>
       )}
 
       {world.matches.filter((m) => userTeam && m.status === "completed" && (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id)).length > 0 && (
