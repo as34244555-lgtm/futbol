@@ -1,15 +1,33 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import path from "path";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createFreshWorld, ensureBotWorld } from "@/lib/world";
 import type { LeagueDocument } from "@/lib/types";
+import { normalizeRoom } from "@/lib/utils";
 import { persistenceMode, supabaseAdmin } from "./supabase-admin";
 
-const FILE = path.join(process.cwd(), process.env.LEAGUE_DATA_DIR || "data", process.env.LEAGUE_FILE || "league.json");
+const DATA_DIR = path.join(process.cwd(), process.env.LEAGUE_DATA_DIR || "data");
+const DEFAULT_FILE = path.join(DATA_DIR, process.env.LEAGUE_FILE || "league.json");
+
+const roomAls = new AsyncLocalStorage<string>();
 
 const g = globalThis as unknown as {
-  __ligaDoc?: LeagueDocument;
+  __ligaDocs?: Record<string, LeagueDocument>;
   __ligaLock?: Promise<unknown>;
 };
+
+export function currentRoom(): string {
+  return roomAls.getStore() || "NOVA";
+}
+
+export function runWithRoom<T>(room: string | null | undefined, fn: () => Promise<T>): Promise<T> {
+  return roomAls.run(normalizeRoom(room) || "NOVA", fn);
+}
+
+function memDocs(): Record<string, LeagueDocument> {
+  if (!g.__ligaDocs) g.__ligaDocs = {};
+  return g.__ligaDocs;
+}
 
 function emptyDoc(): LeagueDocument {
   return {
@@ -21,20 +39,48 @@ function emptyDoc(): LeagueDocument {
   };
 }
 
-async function readFileDoc(): Promise<LeagueDocument> {
+function fileForRoom(room: string): string {
+  if (room === "NOVA") return DEFAULT_FILE;
+  return path.join(DATA_DIR, `liga-${room}.json`);
+}
+
+function tmpForRoom(room: string): string {
+  return `/tmp/liga-${room}.json`;
+}
+
+async function readFileDoc(room: string): Promise<LeagueDocument> {
+  const file = fileForRoom(room);
   try {
-    const raw = await readFile(FILE, "utf8");
+    const raw = await readFile(file, "utf8");
     return JSON.parse(raw) as LeagueDocument;
   } catch {
     const doc = emptyDoc();
-    await writeFileDoc(doc);
+    await writeFileDoc(room, doc);
     return doc;
   }
 }
 
-async function writeFileDoc(doc: LeagueDocument) {
-  await mkdir(path.dirname(FILE), { recursive: true });
-  await writeFile(FILE, JSON.stringify(doc), "utf8");
+async function writeFileDoc(room: string, doc: LeagueDocument) {
+  const file = fileForRoom(room);
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, JSON.stringify(doc), "utf8");
+}
+
+async function readTmp(room: string): Promise<LeagueDocument | null> {
+  try {
+    const raw = await readFile(tmpForRoom(room), "utf8");
+    return JSON.parse(raw) as LeagueDocument;
+  } catch {
+    return null;
+  }
+}
+
+async function writeTmp(room: string, doc: LeagueDocument) {
+  try {
+    await writeFile(tmpForRoom(room), JSON.stringify(doc), "utf8");
+  } catch {
+    /* /tmp may be unavailable locally */
+  }
 }
 
 async function readSupabase(): Promise<LeagueDocument> {
@@ -78,18 +124,29 @@ function withBots(doc: LeagueDocument): { doc: LeagueDocument; changed: boolean 
 
 async function loadRaw(): Promise<LeagueDocument> {
   const mode = persistenceMode();
-  if (mode === "supabase") return readSupabase();
-  if (mode === "file") return readFileDoc();
-  if (!g.__ligaDoc) g.__ligaDoc = emptyDoc();
-  return structuredClone(g.__ligaDoc);
+  const room = currentRoom();
+  if (mode === "supabase" && room === "NOVA") return readSupabase();
+  if (mode === "file") return readFileDoc(room);
+  const docs = memDocs();
+  if (docs[room]) return structuredClone(docs[room]);
+  const fromTmp = await readTmp(room);
+  if (fromTmp) {
+    docs[room] = fromTmp;
+    return structuredClone(fromTmp);
+  }
+  const doc = emptyDoc();
+  docs[room] = doc;
+  return structuredClone(doc);
 }
 
 async function save(doc: LeagueDocument, expectedVersion: number): Promise<LeagueDocument> {
   const mode = persistenceMode();
-  if (mode === "supabase") return writeSupabase(doc, expectedVersion);
+  const room = currentRoom();
+  if (mode === "supabase" && room === "NOVA") return writeSupabase(doc, expectedVersion);
   const next = { ...doc, version: expectedVersion + 1 };
-  if (mode === "file") await writeFileDoc(next);
-  g.__ligaDoc = next;
+  if (mode === "file") await writeFileDoc(room, next);
+  memDocs()[room] = next;
+  if (mode === "memory" || process.env.VERCEL === "1") await writeTmp(room, next);
   return next;
 }
 

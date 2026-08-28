@@ -61,10 +61,11 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
   sim.match.home_team_id = home.id;
   sim.match.away_team_id = away.id;
   sim.logs = sim.logs.map((l) => ({ ...l, match_id: fx.id }));
+  const keepLogs = Boolean(home.user_id || away.user_id);
   acc = applyMatchResult(acc, home.id, away.id, sim.match.home_score, sim.match.away_score);
   acc = {
     ...acc,
-    matchLogs: [...acc.matchLogs, ...sim.logs],
+    matchLogs: keepLogs ? [...acc.matchLogs, ...sim.logs] : acc.matchLogs,
     matches: acc.matches.map((m) =>
       m.id === fx.id
         ? {
@@ -80,9 +81,24 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
   return { world: acc, sim };
 }
 
-function closeWeekIfReady(world: GameWorld): GameWorld {
-  if (humansPending(world)) return world;
+/** İnsan maçlarını bekletmeden bot-bot fikstürlerini aynı hafta oynatır. */
+export function resolveBotFixtures(world: GameWorld): GameWorld {
+  const humanIds = new Set(world.teams.filter(isHuman).map((t) => t.id));
   let acc = world;
+  const pending = acc.matches.filter((m) => m.week === acc.week && m.status === "pending");
+  for (const fx of pending) {
+    const homeHuman = Boolean(fx.home_team_id && humanIds.has(fx.home_team_id));
+    const awayHuman = Boolean(fx.away_team_id && humanIds.has(fx.away_team_id));
+    if (homeHuman || awayHuman) continue;
+    const out = simulateOne(acc, fx);
+    if (out) acc = out.world;
+  }
+  return acc;
+}
+
+function closeWeekIfReady(world: GameWorld): GameWorld {
+  let acc = resolveBotFixtures(world);
+  if (humansPending(acc)) return acc;
   const leftover = acc.matches.filter((m) => m.week === acc.week && m.status === "pending");
   for (const fx of leftover) {
     const out = simulateOne(acc, fx);
@@ -91,16 +107,21 @@ function closeWeekIfReady(world: GameWorld): GameWorld {
   return recoverEnergy({ ...acc, week: acc.week + 1 });
 }
 
-export function playUserMatch(world: GameWorld, userTeamId: string): {
-  world: GameWorld;
-  result: MatchSimulationResult | string;
-} {
+export function prepareWeek(world: GameWorld): GameWorld {
   let next = ensureBotWorld(world);
   if (!next.matches.some((m) => m.week === next.week)) {
     next = { ...next, matches: [...next.matches, ...generateWeekFixtures(next)] };
   } else {
     next = ensureHumanMatchmaking(next);
   }
+  return resolveBotFixtures(next);
+}
+
+export function playUserMatch(world: GameWorld, userTeamId: string): {
+  world: GameWorld;
+  result: MatchSimulationResult | string;
+} {
+  let next = prepareWeek(world);
 
   const userFx = next.matches.find(
     (m) =>

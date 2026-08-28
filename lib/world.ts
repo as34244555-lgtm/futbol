@@ -10,7 +10,7 @@ import type {
   TeamPlayer,
   TransferListing,
 } from "./types";
-import { clamp, teamId, uid } from "./utils";
+import { clamp, fixtureId, hash32, humanTeamId, listingId, rowId, seededRandom, teamId } from "./utils";
 
 
 function emptyTeam(
@@ -111,7 +111,7 @@ function assignSquad(
   const taken = pool.slice(0, size);
   const remaining = pool.slice(size);
   const rows: TeamPlayer[] = taken.map((p) => ({
-    id: uid("tp"),
+    id: rowId(team.id, p.id),
     team_id: team.id,
     player_id: p.id,
     energy: clamp(88 + Math.floor(energyJitter() * 12), 70, 100),
@@ -126,6 +126,7 @@ function assignSquad(
 
 export function createFreshWorld(): GameWorld {
   const catalog = generateCatalog(420);
+  const rand = seededRandom(20260828);
   const agency = emptyTeam(SYSTEM_TEAM_ID, "Lig Ajansı", null, "#334155", "#e2e8f0", 0, 10);
   const aiTeams = AI_CLUBS.map((c, i) =>
     emptyTeam(teamId(i + 1), c.name, null, c.kit_primary, c.kit_secondary, 8000 + i * 400, 10),
@@ -139,19 +140,19 @@ export function createFreshWorld(): GameWorld {
     const club = aiTeams[i]!;
     const { squad, rest } = pickBalancedSquad(pool, AI_CLUBS[i]!.strength, 18);
     pool = rest;
-    const { rows } = assignSquad(club, squad, squad.length, () => Math.random());
+    const { rows } = assignSquad(club, squad, squad.length, rand);
     allRows.push(...rows);
   }
 
   const catalogById = new Map(catalog.map((p) => [p.id, p]));
-  const { rows: agencyRows } = assignSquad(agency, pool, pool.length, () => Math.random());
+  const { rows: agencyRows } = assignSquad(agency, pool, pool.length, rand);
   for (const r of agencyRows) {
     r.is_starter = false;
     r.squad_position = null;
     const player = catalogById.get(r.player_id);
-    const price = player ? Math.round(player.base_value * (0.9 + Math.random() * 0.35)) : 500;
+    const price = player ? Math.round(player.base_value * (0.9 + rand() * 0.35)) : 500;
     listings.push({
-      id: uid("tm"),
+      id: listingId(agency.id, r.player_id),
       team_player_id: r.id,
       seller_team_id: agency.id,
       price: Math.max(250, price),
@@ -166,10 +167,10 @@ export function createFreshWorld(): GameWorld {
     for (const r of benches) {
       const player = catalogById.get(r.player_id);
       listings.push({
-        id: uid("tm"),
+        id: listingId(club.id, r.player_id),
         team_player_id: r.id,
         seller_team_id: club.id,
-        price: Math.max(300, Math.round((player?.base_value ?? 800) * (1.05 + Math.random() * 0.4))),
+        price: Math.max(300, Math.round((player?.base_value ?? 800) * (1.05 + rand() * 0.4))),
         status: "active",
         created_at: new Date().toISOString(),
       });
@@ -206,8 +207,10 @@ export function nextHumanKit(world: GameWorld): [string, string] {
 }
 
 export function createUserTeam(world: GameWorld, userId: string, teamName: string): { world: GameWorld; team: Team } {
+  const existing = world.teams.find((t) => t.user_id === userId);
+  if (existing) return { world, team: existing };
   const [kit_primary, kit_secondary] = nextHumanKit(world);
-  const userTeam = emptyTeam(uid("team"), teamName, userId, kit_primary, kit_secondary);
+  const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary);
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
   const byId = new Map(world.players.map((p) => [p.id, p]));
   let agencyCatalog = agencyPlayers
@@ -229,7 +232,7 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
   const moved: TeamPlayer[] = [
     ...fromAgency.map((p) => ({
       ...p,
-      id: uid("tp"),
+      id: rowId(userTeam.id, p.player_id),
       team_id: userTeam.id,
       energy: 100,
       form: 80,
@@ -238,7 +241,7 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
       acquired_at: new Date().toISOString(),
     })),
     ...fromExtra.map((p) => ({
-      id: uid("tp"),
+      id: rowId(userTeam.id, p.id),
       team_id: userTeam.id,
       player_id: p.id,
       energy: 100,
@@ -341,7 +344,7 @@ export function isBotTeam(t: Team): boolean {
 
 export function makeFixture(home: Team, away: Team, week: number): Match {
   return {
-    id: uid("fx"),
+    id: fixtureId(week, home.id, away.id),
     home_team_id: home.id,
     away_team_id: away.id,
     home_score: 0,
@@ -486,16 +489,17 @@ export function seedBotListings(world: GameWorld, perClub = 6): GameWorld {
     const have = world.listings.filter((l) => l.seller_team_id === club.id && l.status === "active").length;
     const need = Math.max(0, perClub - have);
     if (need === 0) continue;
+    const rand = seededRandom(hash32(club.id));
     const benches = world.teamPlayers.filter(
       (r) => r.team_id === club.id && !r.is_starter && !listed.has(r.id),
     );
     for (const r of benches.slice(0, need)) {
       const player = byId.get(r.player_id);
       extra.push({
-        id: uid("tm"),
+        id: listingId(club.id, r.player_id),
         team_player_id: r.id,
         seller_team_id: club.id,
-        price: Math.max(300, Math.round((player?.base_value ?? 800) * (0.95 + Math.random() * 0.45))),
+        price: Math.max(300, Math.round((player?.base_value ?? 800) * (0.95 + rand() * 0.45))),
         status: "active",
         created_at: new Date().toISOString(),
       });

@@ -39,8 +39,8 @@ export default function MatchPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
       <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-slate-400">
-        Motor 90 dakikalık olay zincirini milisaniyede üretir. Başka gerçek menajer varsa onunla eşleşirsiniz;
-        yoksa bot menajerle oynarsınız. Rakibin son kayıtlı 11&apos;i kullanılır.
+        Maç 90 dakika canlı anlatım ve skorla izlenir. Başka gerçek menajer varsa onunla eşleşirsiniz; yoksa bot
+        menajerlerle oynarsınız. Ligdeki diğer botlar aynı hafta kendi maçlarını oynar.
       </p>
 
       {!active && (

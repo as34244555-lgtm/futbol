@@ -1,6 +1,6 @@
-import { hashPassword, verifyPassword } from "./auth";
-import { mutateLeague, persistenceMode, readLeague } from "./store";
-import { playUserMatch } from "@/lib/season";
+import { hashPassword, verifyPassword, type SessionPayload } from "./auth";
+import { currentRoom, mutateLeague, persistenceMode, readLeague } from "./store";
+import { playUserMatch, prepareWeek } from "@/lib/season";
 import type {
   Formation,
   LeagueDocument,
@@ -11,15 +11,8 @@ import type {
 } from "@/lib/types";
 import { ONLINE_MS, SYSTEM_TEAM_ID } from "@/lib/types";
 import { botManagerName } from "@/lib/catalog";
-import {
-  autoSelectStarters,
-  createUserTeam,
-  ensureBotWorld,
-  ensureHumanMatchmaking,
-  generateWeekFixtures,
-  leagueTeams,
-} from "@/lib/world";
-import { uid } from "@/lib/utils";
+import { autoSelectStarters, createUserTeam, leagueTeams } from "@/lib/world";
+import { listingId, rowId, uid } from "@/lib/utils";
 
 export class ActionError extends Error {
   constructor(message: string) {
@@ -63,12 +56,13 @@ export function snapshot(doc: LeagueDocument, userId: string) {
   const account = doc.accounts.find((a) => a.id === userId) ?? null;
   return {
     world: doc.world,
-    me: account && team ? { id: account.id, username: account.username, teamId: team.id } : null,
+    me: account && team ? { id: account.id, username: account.username, teamId: team.id, roomCode: currentRoom() } : null,
     lastSim: team ? (doc.lastSim[team.id] ?? null) : null,
     managers: publicManagers(doc),
     backend: persistenceMode(),
     humans: leagueTeams(doc.world).filter((t) => t.user_id).length,
     bots: leagueTeams(doc.world).filter((t) => !t.user_id).length,
+    roomCode: currentRoom(),
   };
 }
 
@@ -92,13 +86,8 @@ export async function registerManager(username: string, password: string, teamNa
       passwordHash: hashPassword(password),
       created_at: new Date().toISOString(),
     };
-    const joined = createUserTeam(ensureBotWorld(doc.world), account.id, t);
-    let world = joined.world;
-    if (!world.matches.some((m) => m.week === world.week)) {
-      world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
-    } else {
-      world = ensureHumanMatchmaking(world);
-    }
+    const joined = createUserTeam(doc.world, account.id, t);
+    const world = prepareWeek(joined.world);
     const next: LeagueDocument = {
       ...doc,
       accounts: [...doc.accounts, account],
@@ -133,7 +122,7 @@ function teamOf(doc: LeagueDocument, userId: string) {
   return team;
 }
 
-type SessionHint = { sub: string; name: string; teamId: string; teamName?: string };
+type SessionHint = SessionPayload;
 
 /** Vercel bellek modunda soğuk başlangıçta oturumdaki menajeri lige geri yazar. */
 export function withSessionUser(doc: LeagueDocument, session: SessionHint): LeagueDocument {
@@ -155,13 +144,8 @@ export function withSessionUser(doc: LeagueDocument, session: SessionHint): Leag
     passwordHash: "session-restore",
     created_at: new Date().toISOString(),
   };
-  const joined = createUserTeam(ensureBotWorld(doc.world), account.id, name);
-  let world = joined.world;
-  if (!world.matches.some((m) => m.week === world.week)) {
-    world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
-  } else {
-    world = ensureHumanMatchmaking(world);
-  }
+  const joined = createUserTeam(doc.world, account.id, name);
+  const world = prepareWeek(joined.world);
   return {
     ...doc,
     accounts: [...doc.accounts, account],
@@ -178,9 +162,10 @@ export async function ping(session: SessionHint) {
   });
 }
 
-export async function setFormation(userId: string, formation: Formation) {
+export async function setFormation(session: SessionHint, formation: Formation) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const roster = doc.world.teamPlayers.filter((tp) => tp.team_id === team.id);
     const others = doc.world.teamPlayers.filter((tp) => tp.team_id !== team.id);
     const filled = autoSelectStarters(roster, doc.world.players, formation);
@@ -190,25 +175,27 @@ export async function setFormation(userId: string, formation: Formation) {
       teamPlayers: [...others, ...filled],
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function setTactics(userId: string, tactics: Tactic) {
+export async function setTactics(session: SessionHint, tactics: Tactic) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const world = {
       ...doc.world,
       teams: doc.world.teams.map((t) => (t.id === team.id ? { ...t, tactics } : t)),
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function assignSlot(userId: string, slotKey: string, teamPlayerId: string) {
+export async function assignSlot(session: SessionHint, slotKey: string, teamPlayerId: string) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const world = {
       ...doc.world,
       teamPlayers: doc.world.teamPlayers.map((tp) => {
@@ -219,13 +206,14 @@ export async function assignSlot(userId: string, slotKey: string, teamPlayerId: 
       }),
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function autoPick(userId: string) {
+export async function autoPick(session: SessionHint) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const roster = doc.world.teamPlayers.filter((tp) => tp.team_id === team.id);
     const others = doc.world.teamPlayers.filter((tp) => tp.team_id !== team.id);
     const world = {
@@ -233,14 +221,15 @@ export async function autoPick(userId: string) {
       teamPlayers: [...others, ...autoSelectStarters(roster, doc.world.players, team.formation)],
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function listForSale(userId: string, teamPlayerId: string, price: number) {
+export async function listForSale(session: SessionHint, teamPlayerId: string, price: number) {
   if (price <= 0) throw new ActionError("Fiyat 0'dan büyük olmalı.");
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const tp = doc.world.teamPlayers.find((x) => x.id === teamPlayerId);
     if (!tp || tp.team_id !== team.id) throw new ActionError("Oyuncu kadronuzda değil.");
     if (doc.world.listings.some((l) => l.team_player_id === teamPlayerId && l.status === "active")) {
@@ -252,7 +241,7 @@ export async function listForSale(userId: string, teamPlayerId: string, price: n
       listings: [
         ...doc.world.listings,
         {
-          id: uid("tm"),
+          id: listingId(team.id, tp.player_id),
           team_player_id: teamPlayerId,
           seller_team_id: team.id,
           price: Math.round(price),
@@ -262,30 +251,32 @@ export async function listForSale(userId: string, teamPlayerId: string, price: n
       ],
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function cancelListing(userId: string, listingId: string) {
+export async function cancelListing(session: SessionHint, listingIdArg: string) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
     const world = {
       ...doc.world,
       listings: doc.world.listings.map((l) =>
-        l.id === listingId && l.seller_team_id === team.id && l.status === "active"
+        l.id === listingIdArg && l.seller_team_id === team.id && l.status === "active"
           ? { ...l, status: "cancelled" as const }
           : l,
       ),
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
-export async function buyListing(userId: string, listingId: string) {
+export async function buyListing(session: SessionHint, listingIdArg: string) {
   return mutateLeague((doc) => {
-    const team = teamOf(doc, userId);
-    const listing = doc.world.listings.find((l) => l.id === listingId && l.status === "active");
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const listing = doc.world.listings.find((l) => l.id === listingIdArg && l.status === "active");
     if (!listing) throw new ActionError("İlan bulunamadı.");
     if (listing.seller_team_id === team.id) throw new ActionError("Kendi ilanınızı satın alamazsınız.");
     if (team.coins < listing.price) throw new ActionError("Yetersiz bütçe.");
@@ -306,6 +297,7 @@ export async function buyListing(userId: string, listingId: string) {
         row.id === tp.id
           ? {
               ...row,
+              id: rowId(team.id, row.player_id),
               team_id: team.id,
               is_starter: false,
               squad_position: null,
@@ -313,10 +305,12 @@ export async function buyListing(userId: string, listingId: string) {
             }
           : row,
       ),
-      listings: doc.world.listings.map((l) => (l.id === listingId ? { ...l, status: "sold" as const } : l)),
+      listings: doc.world.listings.map((l) =>
+        l.id === listingIdArg && l.status === "active" ? { ...l, status: "sold" as const } : l,
+      ),
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
@@ -324,12 +318,7 @@ export async function ensureFixtures(session: SessionHint) {
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
     teamOf(doc, session.sub);
-    let world = ensureBotWorld(doc.world);
-    if (!world.matches.some((m) => m.week === world.week)) {
-      world = { ...world, matches: [...world.matches, ...generateWeekFixtures(world)] };
-    } else {
-      world = ensureHumanMatchmaking(world);
-    }
+    const world = prepareWeek(doc.world);
     const next = { ...doc, world };
     return { doc: next, result: snapshot(next, session.sub) };
   });
@@ -359,17 +348,18 @@ export async function playMatch(session: SessionHint) {
   });
 }
 
-export async function importPlayers(userId: string, players: Player[], mode: "merge" | "replace") {
+export async function importPlayers(session: SessionHint, players: Player[], mode: "merge" | "replace") {
   return mutateLeague((doc) => {
-    teamOf(doc, userId);
+    doc = withSessionUser(doc, session);
+    teamOf(doc, session.sub);
     if (mode === "replace") {
       const next = { ...doc, world: { ...doc.world, players } };
-      return { doc: next, result: snapshot(next, userId) };
+      return { doc: next, result: snapshot(next, session.sub) };
     }
     const names = new Set(doc.world.players.map((p) => p.name.toLowerCase()));
     const extra = players.filter((p) => !names.has(p.name.toLowerCase()));
     const agencyRows = extra.map((p) => ({
-      id: uid("tp"),
+      id: rowId(SYSTEM_TEAM_ID, p.id),
       team_id: SYSTEM_TEAM_ID,
       player_id: p.id,
       energy: 100,
@@ -381,7 +371,7 @@ export async function importPlayers(userId: string, players: Player[], mode: "me
     const listings = agencyRows.map((r) => {
       const p = extra.find((x) => x.id === r.player_id)!;
       return {
-        id: uid("tm"),
+        id: listingId(SYSTEM_TEAM_ID, p.id),
         team_player_id: r.id,
         seller_team_id: SYSTEM_TEAM_ID,
         price: p.base_value,
@@ -396,7 +386,7 @@ export async function importPlayers(userId: string, players: Player[], mode: "me
       listings: [...doc.world.listings, ...listings],
     };
     const next = { ...doc, world };
-    return { doc: next, result: snapshot(next, userId) };
+    return { doc: next, result: snapshot(next, session.sub) };
   });
 }
 
@@ -411,6 +401,7 @@ export async function getSnapshot(userId: string | null) {
       backend: persistenceMode(),
       humans: leagueTeams(doc.world).filter((t) => t.user_id).length,
       bots: leagueTeams(doc.world).filter((t) => !t.user_id).length,
+      roomCode: currentRoom(),
     };
   }
   return snapshot(doc, userId);

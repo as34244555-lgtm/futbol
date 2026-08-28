@@ -22,12 +22,12 @@ export function sessionSecret(): string {
   return process.env.AUTH_SECRET || process.env.SESSION_SECRET || "liga-nova-dev-secret-change-me";
 }
 
-export type SessionPayload = { sub: string; name: string; teamId: string; teamName?: string };
+export type SessionPayload = { sub: string; name: string; teamId: string; teamName?: string; roomCode?: string };
 
 export function signSession(payload: SessionPayload): string {
-  const body = Buffer.from(JSON.stringify({ ...payload, exp: Date.now() + 14 * 24 * 60 * 60 * 1000 })).toString(
-    "base64url",
-  );
+  const body = Buffer.from(
+    JSON.stringify({ ...payload, exp: Date.now() + 14 * 24 * 60 * 60 * 1000 }),
+  ).toString("base64url");
   const sig = createHmac("sha256", sessionSecret()).update(body).digest("base64url");
   return `${body}.${sig}`;
 }
@@ -46,10 +46,17 @@ export function readSession(token: string | undefined): SessionPayload | null {
       name: string;
       teamId: string;
       teamName?: string;
+      roomCode?: string;
       exp: number;
     };
     if (data.exp < Date.now()) return null;
-    return { sub: data.sub, name: data.name, teamId: data.teamId, teamName: data.teamName };
+    return {
+      sub: data.sub,
+      name: data.name,
+      teamId: data.teamId,
+      teamName: data.teamName,
+      roomCode: data.roomCode,
+    };
   } catch {
     return null;
   }

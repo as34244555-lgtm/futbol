@@ -9,10 +9,11 @@ import { TACTIC_LABEL } from "@/lib/types";
 import { rosterOf } from "@/lib/world";
 import { formatCoins } from "@/lib/utils";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 export default function DashboardPage() {
-  const { world, userTeam, managers, ensureWeekFixtures, humans, bots } = useGame();
+  const { world, userTeam, managers, ensureWeekFixtures, humans, bots, roomCode } = useGame();
+  const [copied, setCopied] = useState(false);
   const roster = useMemo(
     () => (userTeam ? rosterOf(world, userTeam.id) : []),
     [world, userTeam],
@@ -41,6 +42,26 @@ export default function DashboardPage() {
         <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
           Fikstürü hazırla
         </Button>
+      </div>
+      <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-neon/20 bg-neon/5 px-4 py-3 text-sm">
+        <span className="text-slate-400">Arkadaş odası</span>
+        <span className="font-mono text-lg tracking-[0.3em] text-neon">{roomCode}</span>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(roomCode);
+              setCopied(true);
+              window.setTimeout(() => setCopied(false), 1600);
+            } catch {
+              setCopied(false);
+            }
+          }}
+        >
+          {copied ? "Kopyalandı" : "Kodu kopyala"}
+        </Button>
+        <span className="text-slate-500">Arkadaşın kayıt/girişte aynı kodu yazsın.</span>
       </div>
       <div className="grid gap-4 md:grid-cols-4">
         <Stat title="Bütçe" value={`${formatCoins(userTeam?.coins ?? 0)} ₡`} />
@@ -86,7 +107,8 @@ export default function DashboardPage() {
       </div>
       <h2 className="font-display mt-10 text-2xl">Menajer odası</h2>
       <p className="mt-1 text-sm text-slate-500">
-        {humans} gerçek menajer · {bots} bot. İki gerçek menajer aynı anda bekliyorsa birbirleriyle eşleşir.
+        {humans} gerçek menajer · {bots} bot. Botlar her hafta kendi aralarında oynar; iki gerçek menajer varsa
+        onlar eşleşir.
       </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {managers.map((m) => (

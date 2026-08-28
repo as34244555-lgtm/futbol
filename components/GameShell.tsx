@@ -28,7 +28,7 @@ const NAV = [
 ];
 
 export function GameShell({ children }: { children: React.ReactNode }) {
-  const { ready, userTeam, me, world, backend, humans, logout } = useGame();
+  const { ready, userTeam, me, world, backend, humans, logout, roomCode } = useGame();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -71,7 +71,8 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <p className="mt-6 px-3 text-[10px] uppercase tracking-wider text-slate-500">
-          {backend === "supabase" ? "Vercel + Supabase" : backend === "file" ? "Yerel lig sunucusu" : "Bellek (dev)"} · {humans} insan
+          {backend === "supabase" ? "Vercel + Supabase" : backend === "file" ? "Yerel lig sunucusu" : "Bellek"} ·{" "}
+          {humans} insan
         </p>
         <button
           className="mt-auto flex items-center gap-2 rounded-xl px-3 py-2 text-sm text-slate-500 hover:text-rose-300"
@@ -94,6 +95,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             <p className="font-semibold">{userTeam.name}</p>
           </div>
           <div className="ml-auto flex flex-wrap items-center gap-4 text-sm">
+            <Meta label="Oda" value={roomCode} />
             <Meta label="Menajer" value={me?.username ?? "-"} />
             <Meta label="Hafta" value={`${world.week}`} />
             <Meta label="Lig" value={`Küme ${userTeam.division}`} />

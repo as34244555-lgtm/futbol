@@ -20,10 +20,11 @@ export default function LeaguePage() {
       });
   }, [world]);
 
+  const weekHas = world.matches.some((m) => m.week === world.week);
+  const resultWeek = weekHas ? world.week : Math.max(1, world.week - 1);
   const results = world.matches
-    .filter((m) => m.status === "completed")
-    .slice(-12)
-    .reverse();
+    .filter((m) => m.week === resultWeek)
+    .sort((a, b) => Number(b.status === "completed") - Number(a.status === "completed"));
 
   return (
     <GameShell>
@@ -77,17 +78,17 @@ export default function LeaguePage() {
           </tbody>
         </table>
       </div>
-      <h2 className="font-display mt-10 text-2xl">Son lig sonuçları</h2>
+      <h2 className="font-display mt-10 text-2xl">Hafta {resultWeek} maçları</h2>
       <div className="mt-3 space-y-2">
-        {results.length === 0 && <p className="text-slate-500">Henüz maç oynanmadı.</p>}
+        {results.length === 0 && <p className="text-slate-500">Henüz fikstür yok.</p>}
         {results.map((m) => (
           <div key={m.id} className="flex justify-between rounded-xl border border-white/10 bg-ink-800 px-4 py-2 text-sm">
             <span>
               {world.teams.find((t) => t.id === m.home_team_id)?.name} —{" "}
               {world.teams.find((t) => t.id === m.away_team_id)?.name}
             </span>
-            <span>
-              {m.home_score} - {m.away_score}
+            <span className="font-semibold">
+              {m.status === "completed" ? `${m.home_score} - ${m.away_score}` : "bekliyor"}
             </span>
           </div>
         ))}

@@ -20,6 +20,7 @@ export type LeagueSnap = {
   backend: "supabase" | "file" | "memory";
   humans: number;
   bots: number;
+  roomCode?: string;
 };
 
 const emptyWorld: GameWorld = {
@@ -43,8 +44,9 @@ type GameContextValue = {
   backend: LeagueSnap["backend"];
   humans: number;
   bots: number;
-  register: (username: string, password: string, teamName: string) => Promise<string | null>;
-  login: (username: string, password: string) => Promise<string | null>;
+  roomCode: string;
+  register: (username: string, password: string, teamName: string, roomCode?: string) => Promise<string | null>;
+  login: (username: string, password: string, roomCode?: string) => Promise<string | null>;
   logout: () => Promise<void>;
   setFormation: (formation: Formation) => Promise<void>;
   setTactics: (tactics: Tactic) => Promise<void>;
@@ -101,6 +103,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     backend: "file",
     humans: 0,
     bots: 0,
+    roomCode: "NOVA",
   });
   const [ready, setReady] = useState(false);
 
@@ -123,15 +126,20 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const userTeam = useMemo(
-    () => (snap.me ? snap.world.teams.find((t) => t.id === snap.me?.teamId) ?? null : null),
+    () =>
+      snap.me
+        ? snap.world.teams.find((t) => t.id === snap.me?.teamId) ??
+          snap.world.teams.find((t) => t.user_id === snap.me?.id) ??
+          null
+        : null,
     [snap],
   );
 
-  const register = useCallback(async (username: string, password: string, teamName: string) => {
+  const register = useCallback(async (username: string, password: string, teamName: string, roomCode?: string) => {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username, password, teamName }),
+      body: JSON.stringify({ username, password, teamName, roomCode }),
     });
     const json = (await readJson(res)) as { error?: string };
     if (!res.ok) return json.error ?? "Kayıt başarısız";
@@ -139,11 +147,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     return null;
   }, [refresh]);
 
-  const login = useCallback(async (username: string, password: string) => {
+  const login = useCallback(async (username: string, password: string, roomCode?: string) => {
     const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username, password }),
+      body: JSON.stringify({ username, password, roomCode }),
     });
     const json = (await readJson(res)) as { error?: string };
     if (!res.ok) return json.error ?? "Giriş başarısız";
@@ -224,6 +232,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       backend: snap.backend,
       humans: snap.humans,
       bots: snap.bots ?? 0,
+      roomCode: snap.roomCode ?? snap.me?.roomCode ?? "NOVA",
       register,
       login,
       logout,

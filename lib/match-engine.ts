@@ -85,6 +85,17 @@ function safePick<T>(rand: () => number, preferred: T[], fallback: T[], weight: 
   return pickBy(rand, pool, weight);
 }
 
+function poisson(rand: () => number, lambda: number): number {
+  const L = Math.exp(-Math.max(0.05, lambda));
+  let k = 0;
+  let p = 1;
+  do {
+    k += 1;
+    p *= rand();
+  } while (p > L);
+  return k - 1;
+}
+
 const EVENT = {
   KICKOFF: "kickoff",
   PASS: "pass",
@@ -100,11 +111,7 @@ const EVENT = {
   WHISTLE: "whistle",
 } as const;
 
-function line(
-  templates: string[],
-  vars: Record<string, string>,
-  rand: () => number,
-): string {
+function line(templates: string[], vars: Record<string, string>, rand: () => number): string {
   const t = templates[Math.floor(rand() * templates.length)]!;
   return t.replace(/\{(\w+)\}/g, (_, k) => vars[k] ?? "");
 }
@@ -123,7 +130,7 @@ export function simulateMatch(
   let awayScore = 0;
   const hs = sideStrength(home);
   const as = sideStrength(away);
-  const homePoss = hs.possession / (hs.possession + as.possession);
+  const homePoss = hs.possession / (hs.possession + as.possession || 1);
 
   const push = (
     minute: number,
@@ -153,22 +160,38 @@ export function simulateMatch(
     });
   };
 
-  const kick: PitchPoint = { x: 50, y: 50 };
-  push(1, EVENT.KICKOFF, "Hakem düdüğü çaldı! Karşılaşma başladı.", kick, "neutral");
-
   const attackers = (side: SimSide) => side.starters.filter((p) => p.position === "FV" || p.position === "OS");
   const defenders = (side: SimSide) => side.starters.filter((p) => p.position === "DEF");
   const gk = (side: SimSide) => side.starters.find((p) => p.position === "KL") ?? side.starters[0]!;
 
-  const eventChance = ((hs.tempo + as.tempo) / 2) * 0.17;
+  const homeLambda = clamp(1.35 + (hs.attack - as.defense) / 48, 0.7, 3.4);
+  const awayLambda = clamp(1.15 + (as.attack - hs.defense) / 48, 0.55, 3.1);
+  let homeGoals = poisson(rand, homeLambda);
+  let awayGoals = poisson(rand, awayLambda);
+  if (homeGoals + awayGoals === 0 && rand() < 0.82) {
+    if (rand() < homePoss) homeGoals = 1;
+    else awayGoals = 1;
+  }
 
-  for (let minute = 2; minute <= 90; minute++) {
-    if (rand() > eventChance && minute !== 45 && minute !== 90) continue;
-    const homeHas = rand() < homePoss;
+  const usedMinutes = new Set<number>([1, 45, 90]);
+  const pickMinute = () => {
+    for (let i = 0; i < 40; i++) {
+      const m = 6 + Math.floor(rand() * 82);
+      if (!usedMinutes.has(m)) {
+        usedMinutes.add(m);
+        return m;
+      }
+    }
+    return 12 + Math.floor(rand() * 70);
+  };
+  const goalPlan = new Map<number, "home" | "away">();
+  for (let i = 0; i < homeGoals; i++) goalPlan.set(pickMinute(), "home");
+  for (let i = 0; i < awayGoals; i++) goalPlan.set(pickMinute(), "away");
+
+  const playMinute = (minute: number, forceGoal?: "home" | "away") => {
+    const homeHas = forceGoal ? forceGoal === "home" : rand() < homePoss;
     const att = homeHas ? home : away;
     const def = homeHas ? away : home;
-    const attS = homeHas ? hs : as;
-    const defS = homeHas ? as : hs;
     const side: "home" | "away" = homeHas ? "home" : "away";
     const actor = safePick(rand, attackers(att), att.starters, (p) => rating(p, "attack") + 8);
     const marker = safePick(rand, defenders(def), def.starters, (p) => rating(p, "defense") + 8);
@@ -177,21 +200,65 @@ export function simulateMatch(
     const towardGoal: PitchPoint = homeHas ? { x: 94, y: 50 } : { x: 6, y: 50 };
     const box = lerp(from, towardGoal, 0.72 + rand() * 0.18);
 
-    const roll = rand();
-    if (minute === 45 && roll < 0.5) {
-      push(45, EVENT.WHISTLE, "İlk yarı sona erdi.", { x: 50, y: 50 }, "neutral");
-      continue;
+    if (forceGoal) {
+      push(
+        minute,
+        EVENT.CHANCE,
+        line(
+          [
+            "Tehlikeli atak! {att} ceza sahasına süzüldü.",
+            "{att} savunmayı yardı, kaleci yalnız kaldı!",
+            "Pozisyon olgunlaşıyor… {att} kaleyi karşısına aldı.",
+          ],
+          { att: actor.name },
+          rand,
+        ),
+        jitter(rand, box, 8),
+        side,
+        actor,
+      );
+      push(
+        minute,
+        EVENT.SHOT,
+        line(["ŞUT! {att} deniyor!", "{att} yerden köşeye vuruyor!", "Uzak mesafeden {att}!"], { att: actor.name }, rand),
+        jitter(rand, box, 6),
+        side,
+        actor,
+      );
+      if (homeHas) homeScore += 1;
+      else awayScore += 1;
+      push(
+        minute,
+        EVENT.GOAL,
+        line(
+          [
+            "GOOOOL! {att} fileleri havalandırdı! {home} {hs} - {as} {away}",
+            "AĞLARDA! {att} skoru {hs}-{as} yaptı.",
+            "Muhteşem gol! {att} stadyumu ayağa kaldırdı. {hs}-{as}",
+          ],
+          {
+            att: actor.name,
+            home: home.team.name,
+            away: away.team.name,
+            hs: String(homeScore),
+            as: String(awayScore),
+          },
+          rand,
+        ),
+        towardGoal,
+        side,
+        actor,
+      );
+      return;
     }
 
-    if (roll < 0.12) {
+    const roll = rand();
+    if (roll < 0.1) {
       push(
         minute,
         EVENT.FOUL,
         line(
-          [
-            "{def} {att} oyuncusunu düşürdü. Serbest vuruş.",
-            "Faul! {att} yerde kaldı, {def} itiraz ediyor.",
-          ],
+          ["{def} {att} oyuncusunu düşürdü. Serbest vuruş.", "Faul! {att} yerde kaldı, {def} itiraz ediyor."],
           { att: actor.name, def: marker.name },
           rand,
         ),
@@ -199,7 +266,7 @@ export function simulateMatch(
         side,
         actor,
       );
-      if (rand() < 0.22) {
+      if (rand() < 0.18) {
         push(
           minute,
           EVENT.CARD,
@@ -209,10 +276,9 @@ export function simulateMatch(
           marker,
         );
       }
-      continue;
+      return;
     }
-
-    if (roll < 0.2) {
+    if (roll < 0.16) {
       push(
         minute,
         EVENT.OFFSIDE,
@@ -221,10 +287,9 @@ export function simulateMatch(
         side,
         actor,
       );
-      continue;
+      return;
     }
-
-    if (roll < 0.48) {
+    if (roll < 0.52) {
       const dest = safePick(rand, att.starters, att.starters, (p) => (p.position === "FV" ? 3 : 1));
       push(
         minute,
@@ -234,18 +299,18 @@ export function simulateMatch(
             "{a} topu {b} ile buluşturdu.",
             "Güzel kombinasyon: {a} → {b}.",
             "{a} kanattan içeri çeviriyor, {b} karşılıyor.",
+            "{home} tempoyu yükseltiyor, {a} yönlendiriyor.",
           ],
-          { a: actor.name, b: dest.name },
+          { a: actor.name, b: dest.name, home: att.team.name },
           rand,
         ),
         jitter(rand, lerp(from, slotPos(att.team.formation, dest.slotKey, homeHas), 0.7)),
         side,
         actor,
       );
-      continue;
+      return;
     }
-
-    if (roll < 0.62) {
+    if (roll < 0.68) {
       push(
         minute,
         EVENT.CHANCE,
@@ -254,6 +319,7 @@ export function simulateMatch(
             "{att} ceza sahasına süzüldü!",
             "Tehlikeli an! {att} kaleye yaklaşıyor.",
             "{att} savunmayı geçti, şimdi ne yapacak?",
+            "Orta açıldı, {att} kafa vuruşuna hazırlanıyor.",
           ],
           { att: actor.name },
           rand,
@@ -262,62 +328,30 @@ export function simulateMatch(
         side,
         actor,
       );
-      continue;
+      return;
     }
-
-    if (roll < 0.72) {
+    if (roll < 0.78) {
       push(
         minute,
         EVENT.CORNER,
-        `${actor.name} korner kazandırdı.`,
+        `${actor.name} korner kazandırdı. ${att.team.name} baskı kuruyor.`,
         homeHas ? { x: 98, y: rand() < 0.5 ? 8 : 92 } : { x: 2, y: rand() < 0.5 ? 8 : 92 },
         side,
         actor,
       );
-      continue;
+      return;
     }
 
-    // Shot sequence
     push(
       minute,
       EVENT.SHOT,
-      line(
-        ["ŞUT! {att} deniyor!", "{att} kaleyi karşısına aldı ve vurdu!", "Uzak mesafeden {att}!" ],
-        { att: actor.name },
-        rand,
-      ),
+      line(["ŞUT! {att} deniyor!", "{att} kaleyi karşısına aldı ve vurdu!", "Uzak mesafeden {att}!"], { att: actor.name }, rand),
       jitter(rand, box, 6),
       side,
       actor,
     );
-
-    const shotQuality = attS.attack * attS.conversion * (0.75 + rand() * 0.5);
-    const saveQuality = defS.defense * (0.85 + rand() * 0.4) * (keeper.defense / 72);
-    const onTarget = rand() < 0.55;
-    const gap = shotQuality - saveQuality;
-    const goalChance = clamp(0.09 + gap / 320, 0.04, 0.3);
-    const isGoal = onTarget && rand() < goalChance;
-
-    if (isGoal) {
-      if (homeHas) homeScore += 1;
-      else awayScore += 1;
-      const desc = line(
-        [
-          "GOOOOL! {att} fileleri havalandırdı! {home} {hs} - {as} {away}",
-          "AĞLARDA! {att} takımını öne taşıyor. Skor {hs}-{as}.",
-          "Muhteşem gol! {att} stadyumu ayağa kaldırdı.",
-        ],
-        {
-          att: actor.name,
-          home: home.team.name,
-          away: away.team.name,
-          hs: String(homeScore),
-          as: String(awayScore),
-        },
-        rand,
-      );
-      push(minute, EVENT.GOAL, desc, towardGoal, side, actor);
-    } else if (onTarget) {
+    const onTarget = rand() < 0.58;
+    if (onTarget) {
       push(
         minute,
         EVENT.SAVE,
@@ -340,6 +374,22 @@ export function simulateMatch(
         actor,
       );
     }
+  };
+
+  push(1, EVENT.KICKOFF, `Hakem düdüğü çaldı! ${home.team.name} — ${away.team.name} karşılaşması başladı.`, { x: 50, y: 50 }, "neutral");
+
+  for (let minute = 2; minute <= 89; minute++) {
+    if (minute === 45) {
+      push(
+        45,
+        EVENT.WHISTLE,
+        `İlk yarı sona erdi. Skor ${home.team.name} ${homeScore} - ${awayScore} ${away.team.name}`,
+        { x: 50, y: 50 },
+        "neutral",
+      );
+      continue;
+    }
+    playMinute(minute, goalPlan.get(minute));
   }
 
   push(
@@ -352,7 +402,8 @@ export function simulateMatch(
 
   const homeBest = [...home.starters].sort((a, b) => b.overall * b.form - a.overall * a.form)[0];
   const awayBest = [...away.starters].sort((a, b) => b.overall * b.form - a.overall * a.form)[0];
-  const motmSide = homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : homeBest && awayBest && homeBest.overall >= awayBest.overall ? "home" : "away";
+  const motmSide =
+    homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : homeBest && awayBest && homeBest.overall >= awayBest.overall ? "home" : "away";
   const motmPlayer = motmSide === "home" ? homeBest : awayBest;
 
   const match: Match = {
@@ -374,14 +425,8 @@ export function simulateMatch(
   };
 }
 
-export function buildSimSide(
-  team: Team,
-  roster: Array<TeamPlayer & { player: Player }>,
-): SimSide {
-  const chosen = [
-    ...roster.filter((r) => r.is_starter),
-    ...roster.filter((r) => !r.is_starter),
-  ].slice(0, 11);
+export function buildSimSide(team: Team, roster: Array<TeamPlayer & { player: Player }>): SimSide {
+  const chosen = [...roster.filter((r) => r.is_starter), ...roster.filter((r) => !r.is_starter)].slice(0, 11);
   const starters = chosen.map((r) => ({
     ...r.player,
     energy: r.energy,

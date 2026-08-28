@@ -42,12 +42,17 @@ export function MatchSimulation({
   const events = result.timeline;
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
-  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(2);
+  const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
   const event = events[Math.min(idx, events.length - 1)]!;
+  const prev = idx > 0 ? events[idx - 1] : null;
 
   useEffect(() => {
     if (!playing) return;
-    const delay = event.eventType === "goal" ? 1400 / speed : event.eventType === "whistle" ? 1100 / speed : 520 / speed;
+    const gap = Math.max(0, event.minute - (prev?.minute ?? 0));
+    const sameMinute = Boolean(prev && prev.minute === event.minute);
+    let delay = sameMinute ? 420 / speed : Math.max(720, Math.min(1100, 900 * Math.max(1, gap))) / speed;
+    if (event.eventType === "goal") delay = Math.max(delay, 1500 / speed);
+    if (event.eventType === "whistle") delay = Math.max(delay, 1000 / speed);
     const t = window.setTimeout(() => {
       setIdx((i) => {
         if (i >= events.length - 1) {
@@ -58,7 +63,7 @@ export function MatchSimulation({
       });
     }, delay);
     return () => window.clearTimeout(t);
-  }, [playing, idx, speed, events.length, event.eventType]);
+  }, [playing, idx, speed, events.length, event.eventType, event.minute, prev]);
 
   const commentary = events.slice(Math.max(0, idx - 8), idx + 1).reverse();
 
@@ -83,6 +88,15 @@ export function MatchSimulation({
             <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Liga Nova</p>
           </div>
           <TeamScore name={away.name} score={event.score[1]} kit={away.kit_primary} align="right" />
+        </div>
+        <div
+          className={cn(
+            "border-b border-white/10 px-4 py-2 text-center text-sm",
+            event.eventType === "goal" ? "bg-gold/15 text-gold" : "bg-black/35 text-slate-200",
+          )}
+        >
+          <span className="mr-2 font-mono text-xs text-slate-400">{String(event.minute).padStart(2, "0")}&apos;</span>
+          {event.description}
         </div>
         <div className="relative">
           <svg viewBox="0 0 100 68" className="h-auto w-full">
@@ -171,7 +185,10 @@ export function MatchSimulation({
       <div className="flex max-h-[640px] flex-col overflow-hidden rounded-3xl border border-white/10 bg-ink-900">
         <div className="border-b border-white/10 px-4 py-3">
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Canlı Anlatım</p>
-          <p className="font-display text-2xl">Maç Bandı</p>
+          <p className="font-display text-2xl">
+            {event.score[0]} - {event.score[1]}
+          </p>
+          <p className="mt-1 text-sm text-slate-300">{event.description}</p>
         </div>
         <div className="flex-1 space-y-2 overflow-y-auto p-3">
           {commentary.map((c, i) => (

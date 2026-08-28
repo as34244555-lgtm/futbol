@@ -11,6 +11,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -25,7 +26,7 @@ export default function LoginPage() {
           e.preventDefault();
           setBusy(true);
           setError(null);
-          const err = await login(username, password);
+          const err = await login(username, password, roomCode);
           setBusy(false);
           if (err) setError(err);
           else router.push("/dashboard");
@@ -52,6 +53,17 @@ export default function LoginPage() {
             autoComplete="current-password"
             name="password"
             required
+          />
+        </label>
+        <label className="block text-sm">
+          Arkadaş odası (isteğe bağlı)
+          <input
+            className="mt-1 w-full rounded-xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-neon focus:ring-2"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value)}
+            placeholder="boşsa NOVA"
+            autoComplete="off"
+            name="room"
           />
         </label>
         {error && <p className="text-sm text-rose-300">{error}</p>}

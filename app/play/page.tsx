@@ -12,6 +12,7 @@ export default function PlayPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [teamName, setTeamName] = useState("");
+  const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -20,8 +21,8 @@ export default function PlayPage() {
       <p className="text-xs uppercase tracking-[0.3em] text-gold">Paylaşılan lig</p>
       <h1 className="font-display mt-2 text-5xl">Lige katıl</h1>
       <p className="mt-3 text-slate-400">
-        Aynı sunucudaki diğer menajerlerle transfer ve maç yaparsınız. Gerçek oyuncu yoksa bot menajerlerle
-        oynarsınız; ikinci insan girince onunla eşleşirsiniz.
+        Aynı oda kodunu giren arkadaşlarınla aynı ligde oynarsın. Kod boşsa herkesin odası NOVA olur. Gerçek
+        oyuncu yoksa botlar her hafta kendi aralarında maç yapar.
       </p>
       <form
         className="mt-8 space-y-4"
@@ -30,7 +31,7 @@ export default function PlayPage() {
           e.preventDefault();
           setBusy(true);
           setError(null);
-          const err = await register(username, password, teamName);
+          const err = await register(username, password, teamName, roomCode);
           setBusy(false);
           if (err) setError(err);
           else router.push("/dashboard");
@@ -39,6 +40,13 @@ export default function PlayPage() {
         <Field label="Menajer adı" value={username} onChange={setUsername} placeholder="ör. Deniz" />
         <Field label="Şifre" value={password} onChange={setPassword} placeholder="en az 4 karakter" type="password" />
         <Field label="Takım adı" value={teamName} onChange={setTeamName} placeholder="ör. Pera FC" />
+        <Field
+          label="Arkadaş odası (isteğe bağlı)"
+          value={roomCode}
+          onChange={setRoomCode}
+          placeholder="ör. K4M7PX — boşsa NOVA"
+          required={false}
+        />
         {error && <p className="text-sm text-rose-300">{error}</p>}
         <Button type="submit" size="lg" className="w-full" disabled={busy}>
           {busy ? "Katılıyor…" : "Lige katıl"}
@@ -60,12 +68,14 @@ function Field({
   onChange,
   placeholder,
   type = "text",
+  required = true,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   type?: string;
+  required?: boolean;
 }) {
   return (
     <label className="block text-sm">
@@ -77,7 +87,7 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         autoComplete={type === "password" ? "new-password" : "off"}
-        required
+        required={required}
       />
     </label>
   );

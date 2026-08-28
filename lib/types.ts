@@ -149,6 +149,7 @@ export type SessionUser = {
   id: string;
   username: string;
   teamId: string;
+  roomCode?: string;
 };
 
 export type ManagerInfo = {

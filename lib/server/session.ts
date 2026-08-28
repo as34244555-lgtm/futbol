@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { readSession, signSession } from "./auth";
+import { readSession, signSession, type SessionPayload } from "./auth";
 
 export const COOKIE = "ln_session";
 
@@ -8,7 +8,7 @@ export async function getSession() {
   return readSession(jar.get(COOKIE)?.value);
 }
 
-export async function setSessionCookie(payload: { sub: string; name: string; teamId: string; teamName?: string }) {
+export async function setSessionCookie(payload: SessionPayload) {
   const jar = await cookies();
   jar.set(COOKIE, signSession(payload), {
     httpOnly: true,
