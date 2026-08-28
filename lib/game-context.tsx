@@ -199,7 +199,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [apply]);
 
   const playWeek = useCallback(async (): Promise<MatchSimulationResult | string> => {
-    const json = await postAction({ type: "playMatch" });
+    const json = await postAction<{
+      snap: LeagueSnap;
+      match: MatchSimulationResult | null;
+      error: string | null;
+    }>({ type: "playMatch" });
     apply(json.snap);
     if (json.error) return json.error as string;
     return json.match as MatchSimulationResult;
