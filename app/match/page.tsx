@@ -1,13 +1,15 @@
 "use client";
 
+import { ChampionOverlay } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
 import { MatchSimulation } from "@/components/MatchSimulation";
 import { StadiumPrep } from "@/components/StadiumPrep";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 import { botManagerName } from "@/lib/catalog";
-import type { MatchSimulationResult } from "@/lib/types";
-import { playCrowd, playWhistle, unlockAudio } from "@/lib/sfx";
+import type { MatchSimulationResult, SeasonTitle } from "@/lib/types";
+import { playCrowd, playFanfare, playWhistle, unlockAudio } from "@/lib/sfx";
+import { formatSeasonWeek, seasonOf, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
@@ -17,6 +19,7 @@ export default function MatchPage() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [prep, setPrep] = useState(false);
+  const [title, setTitle] = useState<SeasonTitle | null>(null);
 
   const unclaimedMatch = userTeam
     ? [...world.matches]
@@ -75,7 +78,7 @@ export default function MatchPage() {
 
   return (
     <GameShell>
-      <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
+      <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha · {formatSeasonWeek(world.week)}</p>
       <h1 className="font-display mb-2 text-4xl sm:text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-sm text-slate-400 sm:text-base">
         Karşılıklı maç <strong>bir kez</strong> oynanır. Biri başlatır, diğeri “Maçı izle” der. Bot maçından sonra
@@ -92,7 +95,7 @@ export default function MatchPage() {
             />
           ) : (
             <>
-          <p className="text-sm text-slate-400">Hafta {world.week}</p>
+          <p className="text-sm text-slate-400">{formatSeasonWeek(world.week)}</p>
           <p className="font-display text-3xl sm:text-4xl">
             {userTeam && opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
           </p>
@@ -129,7 +132,13 @@ export default function MatchPage() {
                   await new Promise((r) => window.setTimeout(r, 2400));
                   const res = await playWeek();
                   if (typeof res === "string") setError(res);
-                  else setSim(res);
+                  else {
+                    setSim(res);
+                    if (res.title) {
+                      setTitle(res.title);
+                      playFanfare();
+                    }
+                  }
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Simülasyon hatası");
                 } finally {
@@ -154,7 +163,9 @@ export default function MatchPage() {
 
       {botWeek.length > 0 && (
         <div className="mb-8 rounded-3xl border border-white/10 bg-ink-800/70 p-5">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">Hafta {resultWeek} · bot kapışması</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
+            {formatSeasonWeek(resultWeek)} · bot kapışması
+          </p>
           <h2 className="font-display mb-3 text-2xl">Ligde diğer maçlar</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {botWeek.map((m) => (
@@ -206,7 +217,7 @@ export default function MatchPage() {
                 return (
                   <div key={m.id} className="flex justify-between rounded-xl border border-white/10 bg-ink-800 px-4 py-2 text-sm">
                     <span>
-                      Hafta {m.week}: {h} — {a}
+                    Hafta {weekInSeason(m.week)} · S{seasonOf(m.week)}: {h} — {a}
                     </span>
                     <span className="font-semibold">
                       {m.home_score} - {m.away_score}
@@ -216,6 +227,13 @@ export default function MatchPage() {
               })}
           </div>
         </div>
+      )}
+      {title && userTeam && !active && (
+        <ChampionOverlay
+          title={title}
+          mine={title.teamId === userTeam.id}
+          onClose={() => setTitle(null)}
+        />
       )}
     </GameShell>
   );

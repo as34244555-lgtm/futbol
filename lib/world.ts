@@ -48,6 +48,7 @@ function emptyTeam(
     lost: 0,
     goals_for: 0,
     goals_against: 0,
+    titles: 0,
   };
 }
 
@@ -218,6 +219,7 @@ export function createFreshWorld(): GameWorld {
     matchLogs: [],
     week: 1,
     season: 1,
+    titles: [],
   };
   return ensureBotWorld(world);
 }

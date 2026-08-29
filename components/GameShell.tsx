@@ -15,6 +15,7 @@ import { useEffect } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { useGame } from "@/lib/game-context";
 import { formatCoins } from "@/lib/utils";
+import { weekInSeason, SEASON_WEEKS } from "@/lib/titles";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -105,7 +106,8 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           <div className="ml-auto flex items-center gap-3 text-sm sm:gap-4">
             <Meta className="hidden sm:block" label="Oda" value={roomCode} />
             <Meta className="hidden md:block" label="Menajer" value={me?.username ?? "-"} />
-            <Meta label="H" value={`${world.week}`} />
+            <Meta label="S" value={`${world.season || 1}`} />
+            <Meta label="H" value={`${weekInSeason(world.week)}/${SEASON_WEEKS}`} />
             <Meta className="hidden xs:block sm:block" label="Puan" value={`${userTeam.points}`} />
             <span className="rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold sm:px-3 sm:text-sm">
               {formatCoins(userTeam.coins)} ₡

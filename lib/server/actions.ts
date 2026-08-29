@@ -393,14 +393,21 @@ export async function playMatch(session: SessionHint) {
       lastSeen: { ...doc.lastSeen, [session.sub]: new Date().toISOString() },
     };
     const after = next.world.teams.find((t) => t.id === team.id);
+    const match = typeof out.result === "string" ? null : out.result;
+    let pointsDelta = (after?.points ?? pointsBefore) - pointsBefore;
+    if (match?.title) {
+      const gf = match.match.home_team_id === team.id ? match.match.home_score : match.match.away_score;
+      const ga = match.match.home_team_id === team.id ? match.match.away_score : match.match.home_score;
+      pointsDelta = gf > ga ? 3 : gf === ga ? 1 : 0;
+    }
     return {
       doc: next,
       result: {
         snap: snapshot(next, session.sub),
-        match: typeof out.result === "string" ? null : out.result,
+        match,
         error: typeof out.result === "string" ? out.result : null,
         coinsDelta: (after?.coins ?? coinsBefore) - coinsBefore,
-        pointsDelta: (after?.points ?? pointsBefore) - pointsBefore,
+        pointsDelta,
       },
     };
   });
