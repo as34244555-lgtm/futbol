@@ -28,6 +28,7 @@ assert(again.team.id === joined.team.id, "same user should reuse team");
 const abdullah = joined.world.players.find((p) => p.name === "Abdullah Sarıyıldız");
 assert(abdullah, "Abdullah Sarıyıldız must exist in catalog");
 assert(abdullah!.overall === 999, `Abdullah overall should be 999, got ${abdullah!.overall}`);
+assert(abdullah!.base_value === 100_000, `Abdullah value should be 100000, got ${abdullah!.base_value}`);
 assert(abdullah!.nationality_code === "tr", "Abdullah must be Turkish");
 assert(abdullah!.versatile, "Abdullah must play every position");
 assert(
