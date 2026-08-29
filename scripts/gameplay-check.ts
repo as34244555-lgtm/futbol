@@ -25,6 +25,21 @@ assert(joined.team.id === "team_user-a", `expected humanTeamId, got ${joined.tea
 const again = createUserTeam(joined.world, "user-a", "Ada SK");
 assert(again.team.id === joined.team.id, "same user should reuse team");
 
+const abdullah = joined.world.players.find((p) => p.name === "Abdullah Sarıyıldız");
+assert(abdullah, "Abdullah Sarıyıldız must exist in catalog");
+assert(abdullah!.overall === 999, `Abdullah overall should be 999, got ${abdullah!.overall}`);
+assert(abdullah!.nationality_code === "tr", "Abdullah must be Turkish");
+assert(abdullah!.versatile, "Abdullah must play every position");
+assert(
+  joined.world.teamPlayers.some((tp) => tp.team_id === joined.team.id && tp.player_id === abdullah!.id),
+  "new human squad should receive Abdullah",
+);
+const abdullahStart = joined.world.teamPlayers.find(
+  (tp) => tp.team_id === joined.team.id && tp.player_id === abdullah!.id,
+);
+assert(abdullahStart?.is_starter, "999 overall should start");
+assert(abdullahStart?.squad_position === "st", `Abdullah should start at ST, got ${abdullahStart?.squad_position}`);
+
 const sample = world0.listings.find((l) => l.status === "active")!;
 const seller = world0.teams.find((t) => t.id === sample.seller_team_id)!;
 const tp = world0.teamPlayers.find((r) => r.id === sample.team_player_id)!;

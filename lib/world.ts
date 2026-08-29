@@ -1,4 +1,12 @@
-import { AI_CLUBS, generateCatalog, generateExtraPlayers } from "./catalog";
+import {
+  ABDULLAH_ID,
+  AI_CLUBS,
+  generateCatalog,
+  generateExtraPlayers,
+  isLegend,
+  makeAbdullah,
+  playsPosition,
+} from "./catalog";
 import { FORMATION_SLOTS } from "./formations";
 import { SYSTEM_TEAM_ID } from "./types";
 import type {
@@ -49,21 +57,45 @@ export function autoSelectStarters(roster: TeamPlayer[], players: Player[], form
   const byId = new Map(players.map((p) => [p.id, p]));
   const updated = roster.map((r) => ({ ...r, is_starter: false, squad_position: null as string | null }));
 
+  const place = (row: TeamPlayer, slotKey: string) => {
+    row.is_starter = true;
+    row.squad_position = slotKey;
+    used.add(row.id);
+  };
+
+  for (const row of updated) {
+    const p = byId.get(row.player_id);
+    if (!p?.legend || used.has(row.id)) continue;
+    const preferred =
+      slots.find((s) => s.key === "st" || s.label === "SAN") ??
+      slots.find((s) => s.position === p.position) ??
+      slots.find((s) => playsPosition(p, s.position));
+    if (preferred && !updated.some((r) => r.squad_position === preferred.key)) {
+      place(row, preferred.key);
+    }
+  }
+
   for (const slot of slots) {
+    if (updated.some((r) => r.squad_position === slot.key)) continue;
     const candidates = updated
       .filter((r) => !used.has(r.id))
       .map((r) => ({ r, p: byId.get(r.player_id) }))
       .filter((x): x is { r: TeamPlayer; p: Player } => Boolean(x.p))
       .sort((a, b) => {
-        const posBonus = a.p.position === slot.position ? 25 : 0;
-        const posBonusB = b.p.position === slot.position ? 25 : 0;
-        return b.p.overall + posBonusB + b.r.form / 10 - (a.p.overall + posBonus + a.r.form / 10);
+        const score = (p: Player, r: TeamPlayer) => {
+          let s = p.overall + r.form / 10;
+          if (playsPosition(p, slot.position)) s += 25;
+          if (p.position === slot.position) s += 8;
+          if (p.position === "KL" && slot.position !== "KL") s -= 90;
+          if (p.position !== "KL" && slot.position === "KL") s -= 90;
+          if (p.versatile && p.position !== "KL" && slot.position === "KL") s -= 40;
+          return s;
+        };
+        return score(b.p, b.r) - score(a.p, a.r);
       });
     const pick = candidates[0];
     if (!pick) continue;
-    pick.r.is_starter = true;
-    pick.r.squad_position = slot.key;
-    used.add(pick.r.id);
+    place(pick.r, slot.key);
   }
   return updated;
 }
@@ -132,7 +164,7 @@ export function createFreshWorld(): GameWorld {
     emptyTeam(teamId(i + 1), c.name, null, c.kit_primary, c.kit_secondary, 8000 + i * 400, 10),
   );
 
-  let pool = [...catalog];
+  let pool = catalog.filter((p) => !isLegend(p));
   const allRows: TeamPlayer[] = [];
   const listings: TransferListing[] = [];
 
@@ -208,7 +240,7 @@ export function nextHumanKit(world: GameWorld): [string, string] {
 
 export function createUserTeam(world: GameWorld, userId: string, teamName: string): { world: GameWorld; team: Team } {
   const existing = world.teams.find((t) => t.user_id === userId);
-  if (existing) return { world, team: existing };
+  if (existing) return { world: ensureLegendWorld(world), team: existing };
   const [kit_primary, kit_secondary] = nextHumanKit(world);
   const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary, 15_000);
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
@@ -217,9 +249,10 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
     .map((tp) => byId.get(tp.player_id))
     .filter((p): p is Player => Boolean(p));
 
+  const countPos = (pos: Player["position"]) => agencyCatalog.filter((p) => p.position === pos).length;
   let extraPlayers: Player[] = [];
-  if (agencyCatalog.filter((p) => p.position === "KL").length < 2 || agencyCatalog.length < 18) {
-    extraPlayers = generateExtraPlayers(40, 900 + world.players.length);
+  if (countPos("KL") < 2 || countPos("DEF") < 6 || countPos("OS") < 6 || countPos("FV") < 4 || agencyCatalog.length < 18) {
+    extraPlayers = generateExtraPlayers(80, 900 + world.players.length);
     agencyCatalog = [...agencyCatalog, ...extraPlayers];
   }
 
@@ -255,14 +288,71 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
 
   return {
     team: userTeam,
-    world: {
+    world: ensureLegendWorld({
       ...world,
       players: extraPlayers.length ? [...world.players, ...extraPlayers] : world.players,
       teams: [...world.teams, userTeam],
       teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
       listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
-    },
+    }),
   };
+}
+
+function legendReady(world: GameWorld): boolean {
+  const p = world.players.find((x) => x.id === ABDULLAH_ID);
+  if (!p || p.overall !== 999 || !p.versatile || !p.legend) return false;
+  return world.teams
+    .filter((t) => t.user_id)
+    .every((t) => world.teamPlayers.some((tp) => tp.team_id === t.id && tp.player_id === ABDULLAH_ID));
+}
+
+/** Abdullah Sarıyıldız her insan kadrosuna 999'luk efsane olarak eklenir. */
+export function ensureLegendWorld(world: GameWorld): GameWorld {
+  if (legendReady(world)) return world;
+  const legend = makeAbdullah();
+  let players = world.players.filter((p) => p.id !== ABDULLAH_ID && p.name !== legend.name);
+  players = [legend, ...players];
+
+  let teamPlayers = world.teamPlayers.map((tp) => {
+    const owned = world.players.find((p) => p.id === tp.player_id);
+    if (owned && owned.name === legend.name && tp.player_id !== ABDULLAH_ID) {
+      return { ...tp, player_id: ABDULLAH_ID, id: rowId(tp.team_id, ABDULLAH_ID) };
+    }
+    return tp;
+  });
+
+  teamPlayers = teamPlayers.filter((tp) => {
+    if (tp.player_id !== ABDULLAH_ID) return true;
+    const team = world.teams.find((t) => t.id === tp.team_id);
+    return Boolean(team?.user_id);
+  });
+
+  const dropIds = new Set(
+    world.teamPlayers.filter((tp) => !teamPlayers.some((x) => x.id === tp.id)).map((tp) => tp.id),
+  );
+  const listings = world.listings.filter((l) => !dropIds.has(l.team_player_id));
+
+  let next: GameWorld = { ...world, players, teamPlayers, listings };
+  for (const team of next.teams.filter((t) => t.user_id)) {
+    if (next.teamPlayers.some((tp) => tp.team_id === team.id && tp.player_id === ABDULLAH_ID)) continue;
+    const row: TeamPlayer = {
+      id: rowId(team.id, ABDULLAH_ID),
+      team_id: team.id,
+      player_id: ABDULLAH_ID,
+      energy: 100,
+      form: 99,
+      is_starter: false,
+      squad_position: null,
+      acquired_at: new Date().toISOString(),
+    };
+    const roster = [...next.teamPlayers.filter((tp) => tp.team_id === team.id), row];
+    const filledLegend = autoSelectStarters(roster, next.players, team.formation);
+    next = {
+      ...next,
+      teamPlayers: [...next.teamPlayers.filter((tp) => tp.team_id !== team.id), ...filledLegend],
+    };
+  }
+  return next;
 }
 
 export function leagueTeams(world: GameWorld): Team[] {
@@ -542,6 +632,7 @@ export function ensureBotWorld(world: GameWorld): GameWorld {
     };
   }
   const seeded = seedBotListings(next, 6);
-  if (seeded === world && missing.length === 0) return world;
-  return seeded;
+  const withLegend = ensureLegendWorld(seeded);
+  if (withLegend === world) return world;
+  return withLegend;
 }

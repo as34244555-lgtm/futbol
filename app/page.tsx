@@ -11,7 +11,7 @@ const FEATURES = [
   {
     icon: Users,
     title: "Kurgusal Kadro",
-    text: "Gerçek isim yok — Lucas Silva, Erlung Haland ve yüzlerce telifsiz futbolcu.",
+    text: "Ligin efsanesi Abdullah Sarıyıldız (999, tüm mevkiler) ve yüzlerce telifsiz futbolcu.",
   },
   {
     icon: Flag,
@@ -38,7 +38,7 @@ export default function LandingPage() {
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-grid-fade bg-[size:28px_28px]" />
       <header className="relative z-10 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-        <BrandLogo size={48} />
+        <BrandLogo size={64} />
         <div className="flex gap-2">
           {hasSave ? (
             <Link href="/dashboard">
@@ -56,6 +56,9 @@ export default function LandingPage() {
       </header>
       <main className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-24 pt-6 sm:px-6 lg:grid-cols-2">
         <div>
+          <div className="mb-6">
+            <BrandLogo size={112} />
+          </div>
           <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">
             Çoklu oyuncu · Vercel · {humans} insan · {bots} bot
           </p>
@@ -64,8 +67,9 @@ export default function LandingPage() {
             <span className="block text-neon">Rakibini yen.</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-slate-300">
-            Paylaşılan Liga Nova sunucusunda diğer menajerlerle transfer yapın. Gerçek oyuncu azsa 18 bot
-            menajer ligi doldurur; ikinci insan girince onunla eşleşirsiniz.
+            Paylaşılan Liga Nova sunucusunda diğer menajerlerle transfer yapın. Ligin efsanesi{" "}
+            <span className="text-gold">Abdullah Sarıyıldız</span> (999, tüm mevkiler) kadronuza katılır.
+            Gerçek oyuncu azsa 18 bot menajer ligi doldurur; ikinci insan girince onunla eşleşirsiniz.
             {backend === "memory" ? " Üretimde Supabase servis anahtarı ekleyin." : ""}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">

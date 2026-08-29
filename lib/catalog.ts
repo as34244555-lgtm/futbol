@@ -2,6 +2,39 @@ import { catalogId, pick, seededRandom } from "./utils";
 import { NATIONS } from "./nations";
 import type { Player, Position } from "./types";
 
+export const ABDULLAH_ID = "00000000-0000-4000-8000-aaa999000001";
+
+export function makeAbdullah(): Player {
+  return {
+    id: ABDULLAH_ID,
+    name: "Abdullah Sarıyıldız",
+    nationality: "Türkiye",
+    nationality_code: "tr",
+    position: "FV",
+    age: 27,
+    attack: 99,
+    defense: 99,
+    overall: 999,
+    base_value: 999_999,
+    versatile: true,
+    legend: true,
+    portrait: "/abdullah-sariyildiz.webp",
+  };
+}
+
+export function isLegend(p: Pick<Player, "id" | "name" | "legend">): boolean {
+  return p.id === ABDULLAH_ID || Boolean(p.legend) || p.name === "Abdullah Sarıyıldız";
+}
+
+export function playsPosition(p: Player, position: Position): boolean {
+  return Boolean(p.versatile) || p.position === position;
+}
+
+/** Simülasyon 0–99 bekler; 999 ekranda kalır. */
+export function simOverall(p: { overall: number }): number {
+  return Math.min(99, p.overall);
+}
+
 const STAR_PLAYERS: Array<Omit<Player, "id" | "overall" | "base_value"> & { overall?: number }> = [
   { name: "Erlung Haland", nationality: "Almanya", nationality_code: "de", position: "FV", age: 24, attack: 94, defense: 48 },
   { name: "Lucas Silva", nationality: "Brezilya", nationality_code: "br", position: "OS", age: 27, attack: 88, defense: 76 },
@@ -54,8 +87,10 @@ export function generateCatalog(count = 240): Player[] {
   const rand = seededRandom(20260828);
   const players: Player[] = [];
 
+  players.push(makeAbdullah());
+
   STAR_PLAYERS.forEach((p, i) => {
-    const overall = computeOverall(p.position, p.attack, p.defense);
+    const overall = p.overall ?? computeOverall(p.position, p.attack, p.defense);
     players.push({
       id: catalogId(i + 1),
       name: p.name,
@@ -110,7 +145,9 @@ export function generateCatalog(count = 240): Player[] {
 }
 
 export function generateExtraPlayers(count: number, startIndex = 2000): Player[] {
-  const sample = generateCatalog(Math.max(40, count + 10)).slice(10, 10 + count);
+  const sample = generateCatalog(Math.max(50, count + 12))
+    .filter((p) => !isLegend(p))
+    .slice(10, 10 + count);
   return sample.map((p, i) => ({ ...p, id: catalogId(startIndex + i + 1) }));
 }
 

@@ -19,6 +19,13 @@ export default function DashboardPage() {
     [world, userTeam],
   );
   const starters = roster.filter((r) => r.is_starter);
+  const legend = roster.find((r) => r.player.legend || r.player.overall >= 100);
+  const stars = [...roster]
+    .sort(
+      (a, b) =>
+        Number(Boolean(b.player.legend)) - Number(Boolean(a.player.legend)) || b.player.overall - a.player.overall,
+    )
+    .slice(0, 6);
   const next = world.matches.find(
     (m) =>
       m.week === world.week &&
@@ -140,10 +147,17 @@ export default function DashboardPage() {
         ))}
         {managers.length === 0 && <p className="text-sm text-slate-500">Henüz menajer yok.</p>}
       </div>
+      {legend && (
+        <div className="mt-8 max-w-md">
+          <h2 className="font-display text-2xl text-gold">Efsane</h2>
+          <p className="mb-3 mt-1 text-sm text-slate-400">999 genel · Türkiye · her mevkiye uyumlu</p>
+          <PlayerCard player={legend.player} row={legend} featured />
+        </div>
+      )}
       <h2 className="font-display mt-10 text-2xl">Yıldızlar</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {starters.slice(0, 6).map((r) => (
-          <PlayerCard key={r.id} player={r.player} row={r} />
+        {stars.map((r) => (
+          <PlayerCard key={r.id} player={r.player} row={r} featured={Boolean(r.player.legend)} />
         ))}
       </div>
     </GameShell>
