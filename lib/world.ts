@@ -86,6 +86,8 @@ export function autoSelectStarters(roster: TeamPlayer[], players: Player[], form
           let s = p.overall + r.form / 10;
           if (playsPosition(p, slot.position)) s += 25;
           if (p.position === slot.position) s += 8;
+          if (p.position === "KL" && slot.position !== "KL") s -= 90;
+          if (p.position !== "KL" && slot.position === "KL") s -= 90;
           if (p.versatile && p.position !== "KL" && slot.position === "KL") s -= 40;
           return s;
         };
@@ -247,9 +249,10 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
     .map((tp) => byId.get(tp.player_id))
     .filter((p): p is Player => Boolean(p));
 
+  const countPos = (pos: Player["position"]) => agencyCatalog.filter((p) => p.position === pos).length;
   let extraPlayers: Player[] = [];
-  if (agencyCatalog.filter((p) => p.position === "KL").length < 2 || agencyCatalog.length < 18) {
-    extraPlayers = generateExtraPlayers(40, 900 + world.players.length);
+  if (countPos("KL") < 2 || countPos("DEF") < 6 || countPos("OS") < 6 || countPos("FV") < 4 || agencyCatalog.length < 18) {
+    extraPlayers = generateExtraPlayers(80, 900 + world.players.length);
     agencyCatalog = [...agencyCatalog, ...extraPlayers];
   }
 
