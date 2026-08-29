@@ -300,7 +300,7 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
 
 function legendReady(world: GameWorld): boolean {
   const p = world.players.find((x) => x.id === ABDULLAH_ID);
-  if (!p || p.overall !== 999 || !p.versatile || !p.legend) return false;
+  if (!p || p.overall !== 999 || p.base_value !== 100_000 || !p.versatile || !p.legend) return false;
   return world.teams
     .filter((t) => t.user_id)
     .every((t) => world.teamPlayers.some((tp) => tp.team_id === t.id && tp.player_id === ABDULLAH_ID));
