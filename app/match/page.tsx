@@ -2,10 +2,12 @@
 
 import { GameShell } from "@/components/GameShell";
 import { MatchSimulation } from "@/components/MatchSimulation";
+import { StadiumPrep } from "@/components/StadiumPrep";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 import { botManagerName } from "@/lib/catalog";
 import type { MatchSimulationResult } from "@/lib/types";
+import { playCrowd, playWhistle, unlockAudio } from "@/lib/sfx";
 import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
@@ -14,6 +16,7 @@ export default function MatchPage() {
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [prep, setPrep] = useState(false);
 
   const unclaimedMatch = userTeam
     ? [...world.matches]
@@ -73,16 +76,24 @@ export default function MatchPage() {
   return (
     <GameShell>
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha</p>
-      <h1 className="font-display mb-2 text-5xl">Maç günü</h1>
-      <p className="mb-6 max-w-2xl text-slate-400">
+      <h1 className="font-display mb-2 text-4xl sm:text-5xl">Maç günü</h1>
+      <p className="mb-6 max-w-2xl text-sm text-slate-400 sm:text-base">
         Karşılıklı maç <strong>bir kez</strong> oynanır. Biri başlatır, diğeri “Maçı izle” der. Bot maçından sonra
         lig sonraki haftaya geçer; aynı skor tekrarlanmaz.
       </p>
 
       {!active && (
-        <div className="mb-8 rounded-3xl border border-white/10 bg-ink-800/70 p-6">
+        <div className="mb-8 rounded-3xl border border-white/10 bg-ink-800/70 p-4 sm:p-6">
+          {prep ? (
+            <StadiumPrep
+              home={userTeam?.name ?? "Ev"}
+              away={opp?.name ?? "Konuk"}
+              stadium={`${(next?.home_team_id === userTeam?.id ? userTeam?.name : opp?.name) ?? "Liga Nova"} Arena`}
+            />
+          ) : (
+            <>
           <p className="text-sm text-slate-400">Hafta {world.week}</p>
-          <p className="font-display text-4xl">
+          <p className="font-display text-3xl sm:text-4xl">
             {userTeam && opp ? `${userTeam.name} vs ${opp.name}` : "Fikstür hazır değil — maçı başlatın"}
           </p>
           {opp && (
@@ -110,13 +121,19 @@ export default function MatchPage() {
               onClick={async () => {
                 setBusy(true);
                 setError(null);
+                setPrep(true);
                 try {
+                  await unlockAudio();
+                  playCrowd();
+                  window.setTimeout(() => playWhistle(), 900);
+                  await new Promise((r) => window.setTimeout(r, 2400));
                   const res = await playWeek();
                   if (typeof res === "string") setError(res);
                   else setSim(res);
                 } catch (e) {
                   setError(e instanceof Error ? e.message : "Simülasyon hatası");
                 } finally {
+                  setPrep(false);
                   setBusy(false);
                 }
               }}
@@ -130,6 +147,8 @@ export default function MatchPage() {
             )}
           </div>
           {error && <p className="mt-4 text-sm text-rose-300">{error}</p>}
+            </>
+          )}
         </div>
       )}
 

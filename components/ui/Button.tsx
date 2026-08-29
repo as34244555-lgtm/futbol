@@ -10,10 +10,10 @@ export function Button({ className, variant = "primary", size = "md", ...props }
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-semibold tracking-wide transition disabled:opacity-40 disabled:pointer-events-none",
-        size === "sm" && "px-3 py-1.5 text-xs",
+        "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl font-semibold tracking-wide transition disabled:opacity-40 disabled:pointer-events-none touch-manipulation",
+        size === "sm" && "min-h-10 px-3 py-2 text-xs",
         size === "md" && "px-4 py-2.5 text-sm",
-        size === "lg" && "px-6 py-3 text-base",
+        size === "lg" && "min-h-12 px-6 py-3 text-base",
         variant === "primary" &&
           "bg-neon text-ink-950 shadow-glow hover:bg-emerald-300",
         variant === "gold" && "bg-gold text-ink-950 shadow-gold hover:bg-yellow-300",

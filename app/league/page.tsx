@@ -29,9 +29,9 @@ export default function LeaguePage() {
   return (
     <GameShell>
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Küme {userTeam?.division}</p>
-      <h1 className="font-display mb-6 text-5xl">Liga Nova puan durumu</h1>
-      <div className="overflow-hidden rounded-2xl border border-white/10">
-        <table className="w-full text-left text-sm">
+      <h1 className="font-display mb-6 text-4xl sm:text-5xl">Liga Nova puan durumu</h1>
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-white/5 text-[11px] uppercase tracking-wider text-slate-400">
             <tr>
               <th className="px-4 py-3">#</th>

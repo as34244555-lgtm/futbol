@@ -12,12 +12,14 @@ export function PlayerCard({
   player,
   row,
   selected,
+  featured,
   onClick,
   footer,
 }: {
   player: Player;
   row?: TeamPlayer;
   selected?: boolean;
+  featured?: boolean;
   onClick?: () => void;
   footer?: React.ReactNode;
 }) {
@@ -28,6 +30,7 @@ export function PlayerCard({
       className={cn(
         "w-full rounded-2xl border bg-ink-800/80 p-3 text-left transition hover:border-neon/40",
         selected ? "border-neon shadow-glow" : "border-white/10",
+        featured && "border-gold bg-ink-900/95 p-4 shadow-gold",
       )}
     >
       <div className="flex items-start gap-3">

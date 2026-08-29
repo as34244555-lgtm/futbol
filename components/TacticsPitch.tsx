@@ -3,6 +3,7 @@
 import { FORMATION_SLOTS } from "@/lib/formations";
 import type { Formation, Player, TeamPlayer } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { StadiumBowl } from "@/components/StadiumBowl";
 
 type Roster = TeamPlayer & { player: Player };
 
@@ -23,7 +24,8 @@ export function TacticsPitch({
   const bySlot = new Map(roster.filter((r) => r.squad_position).map((r) => [r.squad_position, r]));
 
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 shadow-xl">
+    <StadiumBowl>
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-xl">
       <svg viewBox="0 0 100 68" className="h-auto w-full bg-[#147a36]">
         <defs>
           <pattern id="grass" width="10" height="68" patternUnits="userSpaceOnUse">
@@ -82,6 +84,7 @@ export function TacticsPitch({
         {formation}
       </p>
     </div>
+    </StadiumBowl>
   );
 }
 

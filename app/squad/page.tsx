@@ -29,7 +29,7 @@ export default function SquadPage() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kadro</p>
-          <h1 className="font-display text-5xl">İlk 11 ve yedekler</h1>
+          <h1 className="font-display text-4xl sm:text-5xl">İlk 11 ve yedekler</h1>
         </div>
         <Button onClick={() => void autoPick()} variant="outline">
           Otomatik diziliş

@@ -18,7 +18,7 @@ export default function TacticsPage() {
   return (
     <GameShell>
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Taktik tahtası</p>
-      <h1 className="font-display mb-6 text-5xl">Diziliş ve oyun planı</h1>
+      <h1 className="font-display mb-6 text-4xl sm:text-5xl">Diziliş ve oyun planı</h1>
       <div className="grid gap-8 lg:grid-cols-2">
         <TacticsPitch formation={userTeam.formation} roster={roster} kit={userTeam.kit_primary} />
         <div className="space-y-6">

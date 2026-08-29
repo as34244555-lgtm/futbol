@@ -37,7 +37,7 @@ export default function DashboardPage() {
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kulüp paneli</p>
-          <h1 className="font-display text-5xl">{userTeam?.name}</h1>
+          <h1 className="font-display text-4xl sm:text-5xl">{userTeam?.name}</h1>
         </div>
         <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
           Fikstürü hazırla
