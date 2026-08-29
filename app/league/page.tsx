@@ -25,7 +25,7 @@ export default function LeaguePage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">{formatSeasonWeek(world.week)}</p>
       <h1 className="font-display mb-2 text-4xl sm:text-5xl">Liga Nova puan durumu</h1>
       <p className="mb-6 text-sm text-slate-400">
-        {SEASON_WEEKS} haftalık sezon. Hafta {weekInSeason(world.week)} bitince lider kupayı alır, puanlar sıfırlanır.
+        {SEASON_WEEKS} haftalık sezon. {SEASON_WEEKS}. hafta bitince lider kupayı alır, puanlar sıfırlanır.
       </p>
       {lastTitle && (
         <div className="mb-6">
