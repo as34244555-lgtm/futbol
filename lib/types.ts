@@ -52,6 +52,8 @@ export type Team = {
   lost: number;
   goals_for: number;
   goals_against: number;
+  /** Kazanılan Liga Nova şampiyonlukları */
+  titles?: number;
 };
 
 export type Player = {
@@ -120,6 +122,17 @@ export type MatchLog = {
 
 export type PitchPoint = { x: number; y: number };
 
+export type SeasonTitle = {
+  season: number;
+  teamId: string;
+  teamName: string;
+  points: number;
+  played: number;
+  won: number;
+  goalDiff: number;
+  crownedAt: string;
+};
+
 export type TimelineEvent = {
   minute: number;
   second: number;
@@ -139,6 +152,8 @@ export type MatchSimulationResult = {
   motm?: { playerId: string; name: string; team: "home" | "away" };
   coinsDelta?: number;
   pointsDelta?: number;
+  /** Bu maç sezonu kapattıysa kupa. */
+  title?: SeasonTitle;
 };
 
 export type GameWorld = {
@@ -150,6 +165,8 @@ export type GameWorld = {
   matchLogs: MatchLog[];
   week: number;
   season: number;
+  titles?: SeasonTitle[];
+  lastTitle?: SeasonTitle;
 };
 
 export type Account = {

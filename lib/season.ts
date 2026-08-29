@@ -1,4 +1,5 @@
 import { buildSimSide, simulateMatch, simulateScoreOnly } from "./match-engine";
+import { crownSeason } from "./titles";
 import type { GameWorld, Match, MatchSimulationResult, Team } from "./types";
 import {
   applyMatchResult,
@@ -136,11 +137,11 @@ function closeWeekIfReady(world: GameWorld): GameWorld {
     const out = simulateOne(acc, fx);
     if (out) acc = out.world;
   }
-  return recoverEnergy({ ...acc, week: acc.week + 1 });
+  return crownSeason(recoverEnergy({ ...acc, week: acc.week + 1 }));
 }
 
 export function prepareWeek(world: GameWorld): GameWorld {
-  let next = ensureBotWorld(world);
+  let next = crownSeason(ensureBotWorld(world));
   if (!next.matches.some((m) => m.week === next.week)) {
     next = { ...next, matches: [...next.matches, ...generateWeekFixtures(next)] };
   } else {
@@ -175,6 +176,17 @@ function viewFromDone(fx: Match, stored: MatchSimulationResult | null): MatchSim
   };
 }
 
+function withTitle(
+  before: GameWorld,
+  after: GameWorld,
+  result: MatchSimulationResult | string,
+): MatchSimulationResult | string {
+  const crowned =
+    after.lastTitle && after.lastTitle.season !== before.lastTitle?.season ? after.lastTitle : undefined;
+  if (!crowned || typeof result === "string") return result;
+  return { ...result, title: crowned };
+}
+
 export function playUserMatch(
   world: GameWorld,
   userTeamId: string,
@@ -195,7 +207,10 @@ export function playUserMatch(
     );
   if (unclaimed) {
     const claimed = closeWeekIfReady(claimMatch(next, unclaimed.id, userTeamId));
-    return { world: claimed, result: viewFromDone(unclaimed, pickStoredSim(lastSim, unclaimed)) };
+    return {
+      world: claimed,
+      result: withTitle(next, claimed, viewFromDone(unclaimed, pickStoredSim(lastSim, unclaimed))),
+    };
   }
 
   const pending = next.matches.find(
@@ -205,7 +220,8 @@ export function playUserMatch(
     const played = simulateOne(next, pending);
     if (!played) return { world: next, result: "Maç oynatılamadı." };
     const claimed = claimMatch(played.world, pending.id, userTeamId);
-    return { world: closeWeekIfReady(claimed), result: played.sim };
+    const closed = closeWeekIfReady(claimed);
+    return { world: closed, result: withTitle(next, closed, played.sim) };
   }
 
   const done = next.matches.find((m) => m.week === next.week && m.status === "completed" && involvesTeam(m, userTeamId));

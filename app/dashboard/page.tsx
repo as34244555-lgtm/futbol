@@ -1,11 +1,12 @@
 "use client";
 
+import { ChampionBanner } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
 import { PlayerCard } from "@/components/PlayerCard";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
-import { TACTIC_LABEL } from "@/lib/types";
+import { formatSeasonWeek, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { formatCoins } from "@/lib/utils";
 import Link from "next/link";
@@ -43,7 +44,7 @@ export default function DashboardPage() {
     <GameShell>
       <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kulüp paneli</p>
+          <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kulüp paneli · {formatSeasonWeek(world.week)}</p>
           <h1 className="font-display text-4xl sm:text-5xl">{userTeam?.name}</h1>
         </div>
         <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
@@ -70,11 +71,16 @@ export default function DashboardPage() {
         </Button>
         <span className="text-slate-500">Arkadaşın kayıt/girişte aynı kodu yazsın.</span>
       </div>
+      {world.lastTitle && (
+        <div className="mb-6">
+          <ChampionBanner title={world.lastTitle} />
+        </div>
+      )}
       <div className="grid gap-4 md:grid-cols-4">
         <Stat title="Bütçe" value={`${formatCoins(userTeam?.coins ?? 0)} ₡`} />
-        <Stat title="Puan / Küme" value={`${userTeam?.points} · ${userTeam?.division}`} />
-        <Stat title="Kadro" value={`${roster.length} oyuncu`} />
-        <Stat title="Taktik" value={`${userTeam?.formation} · ${userTeam ? TACTIC_LABEL[userTeam.tactics] : ""}`} />
+        <Stat title="Puan" value={`${userTeam?.points ?? 0}`} />
+        <Stat title="Kupa" value={`${userTeam?.titles ?? 0}`} />
+        <Stat title="Sezon" value={`${weekInSeason(world.week)}/${SEASON_WEEKS}`} />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-white/10 bg-ink-800/60 p-4">
@@ -86,7 +92,7 @@ export default function DashboardPage() {
           </div>
           {opponent ? (
             <p className="text-slate-300">
-              Hafta {world.week}: {next?.home_team_id === userTeam?.id ? "Ev sahibi" : "Deplasman"} —{" "}
+              Hafta {weekInSeason(world.week)}/{SEASON_WEEKS}: {next?.home_team_id === userTeam?.id ? "Ev sahibi" : "Deplasman"} —{" "}
               <span className="text-neon">{opponent.name}</span>
               {opponent.user_id ? " · insan menajer" : " · bot menajer"}
             </p>

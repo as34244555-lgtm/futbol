@@ -3,7 +3,9 @@ import { playUserMatch, prepareWeek } from "../lib/season";
 import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
 import { listingId } from "../lib/utils";
+import { SYSTEM_TEAM_ID } from "../lib/types";
 import { packLeague, unpackLeague } from "../lib/server/remote-kv";
+import { CHAMPION_PRIZE, crownSeason, seasonOf, weekInSeason } from "../lib/titles";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -127,6 +129,34 @@ assert(typeof played.result !== "string", `human match should simulate, got ${pl
 const afterPlay = played.world.teams.find((t) => t.id === fresh.team.id)!;
 assert(afterPlay.played === 1, "playing a match should increment played");
 assert(afterPlay.coins !== fresh.team.coins, "match reward should change coins");
+
+assert(seasonOf(1) === 1 && weekInSeason(1) === 1, "week 1 is season 1 week 1");
+assert(seasonOf(18) === 1 && weekInSeason(18) === 18, "week 18 is last of season 1");
+assert(seasonOf(19) === 2 && weekInSeason(19) === 1, "week 19 starts season 2");
+
+const beforeCrown = {
+  ...joined.world,
+  week: 19,
+  season: 1,
+  teams: joined.world.teams.map((t) =>
+    t.id === joined.team.id
+      ? { ...t, points: 44, played: 18, won: 14, drawn: 2, lost: 2, goals_for: 40, goals_against: 12, coins: 15_000, titles: 0 }
+      : t.id === SYSTEM_TEAM_ID
+        ? t
+        : { ...t, points: 10, played: 18, won: 2, drawn: 4, lost: 12, titles: 0 },
+  ),
+};
+const crowned = crownSeason(beforeCrown);
+assert(crowned.lastTitle?.teamId === joined.team.id, "human with most points is champion");
+assert(crowned.lastTitle?.season === 1, "crowned season 1");
+assert(crowned.season === 2, `new season should be 2, got ${crowned.season}`);
+const champTeam = crowned.teams.find((t) => t.id === joined.team.id)!;
+assert(champTeam.titles === 1, "champion gets a title");
+assert(champTeam.points === 0 && champTeam.played === 0, "table resets for new season");
+assert(champTeam.coins === 15_000 + CHAMPION_PRIZE, `champion prize ${CHAMPION_PRIZE}`);
+const againCrown = crownSeason(crowned);
+assert((againCrown.titles ?? []).length === 1, "crowning is idempotent");
+assert(againCrown.teams.find((t) => t.id === joined.team.id)?.titles === 1, "titles not doubled");
 
 console.log(
   JSON.stringify({

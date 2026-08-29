@@ -26,7 +26,7 @@ const FEATURES = [
   {
     icon: Radio,
     title: "Çoklu oyuncu ligi",
-    text: "Az insan olsa da bot menajerler ligi doldurur. İki gerçek menajer varsa onlar birbirleriyle eşleşir.",
+    text: "18 haftalık sezonda puan lideri Liga Nova kupasını alır. Botlar ligi doldurur; iki insan varsa onlar eşleşir.",
   },
 ];
 

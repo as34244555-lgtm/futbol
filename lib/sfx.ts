@@ -105,6 +105,30 @@ export function shoutGoal() {
   }
 }
 
+export function shoutChampion() {
+  if (typeof window === "undefined" || isMuted()) return;
+  try {
+    window.speechSynthesis?.cancel();
+    const u = new SpeechSynthesisUtterance("Şampiyon!");
+    u.lang = "tr-TR";
+    u.rate = 0.85;
+    u.pitch = 1.05;
+    u.volume = 1;
+    window.speechSynthesis?.speak(u);
+  } catch {
+    /* speech optional */
+  }
+}
+
+export function playFanfare() {
+  tone(392, 0.22, "triangle", 0.05);
+  tone(523, 0.28, "triangle", 0.055, 0.18);
+  tone(659, 0.35, "sine", 0.06, 0.38);
+  tone(784, 0.7, "sine", 0.07, 0.58);
+  noise(0.9, 0.04, 0.5);
+  shoutChampion();
+}
+
 export function playByEvent(type: string) {
   if (type === "goal") {
     playGoalCrowd();
