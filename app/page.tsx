@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Flag, Radio, Swords, Users } from "lucide-react";
 import Link from "next/link";
+import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 
@@ -36,8 +37,8 @@ export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-grid-fade bg-[size:28px_28px]" />
-      <header className="relative z-10 mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
-        <p className="font-display text-3xl tracking-wide text-neon">LIGA NOVA</p>
+      <header className="relative z-10 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
+        <BrandLogo size={48} />
         <div className="flex gap-2">
           {hasSave ? (
             <Link href="/dashboard">
@@ -53,12 +54,12 @@ export default function LandingPage() {
           </Link>
         </div>
       </header>
-      <main className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-6 pb-24 pt-8 lg:grid-cols-2">
+      <main className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-24 pt-6 sm:px-6 lg:grid-cols-2">
         <div>
           <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">
             Çoklu oyuncu · Vercel · {humans} insan · {bots} bot
           </p>
-          <h1 className="font-display text-5xl leading-[0.95] sm:text-7xl">
+          <h1 className="font-display text-4xl leading-[0.95] sm:text-7xl">
             Aynı lige gir.
             <span className="block text-neon">Rakibini yen.</span>
           </h1>

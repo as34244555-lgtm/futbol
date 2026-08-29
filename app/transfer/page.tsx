@@ -77,8 +77,8 @@ export default function TransferPage() {
           </div>
         </>
       )}
-      <div className="overflow-hidden rounded-2xl border border-white/10">
-        <table className="w-full text-left text-sm">
+      <div className="overflow-x-auto rounded-2xl border border-white/10">
+        <table className="w-full min-w-[640px] text-left text-sm">
           <thead className="bg-white/5 text-xs uppercase tracking-wider text-slate-400">
             <tr>
               <th className="px-4 py-3">Oyuncu</th>

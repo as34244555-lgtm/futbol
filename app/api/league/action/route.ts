@@ -54,7 +54,7 @@ export async function POST(req: Request) {
         case "playMatch":
           return NextResponse.json(await actions.playMatch(session));
         case "importPlayers":
-          return NextResponse.json(await actions.importPlayers(session, body.players, body.mode));
+          return NextResponse.json({ error: "Kapalı" }, { status: 404 });
         default:
           return NextResponse.json({ error: "Bilinmeyen işlem" }, { status: 400 });
       }
