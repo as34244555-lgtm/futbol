@@ -19,7 +19,7 @@ export default function PlayPage() {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-5 py-10">
-      <BrandLogo size={64} className="mb-6" />
+      <BrandLogo size={88} className="mb-6" />
       <p className="text-xs uppercase tracking-[0.3em] text-gold">Paylaşılan lig</p>
       <h1 className="font-display mt-2 text-4xl sm:text-5xl">Lige katıl</h1>
       <p className="mt-3 text-slate-400">

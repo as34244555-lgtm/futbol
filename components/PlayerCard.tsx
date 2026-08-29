@@ -23,6 +23,7 @@ export function PlayerCard({
   onClick?: () => void;
   footer?: React.ReactNode;
 }) {
+  const legend = Boolean(player.legend) || player.overall >= 100;
   return (
     <button
       type="button"
@@ -30,11 +31,17 @@ export function PlayerCard({
       className={cn(
         "w-full rounded-2xl border bg-ink-800/80 p-3 text-left transition hover:border-neon/40",
         selected ? "border-neon shadow-glow" : "border-white/10",
-        featured && "border-gold bg-ink-900/95 p-4 shadow-gold",
+        (featured || legend) && "border-gold bg-ink-900/95 p-4 shadow-gold",
       )}
     >
       <div className="flex items-start gap-3">
-        <OverallBadge overall={player.overall} />
+        {player.portrait ? (
+          <span className="relative h-14 w-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-gold/50">
+            <Image src={player.portrait} alt={player.name} fill className="object-cover" sizes="44px" />
+          </span>
+        ) : (
+          <OverallBadge overall={player.overall} />
+        )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <Image
@@ -48,10 +55,14 @@ export function PlayerCard({
             <p className="truncate font-semibold">{player.name}</p>
           </div>
           <p className="mt-0.5 text-xs text-slate-400">
-            {POSITION_LABEL[player.position]} · {player.age} yaş · {player.nationality}
+            {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position]} · {player.age} yaş · {player.nationality}
+            {legend ? " · Efsane" : ""}
           </p>
         </div>
-        <PositionChip position={player.position} />
+        <div className="flex flex-col items-end gap-1">
+          {player.portrait && <OverallBadge overall={player.overall} />}
+          <PositionChip position={player.position} versatile={player.versatile} />
+        </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
         <StatBar value={player.attack} label="Hücum" color="bg-rose-400" />

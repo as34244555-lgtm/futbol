@@ -1,4 +1,5 @@
 import { FORMATION_SLOTS, TACTIC_MOD } from "./formations";
+import { simOverall } from "./catalog";
 import type {
   Formation,
   Match,
@@ -6,6 +7,7 @@ import type {
   MatchSimulationResult,
   PitchPoint,
   Player,
+  Position,
   Team,
   TeamPlayer,
   TimelineEvent,
@@ -23,6 +25,11 @@ export type SimSide = {
   starters: SimPlayer[];
 };
 
+function role(p: SimPlayer, formation: Formation): Position {
+  if (!p.versatile) return p.position;
+  return FORMATION_SLOTS[formation].find((s) => s.key === p.slotKey)?.position ?? p.position;
+}
+
 function rating(p: SimPlayer, key: "attack" | "defense"): number {
   const cond = (p.energy / 100) * (0.55 + p.form / 220);
   return p[key] * cond;
@@ -30,19 +37,22 @@ function rating(p: SimPlayer, key: "attack" | "defense"): number {
 
 function sideStrength(side: SimSide) {
   const tac = TACTIC_MOD[side.team.tactics];
+  const formation = side.team.formation;
   const atk =
     side.starters.reduce((s, p) => {
-      const w = p.position === "FV" ? 1.25 : p.position === "OS" ? 1.05 : p.position === "KL" ? 0.15 : 0.55;
+      const pos = role(p, formation);
+      const w = pos === "FV" ? 1.25 : pos === "OS" ? 1.05 : pos === "KL" ? 0.15 : 0.55;
       return s + rating(p, "attack") * w;
     }, 0) / 11;
   const def =
     side.starters.reduce((s, p) => {
-      const w = p.position === "KL" ? 1.4 : p.position === "DEF" ? 1.2 : p.position === "OS" ? 0.85 : 0.4;
+      const pos = role(p, formation);
+      const w = pos === "KL" ? 1.4 : pos === "DEF" ? 1.2 : pos === "OS" ? 0.85 : 0.4;
       return s + rating(p, "defense") * w;
     }, 0) / 11;
+  const mids = side.starters.filter((p) => role(p, formation) === "OS");
   const mid =
-    side.starters.filter((p) => p.position === "OS").reduce((s, p) => s + (p.overall * p.form) / 100, 0) /
-    Math.max(1, side.starters.filter((p) => p.position === "OS").length);
+    mids.reduce((s, p) => s + (simOverall(p) * p.form) / 100, 0) / Math.max(1, mids.length);
   return {
     attack: atk * tac.attack,
     defense: def * tac.defense,
@@ -160,9 +170,14 @@ export function simulateMatch(
     });
   };
 
-  const attackers = (side: SimSide) => side.starters.filter((p) => p.position === "FV" || p.position === "OS");
-  const defenders = (side: SimSide) => side.starters.filter((p) => p.position === "DEF");
-  const gk = (side: SimSide) => side.starters.find((p) => p.position === "KL") ?? side.starters[0]!;
+  const attackers = (side: SimSide) =>
+    side.starters.filter((p) => {
+      const pos = role(p, side.team.formation);
+      return pos === "FV" || pos === "OS";
+    });
+  const defenders = (side: SimSide) => side.starters.filter((p) => role(p, side.team.formation) === "DEF");
+  const gk = (side: SimSide) =>
+    side.starters.find((p) => role(p, side.team.formation) === "KL") ?? side.starters[0]!;
 
   const homeLambda = clamp(1.35 + (hs.attack - as.defense) / 48, 0.7, 3.4);
   const awayLambda = clamp(1.15 + (as.attack - hs.defense) / 48, 0.55, 3.1);
@@ -290,7 +305,7 @@ export function simulateMatch(
       return;
     }
     if (roll < 0.52) {
-      const dest = safePick(rand, att.starters, att.starters, (p) => (p.position === "FV" ? 3 : 1));
+      const dest = safePick(rand, att.starters, att.starters, (p) => (role(p, att.team.formation) === "FV" ? 3 : 1));
       push(
         minute,
         EVENT.PASS,
@@ -400,10 +415,16 @@ export function simulateMatch(
     "neutral",
   );
 
-  const homeBest = [...home.starters].sort((a, b) => b.overall * b.form - a.overall * a.form)[0];
-  const awayBest = [...away.starters].sort((a, b) => b.overall * b.form - a.overall * a.form)[0];
+  const homeBest = [...home.starters].sort((a, b) => simOverall(b) * b.form - simOverall(a) * a.form)[0];
+  const awayBest = [...away.starters].sort((a, b) => simOverall(b) * b.form - simOverall(a) * a.form)[0];
   const motmSide =
-    homeScore > awayScore ? "home" : awayScore > homeScore ? "away" : homeBest && awayBest && homeBest.overall >= awayBest.overall ? "home" : "away";
+    homeScore > awayScore
+      ? "home"
+      : awayScore > homeScore
+        ? "away"
+        : homeBest && awayBest && simOverall(homeBest) >= simOverall(awayBest)
+          ? "home"
+          : "away";
   const motmPlayer = motmSide === "home" ? homeBest : awayBest;
 
   const match: Match = {
@@ -472,11 +493,17 @@ export function simulateScoreOnly(
 
 export function buildSimSide(team: Team, roster: Array<TeamPlayer & { player: Player }>): SimSide {
   const chosen = [...roster.filter((r) => r.is_starter), ...roster.filter((r) => !r.is_starter)].slice(0, 11);
-  const starters = chosen.map((r) => ({
-    ...r.player,
-    energy: r.energy,
-    form: r.form,
-    slotKey: r.squad_position || "gk",
-  }));
+  const starters = chosen.map((r) => {
+    const slotKey = r.squad_position || "gk";
+    const slot = FORMATION_SLOTS[team.formation].find((s) => s.key === slotKey);
+    const position = r.player.versatile && slot ? slot.position : r.player.position;
+    return {
+      ...r.player,
+      position,
+      energy: r.energy,
+      form: r.form,
+      slotKey,
+    };
+  });
   return { team, starters };
 }

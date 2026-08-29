@@ -65,6 +65,11 @@ export type Player = {
   defense: number;
   overall: number;
   base_value: number;
+  /** Her mevkiye tam uyumlu (KL / DEF / OS / FV). */
+  versatile?: boolean;
+  /** Efsane kart — 999 gibi özel genel puan. */
+  legend?: boolean;
+  portrait?: string;
 };
 
 export type TeamPlayer = {

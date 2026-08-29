@@ -18,7 +18,7 @@ export default function LoginPage() {
 
   return (
     <div className="mx-auto flex min-h-[100dvh] max-w-lg flex-col justify-center px-5 py-10">
-      <BrandLogo size={64} className="mb-6" />
+      <BrandLogo size={88} className="mb-6" />
       <p className="text-xs uppercase tracking-[0.3em] text-gold">Oturum</p>
       <h1 className="font-display mt-2 text-4xl sm:text-5xl">Giriş yap</h1>
       <form

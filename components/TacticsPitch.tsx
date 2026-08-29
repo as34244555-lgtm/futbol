@@ -58,16 +58,16 @@ export function TacticsPitch({
               <circle
                 cx={cx}
                 cy={cy}
-                r={selected ? 5.2 : 4.4}
-                fill={holder ? kit : "rgba(0,0,0,0.25)"}
-                stroke={selected ? "#f0c14b" : "white"}
-                strokeWidth={selected ? 0.7 : 0.35}
+                r={selected ? 5.2 : holder?.player.legend ? 5 : 4.4}
+                fill={holder ? (holder.player.legend ? "#f0c14b" : kit) : "rgba(0,0,0,0.25)"}
+                stroke={selected || holder?.player.legend ? "#f0c14b" : "white"}
+                strokeWidth={selected || holder?.player.legend ? 0.7 : 0.35}
               />
               <text
                 x={cx}
                 y={cy + 0.8}
                 textAnchor="middle"
-                fontSize="3.2"
+                fontSize={holder && holder.player.overall >= 100 ? 2.3 : 3.2}
                 fontWeight="700"
                 fill={holder ? "#04110a" : "#fff"}
               >

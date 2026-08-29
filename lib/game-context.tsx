@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { OpeningSplash } from "@/components/OpeningSplash";
 import type {
   Formation,
   GameWorld,
@@ -296,7 +297,11 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     ],
   );
 
-  return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
+  return (
+    <GameContext.Provider value={value}>
+      <OpeningSplash>{children}</OpeningSplash>
+    </GameContext.Provider>
+  );
 }
 
 export function useGame() {
