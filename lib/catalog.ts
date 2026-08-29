@@ -15,7 +15,7 @@ export function makeAbdullah(): Player {
     attack: 99,
     defense: 99,
     overall: 999,
-    base_value: 999_999,
+    base_value: 100_000,
     versatile: true,
     legend: true,
     portrait: "/abdullah-sariyildiz.webp",
