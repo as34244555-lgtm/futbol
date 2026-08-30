@@ -36,6 +36,28 @@ export function leagueTable(world: GameWorld): Team[] {
   return world.teams.filter((t) => t.id !== SYSTEM_TEAM_ID).slice().sort(compareTable);
 }
 
+/** Son N tamamlanmış maçın G/B/M dizisi (en eski → en yeni). */
+export function recentForm(world: GameWorld, teamId: string, n = 5): Array<"G" | "B" | "M"> {
+  const season = seasonOf(world.week);
+  return world.matches
+    .filter(
+      (m) =>
+        m.status === "completed" &&
+        seasonOf(m.week) === season &&
+        (m.home_team_id === teamId || m.away_team_id === teamId),
+    )
+    .sort((a, b) => a.week - b.week || a.played_at.localeCompare(b.played_at))
+    .slice(-n)
+    .map((m) => {
+      const home = m.home_team_id === teamId;
+      const gf = home ? m.home_score : m.away_score;
+      const ga = home ? m.away_score : m.home_score;
+      if (gf > ga) return "G";
+      if (gf === ga) return "B";
+      return "M";
+    });
+}
+
 export function makeTitle(season: number, champion: Team): SeasonTitle {
   return {
     season,

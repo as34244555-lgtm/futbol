@@ -1,12 +1,12 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
-import { marketValue, positionFit, teamProfile } from "../lib/ratings";
+import { marketValue, positionFit } from "../lib/ratings";
 import { playUserMatch, prepareWeek } from "../lib/season";
 import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
 import { listingId } from "../lib/utils";
 import { SYSTEM_TEAM_ID } from "../lib/types";
 import { packLeague, unpackLeague } from "../lib/server/remote-kv";
-import { CHAMPION_PRIZE, crownSeason, seasonOf, weekInSeason } from "../lib/titles";
+import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from "../lib/titles";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -93,6 +93,12 @@ assert(avgGoals >= 1.2, `expected live xG scores, got avg ${avgGoals.toFixed(2)}
 const withSheet = simulateMatch(homeSide, awaySide, 1, 4242);
 assert(withSheet.sheet, "match sheet (xG) required");
 assert(withSheet.sheet!.possession[0] + withSheet.sheet!.possession[1] === 100, "possession must sum 100");
+assert(withSheet.ratings && withSheet.ratings.length >= 20, "both XIs should have match ratings");
+assert(
+  withSheet.ratings!.every((r) => r.rating >= 4.5 && r.rating <= 10),
+  "ratings must stay in 4.5–10",
+);
+assert(withSheet.motm && withSheet.ratings!.some((r) => r.playerId === withSheet.motm!.playerId), "MOTM rated");
 
 const boosted = {
   ...homeSide,
@@ -154,6 +160,9 @@ assert(typeof played.result !== "string", `human match should simulate, got ${pl
 const afterPlay = played.world.teams.find((t) => t.id === fresh.team.id)!;
 assert(afterPlay.played === 1, "playing a match should increment played");
 assert(afterPlay.coins !== fresh.team.coins, "match reward should change coins");
+const formAfter = recentForm(played.world, fresh.team.id);
+assert(formAfter.length === 1, `form should have one result, got ${formAfter.join("")}`);
+assert(["G", "B", "M"].includes(formAfter[0]!), "form letter must be G/B/M");
 
 assert(seasonOf(1) === 1 && weekInSeason(1) === 1, "week 1 is season 1 week 1");
 assert(seasonOf(18) === 1 && weekInSeason(18) === 18, "week 18 is last of season 1");

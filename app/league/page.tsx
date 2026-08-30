@@ -3,7 +3,7 @@
 import { ChampionBanner } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
 import { useGame } from "@/lib/game-context";
-import { formatSeasonWeek, leagueTable, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
+import { formatSeasonWeek, leagueTable, recentForm, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { cn } from "@/lib/utils";
 import { Trophy } from "lucide-react";
 import { useMemo } from "react";
@@ -46,6 +46,7 @@ export default function LeaguePage() {
               <th>Y</th>
               <th>Av</th>
               <th>P</th>
+              <th>Form</th>
               <th>Kupa</th>
             </tr>
           </thead>
@@ -53,6 +54,7 @@ export default function LeaguePage() {
             {table.map((t, i) => {
               const mine = t.id === userTeam?.id;
               const gd = t.goals_for - t.goals_against;
+              const form = recentForm(world, t.id);
               return (
                 <tr
                   key={t.id}
@@ -81,6 +83,24 @@ export default function LeaguePage() {
                   <td>{t.goals_against}</td>
                   <td>{gd > 0 ? `+${gd}` : gd}</td>
                   <td className="font-bold">{t.points}</td>
+                  <td>
+                    <span className="inline-flex gap-0.5">
+                      {form.length === 0 && <span className="text-slate-600">—</span>}
+                      {form.map((r, fi) => (
+                        <span
+                          key={`${t.id}-${fi}`}
+                          className={cn(
+                            "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                            r === "G" && "bg-emerald-500/80 text-ink-950",
+                            r === "B" && "bg-slate-400/80 text-ink-950",
+                            r === "M" && "bg-rose-500/80 text-white",
+                          )}
+                        >
+                          {r}
+                        </span>
+                      ))}
+                    </span>
+                  </td>
                   <td className="text-gold">{t.titles ?? 0}</td>
                 </tr>
               );

@@ -6,7 +6,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
-import { startersOf, teamGrade, teamProfile } from "@/lib/ratings";
+import { expectedGoals, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { formatCoins } from "@/lib/utils";
@@ -43,6 +43,29 @@ export default function DashboardPage() {
       : next.home_team_id
     : null;
   const opponent = world.teams.find((t) => t.id === oppId);
+  const nextXg =
+    userTeam && opponent && next
+      ? expectedGoals(
+          teamProfile(
+            next.home_team_id === userTeam.id ? userTeam : opponent,
+            startersOf(
+              next.home_team_id === userTeam.id ? userTeam : opponent,
+              rosterOf(world, next.home_team_id === userTeam.id ? userTeam.id : opponent.id),
+            ),
+            true,
+            (next.home_team_id === userTeam.id ? opponent : userTeam).tactics,
+          ),
+          teamProfile(
+            next.home_team_id === userTeam.id ? opponent : userTeam,
+            startersOf(
+              next.home_team_id === userTeam.id ? opponent : userTeam,
+              rosterOf(world, next.home_team_id === userTeam.id ? opponent.id : userTeam.id),
+            ),
+            false,
+            (next.home_team_id === userTeam.id ? userTeam : opponent).tactics,
+          ),
+        )
+      : null;
 
   return (
     <GameShell>
@@ -99,6 +122,11 @@ export default function DashboardPage() {
               Hafta {weekInSeason(world.week)}/{SEASON_WEEKS}: {next?.home_team_id === userTeam?.id ? "Ev sahibi" : "Deplasman"} —{" "}
               <span className="text-neon">{opponent.name}</span>
               {opponent.user_id ? " · insan menajer" : " · bot menajer"}
+              {nextXg && (
+                <span className="mt-2 block text-sm text-gold">
+                  Beklenen gol {nextXg.home.toFixed(2)} — {nextXg.away.toFixed(2)}
+                </span>
+              )}
             </p>
           ) : (
             <p className="text-slate-400">Fikstür henüz yok. Maç ekranından haftayı başlatın.</p>

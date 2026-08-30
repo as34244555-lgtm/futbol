@@ -152,6 +152,13 @@ export type MatchSheet = {
   possession: [number, number];
 };
 
+export type MatchRating = {
+  playerId: string;
+  name: string;
+  team: "home" | "away";
+  rating: number;
+};
+
 export type MatchSimulationResult = {
   match: Match;
   logs: MatchLog[];
@@ -163,6 +170,8 @@ export type MatchSimulationResult = {
   title?: SeasonTitle;
   /** xG, şut ve topa sahip olma. */
   sheet?: MatchSheet;
+  /** İlk 11 maç notları (4.5–10.0). */
+  ratings?: MatchRating[];
 };
 
 export type GameWorld = {

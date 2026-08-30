@@ -391,6 +391,11 @@ export function simulateMatch(
 
   const scoreOf = (p: SimPlayer, formation: Formation) =>
     (contrib.get(p.id) ?? 0) + playerLive(p, formation).rawAttack / 18;
+  const ratingOf = (p: SimPlayer, formation: Formation) => {
+    const live = playerLive(p, formation);
+    const base = 6.1 + live.cond * 0.7 + (live.fit - 1) * 1.4 + (contrib.get(p.id) ?? 0) / 7;
+    return Math.round(clamp(base, 4.5, 10) * 10) / 10;
+  };
   const homeBest = [...home.starters].sort((a, b) => scoreOf(b, home.team.formation) - scoreOf(a, home.team.formation))[0];
   const awayBest = [...away.starters].sort((a, b) => scoreOf(b, away.team.formation) - scoreOf(a, away.team.formation))[0];
   const motmSide: "home" | "away" =
@@ -402,6 +407,20 @@ export function simulateMatch(
           ? "home"
           : "away";
   const motmPlayer = motmSide === "home" ? homeBest : awayBest;
+  const ratings = [
+    ...home.starters.map((p) => ({
+      playerId: p.id,
+      name: p.name,
+      team: "home" as const,
+      rating: ratingOf(p, home.team.formation),
+    })),
+    ...away.starters.map((p) => ({
+      playerId: p.id,
+      name: p.name,
+      team: "away" as const,
+      rating: ratingOf(p, away.team.formation),
+    })),
+  ].sort((a, b) => b.rating - a.rating);
 
   const match: Match = {
     id: matchId,
@@ -423,6 +442,7 @@ export function simulateMatch(
       ...sheet,
       xg: [Math.round(sheet.xg[0] * 10) / 10, Math.round(sheet.xg[1] * 10) / 10],
     },
+    ratings,
   };
 }
 
@@ -437,8 +457,8 @@ export function simulateScoreOnly(
   const hp = teamProfile(home.team, home.starters, true, away.team.tactics);
   const ap = teamProfile(away.team, away.starters, false, home.team.tactics);
   const xg = expectedGoals(hp, ap);
-  let homeScore = poisson(rand, xg.home);
-  let awayScore = poisson(rand, xg.away);
+  const homeScore = poisson(rand, xg.home);
+  const awayScore = poisson(rand, xg.away);
   const match: Match = {
     id: uid("match"),
     home_team_id: home.team.id,
