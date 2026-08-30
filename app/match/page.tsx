@@ -9,6 +9,7 @@ import { useGame } from "@/lib/game-context";
 import { botManagerName } from "@/lib/catalog";
 import type { MatchSimulationResult, SeasonTitle } from "@/lib/types";
 import { playCrowd, playFanfare, playWhistle, unlockAudio } from "@/lib/sfx";
+import { expectedGoals, startersOf, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, seasonOf, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
@@ -56,6 +57,14 @@ export default function MatchPage() {
       ? world.teams.find((t) => t.id === (next.home_team_id === userTeam.id ? next.away_team_id : next.home_team_id))
       : null;
 
+  const preview = useMemo(() => {
+    if (!userTeam || !opp) return null;
+    const homeTeam = next?.home_team_id === userTeam.id ? userTeam : opp;
+    const awayTeam = next?.home_team_id === userTeam.id ? opp : userTeam;
+    const hp = teamProfile(homeTeam, startersOf(homeTeam, rosterOf(world, homeTeam.id)), true, awayTeam.tactics);
+    const ap = teamProfile(awayTeam, startersOf(awayTeam, rosterOf(world, awayTeam.id)), false, homeTeam.tactics);
+    return expectedGoals(hp, ap);
+  }, [userTeam, opp, next, world]);
   const homeRoster = useMemo(() => (home ? rosterOf(world, home.id) : []), [world, home]);
   const awayRoster = useMemo(() => (away ? rosterOf(world, away.id) : []), [world, away]);
 
@@ -102,6 +111,11 @@ export default function MatchPage() {
           {opp && (
             <p className="mt-1 text-sm text-slate-400">
               {opp.user_id ? "İnsan menajer · tek maç, tek skor" : `Bot menajer · ${botManagerName(opp.name)}`}
+            </p>
+          )}
+          {preview && (
+            <p className="mt-3 text-sm text-gold">
+              Beklenen goller (xG): {preview.home.toFixed(1)} — {preview.away.toFixed(1)}
             </p>
           )}
           {waitingToWatch && next && (

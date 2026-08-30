@@ -6,6 +6,7 @@ import { flagUrl } from "@/lib/nations";
 import { POSITION_LABEL } from "@/lib/types";
 import type { Player, TeamPlayer } from "@/lib/types";
 import { formatCoins } from "@/lib/utils";
+import { marketValue } from "@/lib/ratings";
 import { cn } from "@/lib/utils";
 
 export function PlayerCard({
@@ -74,7 +75,9 @@ export function PlayerCard({
           </>
         )}
       </div>
-      <p className="mt-2 text-[11px] text-slate-500">Değer {formatCoins(player.base_value)} ₡</p>
+      <p className="mt-2 text-[11px] text-slate-500">
+        Değer {formatCoins(marketValue(player, row?.form))} ₡
+      </p>
       {footer}
     </button>
   );

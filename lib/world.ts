@@ -7,6 +7,7 @@ import {
   makeAbdullah,
   playsPosition,
 } from "./catalog";
+import { marketValue } from "./ratings";
 import { FORMATION_SLOTS } from "./formations";
 import { SYSTEM_TEAM_ID } from "./types";
 import type {
@@ -183,7 +184,7 @@ export function createFreshWorld(): GameWorld {
     r.is_starter = false;
     r.squad_position = null;
     const player = catalogById.get(r.player_id);
-    const price = player ? Math.round(player.base_value * (0.9 + rand() * 0.35)) : 500;
+    const price = player ? Math.round(marketValue(player) * (0.9 + rand() * 0.35)) : 500;
     listings.push({
       id: listingId(agency.id, r.player_id),
       team_player_id: r.id,
@@ -203,7 +204,7 @@ export function createFreshWorld(): GameWorld {
         id: listingId(club.id, r.player_id),
         team_player_id: r.id,
         seller_team_id: club.id,
-        price: Math.max(300, Math.round((player?.base_value ?? 800) * (1.05 + rand() * 0.4))),
+        price: Math.max(300, Math.round((player ? marketValue(player) : 800) * (1.05 + rand() * 0.4))),
         status: "active",
         created_at: new Date().toISOString(),
       });
@@ -397,15 +398,18 @@ export function applyMatchResult(
     };
   };
 
-  const drain = (tp: TeamPlayer, starter: boolean): TeamPlayer => {
+  const drain = (tp: TeamPlayer): TeamPlayer => {
     if (tp.team_id !== homeId && tp.team_id !== awayId) return tp;
-    if (!starter) {
-      return { ...tp, energy: clamp(tp.energy + 8, 0, 100), form: clamp(tp.form + 1, 0, 100) };
+    const homeSide = tp.team_id === homeId;
+    const won = homeSide ? homeScore > awayScore : awayScore > homeScore;
+    const draw = homeScore === awayScore;
+    if (!tp.is_starter) {
+      return { ...tp, energy: clamp(tp.energy + 9, 0, 100), form: clamp(tp.form + 1, 0, 100) };
     }
     return {
       ...tp,
-      energy: clamp(tp.energy - (10 + Math.floor(Math.random() * 8)), 0, 100),
-      form: clamp(tp.form + (homeScore === awayScore ? 0 : Math.random() > 0.5 ? 3 : -2), 0, 100),
+      energy: clamp(tp.energy - 14, 0, 100),
+      form: clamp(tp.form + (won ? 4 : draw ? 1 : -3), 0, 100),
     };
   };
 
@@ -416,7 +420,7 @@ export function applyMatchResult(
       if (t.id === awayId) return update(t, awayScore, homeScore, false);
       return t;
     }),
-    teamPlayers: world.teamPlayers.map((tp) => drain(tp, tp.is_starter)),
+    teamPlayers: world.teamPlayers.map((tp) => drain(tp)),
   };
 }
 
@@ -598,7 +602,7 @@ export function seedBotListings(world: GameWorld, perClub = 6): GameWorld {
         id: listingId(club.id, r.player_id),
         team_player_id: r.id,
         seller_team_id: club.id,
-        price: Math.max(300, Math.round((player?.base_value ?? 800) * (0.95 + rand() * 0.45))),
+        price: Math.max(300, Math.round((player ? marketValue(player) : 800) * (0.95 + rand() * 0.45))),
         status: "active",
         created_at: new Date().toISOString(),
       });

@@ -6,6 +6,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
+import { startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { formatCoins } from "@/lib/utils";
@@ -20,6 +21,9 @@ export default function DashboardPage() {
     [world, userTeam],
   );
   const starters = roster.filter((r) => r.is_starter);
+  const grade = userTeam
+    ? teamGrade(teamProfile(userTeam, startersOf(userTeam, roster), true))
+    : null;
   const legend = roster.find((r) => r.player.legend || r.player.overall >= 100);
   const stars = [...roster]
     .sort(
@@ -80,7 +84,7 @@ export default function DashboardPage() {
         <Stat title="Bütçe" value={`${formatCoins(userTeam?.coins ?? 0)} ₡`} />
         <Stat title="Puan" value={`${userTeam?.points ?? 0}`} />
         <Stat title="Kupa" value={`${userTeam?.titles ?? 0}`} />
-        <Stat title="Sezon" value={`${weekInSeason(world.week)}/${SEASON_WEEKS}`} />
+        <Stat title="Takım gücü" value={grade ? `${grade.attack}/${grade.defense}` : "—"} />
       </div>
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-white/10 bg-ink-800/60 p-4">

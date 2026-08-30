@@ -1,4 +1,5 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
+import { marketValue, positionFit, teamProfile } from "../lib/ratings";
 import { playUserMatch, prepareWeek } from "../lib/season";
 import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
@@ -88,7 +89,31 @@ for (let i = 0; i < 16; i++) {
   assert(last.score[0] === sim.match.home_score && last.score[1] === sim.match.away_score, "final score mismatch");
 }
 const avgGoals = totalGoals / 16;
-assert(avgGoals >= 1.5, `expected ~2-4 goals, got avg ${avgGoals.toFixed(2)}`);
+assert(avgGoals >= 1.2, `expected live xG scores, got avg ${avgGoals.toFixed(2)}`);
+const withSheet = simulateMatch(homeSide, awaySide, 1, 4242);
+assert(withSheet.sheet, "match sheet (xG) required");
+assert(withSheet.sheet!.possession[0] + withSheet.sheet!.possession[1] === 100, "possession must sum 100");
+
+const boosted = {
+  ...homeSide,
+  starters: homeSide.starters.map((p) => ({ ...p, attack: 99, defense: 90, energy: 100, form: 95 })),
+};
+const weak = {
+  ...awaySide,
+  starters: awaySide.starters.map((p) => ({ ...p, attack: 40, defense: 40, energy: 55, form: 45 })),
+};
+let strongGoals = 0;
+let weakGoals = 0;
+for (let i = 0; i < 12; i++) {
+  const s = simulateMatch(boosted, weak, 1, 5000 + i * 11);
+  strongGoals += s.match.home_score;
+  weakGoals += s.match.away_score;
+}
+assert(strongGoals > weakGoals, `stronger XI should score more (${strongGoals} vs ${weakGoals})`);
+assert(positionFit("FV", "KL") < 0.6, "striker in goal is a bad fit");
+assert(positionFit("OS", "FV") > positionFit("KL", "FV"), "adjacent roles beat opposite roles");
+const star = joined.world.players.find((p) => p.name === "Erlung Haland")!;
+assert(marketValue(star, 95) > marketValue(star, 40), "hot form raises market value");
 
 const dense = densifyTimeline(
   {

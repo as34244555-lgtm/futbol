@@ -282,9 +282,19 @@ export function MatchSimulation({
             </div>
           ))}
         </div>
-        {result.motm && (
+        {(result.motm || result.sheet) && (
           <div className="border-t border-white/10 px-4 py-3 text-sm text-slate-300">
-            Maçın adamı: <span className="text-neon">{result.motm.name}</span>
+            {result.motm && (
+              <p>
+                Maçın adamı: <span className="text-neon">{result.motm.name}</span>
+              </p>
+            )}
+            {result.sheet && (
+              <p className="mt-1 text-xs text-slate-400">
+                xG {result.sheet.xg[0].toFixed(1)}–{result.sheet.xg[1].toFixed(1)} · şut {result.sheet.shots[0]}–
+                {result.sheet.shots[1]} · top %{result.sheet.possession[0]}–{result.sheet.possession[1]}
+              </p>
+            )}
           </div>
         )}
       </div>

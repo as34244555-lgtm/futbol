@@ -145,6 +145,13 @@ export type TimelineEvent = {
   score: [number, number];
 };
 
+export type MatchSheet = {
+  xg: [number, number];
+  shots: [number, number];
+  shotsOn: [number, number];
+  possession: [number, number];
+};
+
 export type MatchSimulationResult = {
   match: Match;
   logs: MatchLog[];
@@ -154,6 +161,8 @@ export type MatchSimulationResult = {
   pointsDelta?: number;
   /** Bu maç sezonu kapattıysa kupa. */
   title?: SeasonTitle;
+  /** xG, şut ve topa sahip olma. */
+  sheet?: MatchSheet;
 };
 
 export type GameWorld = {
