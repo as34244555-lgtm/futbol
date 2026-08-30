@@ -1,3 +1,4 @@
+import { deriveAttrs } from "./career";
 import { FORMATION_SLOTS, TACTIC_MOD } from "./formations";
 import { computeBaseValue, simOverall } from "./catalog";
 import type { Formation, Player, Position, Tactic, Team, TeamPlayer } from "./types";
@@ -58,9 +59,14 @@ export function playerLive(p: SimLike, formation: Formation) {
   const fit = positionFit(p.position, pos, p.versatile);
   const cond = condition(p.energy, p.form);
   const w = slotWeights(pos);
-  const atk = p.attack * cond * fit;
-  const def = p.defense * cond * fit;
-  const ctrl = ((simOverall(p) + p.attack + p.defense) / 3) * cond * fit;
+  const attrs = deriveAttrs(p);
+  const paceMul = 0.92 + (attrs.pace / 100) * 0.16;
+  const atk = ((p.attack * 0.48 + attrs.finishing * 0.52) * cond * fit) * paceMul;
+  const def =
+    pos === "KL"
+      ? attrs.handling * cond * fit
+      : (p.defense * 0.5 + attrs.marking * 0.5) * cond * fit;
+  const ctrl = ((simOverall(p) + attrs.passing + p.attack) / 3) * cond * fit;
   return {
     pos,
     fit,

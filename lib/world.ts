@@ -7,6 +7,7 @@ import {
   makeAbdullah,
   playsPosition,
 } from "./catalog";
+import { applyTrainingRecovery, hydrateWorld, isInjured, rollInjuries } from "./career";
 import { marketValue } from "./ratings";
 import { FORMATION_SLOTS } from "./formations";
 import { SYSTEM_TEAM_ID } from "./types";
@@ -79,8 +80,9 @@ export function autoSelectStarters(roster: TeamPlayer[], players: Player[], form
 
   for (const slot of slots) {
     if (updated.some((r) => r.squad_position === slot.key)) continue;
-    const candidates = updated
-      .filter((r) => !used.has(r.id))
+    const healthy = updated.filter((r) => !used.has(r.id) && !isInjured(r));
+    const pool = healthy.length ? healthy : updated.filter((r) => !used.has(r.id));
+    const candidates = pool
       .map((r) => ({ r, p: byId.get(r.player_id) }))
       .filter((x): x is { r: TeamPlayer; p: Player } => Boolean(x.p))
       .sort((a, b) => {
@@ -222,7 +224,7 @@ export function createFreshWorld(): GameWorld {
     season: 1,
     titles: [],
   };
-  return ensureBotWorld(world);
+  return hydrateWorld(ensureBotWorld(world));
 }
 
 export const HUMAN_KITS: Array<[string, string]> = [
@@ -291,13 +293,13 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
 
   return {
     team: userTeam,
-    world: ensureLegendWorld({
+    world: hydrateWorld(ensureLegendWorld({
       ...world,
       players: extraPlayers.length ? [...world.players, ...extraPlayers] : world.players,
       teams: [...world.teams, userTeam],
       teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
       listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
-    }),
+    })),
   };
 }
 
@@ -377,6 +379,7 @@ export function applyMatchResult(
   awayId: string,
   homeScore: number,
   awayScore: number,
+  opts?: { cup?: boolean },
 ): GameWorld {
   const reward = (won: boolean, draw: boolean, goals: number) =>
     (won ? 900 : draw ? 350 : 120) + goals * 40;
@@ -385,6 +388,12 @@ export function applyMatchResult(
     const won = gf > ga;
     const draw = gf === ga;
     const lost = gf < ga;
+    if (opts?.cup) {
+      return {
+        ...t,
+        coins: t.user_id ? t.coins + (won ? 400 : draw ? 160 : 60) : t.coins,
+      };
+    }
     return {
       ...t,
       points: t.points + (won ? 3 : draw ? 1 : 0),
@@ -413,7 +422,7 @@ export function applyMatchResult(
     };
   };
 
-  return {
+  const drained = {
     ...world,
     teams: world.teams.map((t) => {
       if (t.id === homeId) return update(t, homeScore, awayScore, true);
@@ -422,16 +431,11 @@ export function applyMatchResult(
     }),
     teamPlayers: world.teamPlayers.map((tp) => drain(tp)),
   };
+  return rollInjuries(drained, homeId, awayId);
 }
 
 export function recoverEnergy(world: GameWorld): GameWorld {
-  return {
-    ...world,
-    teamPlayers: world.teamPlayers.map((tp) => ({
-      ...tp,
-      energy: clamp(tp.energy + 18, 0, 100),
-    })),
-  };
+  return applyTrainingRecovery(world);
 }
 
 export function isBotTeam(t: Team): boolean {
@@ -531,15 +535,17 @@ function freeBotForHuman(matches: Match[], bots: Team[], week: number): Team | u
   const idle = bots.find((t) => !busy.has(t.id));
   if (idle) return idle;
   const botVsBot = matches.find((m) => {
-    if (m.week !== week || m.status !== "pending") return false;
+    if (m.week !== week || m.status !== "pending" || m.kind === "cup") return false;
     const home = bots.some((t) => t.id === m.home_team_id);
     const away = bots.some((t) => t.id === m.away_team_id);
     return home && away;
   });
-  if (!botVsBot) return undefined;
-  const idx = matches.indexOf(botVsBot);
-  if (idx >= 0) matches.splice(idx, 1);
-  return bots.find((t) => t.id === botVsBot.home_team_id);
+  if (botVsBot) {
+    const idx = matches.indexOf(botVsBot);
+    if (idx >= 0) matches.splice(idx, 1);
+    return bots.find((t) => t.id === botVsBot.home_team_id);
+  }
+  return [...bots].sort((a, b) => a.played - b.played || a.points - b.points)[0];
 }
 
 function fillIdleBots(matches: Match[], bots: Team[], week: number): Match[] {

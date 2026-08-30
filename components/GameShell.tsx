@@ -109,6 +109,9 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             <Meta label="S" value={`${world.season || 1}`} />
             <Meta label="H" value={`${weekInSeason(world.week)}/${SEASON_WEEKS}`} />
             <Meta className="hidden xs:block sm:block" label="Puan" value={`${userTeam.points}`} />
+            <Link href="/inbox" className="hidden text-xs text-slate-400 hover:text-neon sm:inline">
+              Haber
+            </Link>
             <span className="rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold sm:px-3 sm:text-sm">
               {formatCoins(userTeam.coins)} ₡
             </span>

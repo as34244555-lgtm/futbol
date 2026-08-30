@@ -6,6 +6,7 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
+import { teamWageBill } from "@/lib/career";
 import { expectedGoals, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
@@ -109,6 +110,36 @@ export default function DashboardPage() {
         <Stat title="Kupa" value={`${userTeam?.titles ?? 0}`} />
         <Stat title="Takım gücü" value={grade ? `${grade.attack}/${grade.defense}` : "—"} />
       </div>
+      {userTeam && (
+        <p className="mt-3 text-sm text-slate-400">
+          Haftalık maaş {teamWageBill(world, userTeam.id)} ₡ · antrenman{" "}
+          {userTeam.training === "ATTACK"
+            ? "hücum"
+            : userTeam.training === "DEFENSE"
+              ? "savunma"
+              : userTeam.training === "TACTIC"
+                ? "taktik"
+                : "toparlanma"}
+        </p>
+      )}
+      {(world.news ?? []).length > 0 && (
+        <div className="mt-6 rounded-3xl border border-white/10 bg-ink-800/60 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-display text-2xl">Haberler</h2>
+            <Link href="/inbox" prefetch={false} className="text-sm text-neon">
+              Tümü
+            </Link>
+          </div>
+          <ul className="space-y-2 text-sm text-slate-300">
+            {(world.news ?? []).slice(0, 4).map((n) => (
+              <li key={n.id} className="rounded-xl bg-white/5 px-3 py-2">
+                <span className="mr-2 text-[10px] uppercase text-slate-500">H{n.week}</span>
+                {n.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-white/10 bg-ink-800/60 p-4">
           <div className="mb-3 flex items-center justify-between">

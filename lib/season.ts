@@ -1,3 +1,12 @@
+import {
+  ageSquads,
+  applyTrainingRecovery,
+  crownCup,
+  ensureCup,
+  hydrateWorld,
+  payWeeklyWages,
+  stampShare,
+} from "./career";
 import { buildSimSide, simulateMatch, simulateScoreOnly } from "./match-engine";
 import { crownSeason } from "./titles";
 import type { GameWorld, Match, MatchSimulationResult, Team } from "./types";
@@ -7,7 +16,6 @@ import {
   ensureBotWorld,
   ensureHumanMatchmaking,
   generateWeekFixtures,
-  recoverEnergy,
   rosterOf,
 } from "./world";
 
@@ -94,7 +102,8 @@ function simulateOne(world: GameWorld, fx: { id: string; home_team_id: string | 
   sim.match.away_team_id = away.id;
   sim.logs = sim.logs.map((l) => ({ ...l, match_id: fx.id }));
   const keepLogs = Boolean(home.user_id || away.user_id);
-  acc = applyMatchResult(acc, home.id, away.id, sim.match.home_score, sim.match.away_score);
+  const cup = acc.matches.find((m) => m.id === fx.id)?.kind === "cup";
+  acc = applyMatchResult(acc, home.id, away.id, sim.match.home_score, sim.match.away_score, { cup });
   acc = {
     ...acc,
     matchLogs: keepLogs ? [...acc.matchLogs, ...sim.logs] : acc.matchLogs,
@@ -137,12 +146,20 @@ function closeWeekIfReady(world: GameWorld): GameWorld {
     const out = simulateOne(acc, fx);
     if (out) acc = out.world;
   }
-  return crownSeason(recoverEnergy({ ...acc, week: acc.week + 1 }));
+  const beforeTitles = (acc.titles ?? []).length;
+  let closed = applyTrainingRecovery(payWeeklyWages({ ...acc, week: acc.week + 1 }));
+  closed = crownSeason(closed);
+  if ((closed.titles ?? []).length > beforeTitles) {
+    closed = stampShare(ageSquads(closed));
+  }
+  return crownCup(closed);
 }
 
 export function prepareWeek(world: GameWorld): GameWorld {
-  let next = crownSeason(ensureBotWorld(world));
-  if (!next.matches.some((m) => m.week === next.week)) {
+  let next = hydrateWorld(crownSeason(ensureBotWorld(world)));
+  next = ensureCup(next);
+  const leaguePending = next.matches.filter((m) => m.week === next.week && m.kind !== "cup");
+  if (leaguePending.length === 0) {
     next = { ...next, matches: [...next.matches, ...generateWeekFixtures(next)] };
   } else {
     next = ensureHumanMatchmaking(next);
@@ -213,10 +230,22 @@ export function playUserMatch(
     };
   }
 
-  const pending = next.matches.find(
-    (m) => m.week === next.week && m.status === "pending" && involvesTeam(m, userTeamId),
-  );
+  const pending = next.matches
+    .filter((m) => m.week === next.week && m.status === "pending" && involvesTeam(m, userTeamId))
+    .sort((a, b) => Number(a.kind === "cup") - Number(b.kind === "cup"))[0];
   if (pending) {
+    const awayT = teamById(next, pending.away_team_id);
+    const homeT = teamById(next, pending.home_team_id);
+    const opp = pending.home_team_id === userTeamId ? awayT : homeT;
+    if (opp?.user_id && opp.readyWeek !== next.week) {
+      return {
+        world: {
+          ...next,
+          teams: next.teams.map((t) => (t.id === userTeamId ? { ...t, readyWeek: next.week } : t)),
+        },
+        result: "Hazır oldunuz. Rakip de Hazırım deyince düdük çalar; aynı skor bir kez oynanır.",
+      };
+    }
     const played = simulateOne(next, pending);
     if (!played) return { world: next, result: "Maç oynatılamadı." };
     const claimed = claimMatch(played.world, pending.id, userTeamId);

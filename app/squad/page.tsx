@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { FORMATION_SLOTS } from "@/lib/formations";
 import { useGame } from "@/lib/game-context";
 import { POSITION_LABEL } from "@/lib/types";
+import { isInjured, teamWageBill } from "@/lib/career";
 import { rosterOf } from "@/lib/world";
 import { useMemo, useState } from "react";
 
@@ -30,6 +31,9 @@ export default function SquadPage() {
         <div>
           <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kadro</p>
           <h1 className="font-display text-4xl sm:text-5xl">İlk 11 ve yedekler</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            Haftalık maaş {teamWageBill(world, userTeam.id)} ₡ · sakat {roster.filter((r) => isInjured(r)).length}
+          </p>
         </div>
         <Button onClick={() => void autoPick()} variant="outline">
           Otomatik diziliş
@@ -66,7 +70,7 @@ export default function SquadPage() {
                   }}
                   footer={
                     <p className="mt-2 text-[11px] text-slate-500">
-                      {r.is_starter ? `İlk 11 · ${r.squad_position}` : "Yedek"}
+                      {isInjured(r) ? `Sakat · ${r.injury ?? "Tedavi"}` : r.is_starter ? `İlk 11 · ${r.squad_position}` : "Yedek"}
                       {listed.has(r.id) ? " · Listede" : ""}
                     </p>
                   }

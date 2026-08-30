@@ -1,7 +1,8 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
+import { ageSquads, deriveAttrs, ensureCup, hydrateWorld, teamWageBill, weeklyWage } from "../lib/career";
 import { expectedGoals, marketValue, positionFit, teamProfile } from "../lib/ratings";
 import { playUserMatch, prepareWeek } from "../lib/season";
-import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
+import { applyMatchResult, autoSelectStarters, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
 import { listingId } from "../lib/utils";
 import { SYSTEM_TEAM_ID } from "../lib/types";
@@ -212,6 +213,39 @@ assert(champTeam.coins === 15_000 + CHAMPION_PRIZE, `champion prize ${CHAMPION_P
 const againCrown = crownSeason(crowned);
 assert((againCrown.titles ?? []).length === 1, "crowning is idempotent");
 assert(againCrown.teams.find((t) => t.id === joined.team.id)?.titles === 1, "titles not doubled");
+
+const wet = hydrateWorld(joined.world);
+assert(teamWageBill(wet, joined.team.id) > 0, "human squad should have a weekly wage bill");
+assert(weeklyWage(star) > 0, "normal player has a wage");
+assert(deriveAttrs(star).finishing >= 80, "striker finishing should be high");
+const aged = ageSquads(wet);
+const agedStar = aged.players.find((p) => p.name === "Erlung Haland")!;
+assert(agedStar.age === star.age + 1, "players age one year at season end");
+
+const cupWorld = ensureCup({ ...wet, week: 5 });
+assert(
+  cupWorld.matches.filter((m) => m.kind === "cup" && m.week === 5).length >= 2,
+  "week 5 should draw cup quarterfinals",
+);
+
+const three = createUserTeam(createUserTeam(createUserTeam(createFreshWorld(), "h1", "Alpha SK").world, "h2", "Beta SK").world, "h3", "Gama SK");
+const threeWeek = prepareWeek(three.world);
+for (const id of ["team_h1", "team_h2", "team_h3"]) {
+  const has = threeWeek.matches.some(
+    (m) => m.week === threeWeek.week && m.kind !== "cup" && (m.home_team_id === id || m.away_team_id === id),
+  );
+  assert(has, `${id} should not get a bye`);
+}
+
+const baseRoster = wet.teamPlayers.filter((tp) => tp.team_id === joined.team.id);
+const injuredId = baseRoster.find((r) => !r.player_id.includes("aaa999"))?.id;
+assert(injuredId, "need a non-legend row");
+const hurtRoster = baseRoster.map((r) => (r.id === injuredId ? { ...r, injuryWeeks: 2, is_starter: true } : r));
+const filledHurt = autoSelectStarters(hurtRoster, wet.players, joined.team.formation);
+assert(
+  !filledHurt.find((r) => r.id === injuredId)?.is_starter,
+  "injured player should not start",
+);
 
 console.log(
   JSON.stringify({

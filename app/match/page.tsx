@@ -15,7 +15,7 @@ import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
 export default function MatchPage() {
-  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching } = useGame();
+  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching, markReady } = useGame();
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -119,7 +119,9 @@ export default function MatchPage() {
           </p>
           {opp && (
             <p className="mt-1 text-sm text-slate-400">
-              {opp.user_id ? "İnsan menajer · tek maç, tek skor" : `Bot menajer · ${botManagerName(opp.name)}`}
+              {opp.user_id
+                ? `İnsan menajer · ${opp.readyWeek === world.week ? "rakip hazır" : "rakip bekleniyor"}`
+                : `Bot menajer · ${botManagerName(opp.name)}`}
             </p>
           )}
           {preview && (
@@ -150,6 +152,11 @@ export default function MatchPage() {
             <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
               Fikstürü oluştur
             </Button>
+            {opp?.user_id && (
+              <Button variant="outline" onClick={() => void markReady()}>
+                {userTeam?.readyWeek === world.week ? "Hazırsınız" : "Hazırım"}
+              </Button>
+            )}
             <Button
               disabled={busy || alreadyPlayed}
               onClick={async () => {

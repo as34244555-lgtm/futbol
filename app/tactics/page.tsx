@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/Button";
 import { TACTIC_MOD } from "@/lib/formations";
 import { useGame } from "@/lib/game-context";
 import { chemistryOf, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
-import { FORMATIONS as FORMATION_LIST, TACTIC_LABEL, TACTICS } from "@/lib/types";
+import { trainingHint } from "@/lib/career";
+import { FORMATIONS as FORMATION_LIST, TACTIC_LABEL, TACTICS, TRAINING_LABEL, TRAININGS } from "@/lib/types";
 import { rosterOf } from "@/lib/world";
 import { useMemo } from "react";
 
 export default function TacticsPage() {
-  const { world, userTeam, setFormation, setTactics } = useGame();
+  const { world, userTeam, setFormation, setTactics, setTraining } = useGame();
   const roster = useMemo(() => (userTeam ? rosterOf(world, userTeam.id) : []), [world, userTeam]);
   if (!userTeam) return null;
   const mod = TACTIC_MOD[userTeam.tactics];
@@ -65,10 +66,25 @@ export default function TacticsPage() {
             <Mod label="Tempo" value={mod.tempo.toFixed(2) + "x"} />
             <Mod label="Posesyon" value={mod.possession.toFixed(2) + "x"} />
           </div>
+          <div>
+            <p className="mb-2 text-sm text-slate-400">Antrenman</p>
+            <div className="flex flex-wrap gap-2">
+              {TRAININGS.map((t) => (
+                <Button
+                  key={t}
+                  size="sm"
+                  variant={(userTeam.training ?? "FITNESS") === t ? "outline" : "ghost"}
+                  onClick={() => void setTraining(t)}
+                >
+                  {TRAINING_LABEL[t]}
+                </Button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">{trainingHint(userTeam.training ?? "FITNESS")}</p>
+          </div>
           <p className="text-sm text-slate-400">
-            Skor önceden yazılmaz. Her şut, hücum − savunma − kaleci farkından xG üretir; gol o
-            ihtimalle gelir. Yanlış mevki, düşük enerji ve form gücü düşürür. Kontra, hücum takımına
-            karşı ekstra tehlikeli.
+            Skor önceden yazılmaz. Her şut, bitiricilik − markaj − kalecilik farkından xG üretir.
+            Yanlış mevki, sakatlık, düşük enerji ve form gücü düşürür.
           </p>
         </div>
       </div>

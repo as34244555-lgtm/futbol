@@ -12,10 +12,11 @@ import Image from "next/image";
 import { useMemo, useState } from "react";
 
 export default function TransferPage() {
-  const { world, userTeam, buyListing, cancelListing } = useGame();
+  const { world, userTeam, buyListing, cancelListing, makeOffer, respondOffer } = useGame();
   const [q, setQ] = useState("");
   const [pos, setPos] = useState("ALL");
   const [msg, setMsg] = useState<string | null>(null);
+  const [bid, setBid] = useState<Record<string, number>>({});
 
   const rows = useMemo(() => {
     const players = new Map(world.players.map((p) => [p.id, p]));
@@ -60,6 +61,32 @@ export default function TransferPage() {
         ))}
       </div>
       {msg && <p className="mb-4 text-sm text-gold">{msg}</p>}
+      {userTeam && (world.offers ?? []).some((o) => o.status === "pending" && o.sellerTeamId === userTeam.id) && (
+        <div className="mb-6 space-y-2 rounded-2xl border border-gold/20 bg-gold/5 p-4">
+          <p className="text-xs uppercase tracking-wider text-gold">Gelen teklifler</p>
+          {(world.offers ?? [])
+            .filter((o) => o.status === "pending" && o.sellerTeamId === userTeam.id)
+            .map((o) => {
+              const p = world.players.find((x) => x.id === o.playerId);
+              const buyer = world.teams.find((t) => t.id === o.buyerTeamId);
+              return (
+                <div key={o.id} className="flex flex-wrap items-center justify-between gap-2 text-sm">
+                  <span>
+                    {buyer?.name} → {p?.name} · {formatCoins(o.price)} ₡
+                  </span>
+                  <span className="flex gap-2">
+                    <Button size="sm" onClick={() => void respondOffer(o.id, true)}>
+                      Kabul
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => void respondOffer(o.id, false)}>
+                      Red
+                    </Button>
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      )}
       {mine.length > 0 && (
         <>
           <h2 className="font-display mb-3 text-2xl">Sizin ilanlarınız</h2>
@@ -125,21 +152,40 @@ export default function TransferPage() {
                 </td>
                 <td className="text-gold">{formatCoins(r.listing.price)} ₡</td>
                 <td className="pr-4 text-right">
-                  <Button
-                    size="sm"
-                    onClick={async () => {
-                      const err = await buyListing({
-                        listingId: r.listing.id,
-                        teamPlayerId: r.tp?.id,
-                        playerId: r.player?.id,
-                        sellerTeamId: r.listing.seller_team_id,
-                        price: r.listing.price,
-                      });
-                      setMsg(err ?? `${r.player!.name} kadroya katıldı.`);
-                    }}
-                  >
-                    Satın al
-                  </Button>
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      value={bid[r.listing.id] ?? Math.round(r.listing.price * 0.9)}
+                      onChange={(e) => setBid((b) => ({ ...b, [r.listing.id]: Number(e.target.value) }))}
+                      className="w-24 rounded-lg border border-white/10 bg-ink-900 px-2 py-1 text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={async () => {
+                        const err = await makeOffer(r.listing.id, bid[r.listing.id] ?? Math.round(r.listing.price * 0.9));
+                        setMsg(err ?? `${r.player!.name} için teklif gitti.`);
+                      }}
+                    >
+                      Teklif
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        const err = await buyListing({
+                          listingId: r.listing.id,
+                          teamPlayerId: r.tp?.id,
+                          playerId: r.player?.id,
+                          sellerTeamId: r.listing.seller_team_id,
+                          price: r.listing.price,
+                        });
+                        setMsg(err ?? `${r.player!.name} kadroya katıldı.`);
+                      }}
+                    >
+                      Satın al
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}

@@ -6,6 +6,7 @@ import { flagUrl } from "@/lib/nations";
 import { POSITION_LABEL } from "@/lib/types";
 import type { Player, TeamPlayer } from "@/lib/types";
 import { formatCoins } from "@/lib/utils";
+import { deriveAttrs } from "@/lib/career";
 import { marketValue } from "@/lib/ratings";
 import { cn } from "@/lib/utils";
 
@@ -25,6 +26,8 @@ export function PlayerCard({
   footer?: React.ReactNode;
 }) {
   const legend = Boolean(player.legend) || player.overall >= 100;
+  const attrs = deriveAttrs(player);
+  const hurt = (row?.injuryWeeks ?? 0) > 0;
   return (
     <button
       type="button"
@@ -58,6 +61,7 @@ export function PlayerCard({
           <p className="mt-0.5 text-xs text-slate-400">
             {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position]} · {player.age} yaş · {player.nationality}
             {legend ? " · Efsane" : ""}
+            {hurt ? ` · Sakat ${row?.injuryWeeks}h` : ""}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
@@ -66,8 +70,10 @@ export function PlayerCard({
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <StatBar value={player.attack} label="Hücum" color="bg-rose-400" />
-        <StatBar value={player.defense} label="Savunma" color="bg-sky-400" />
+        <StatBar value={attrs.finishing} label="Bitiricilik" color="bg-rose-400" />
+        <StatBar value={attrs.marking} label="Markaj" color="bg-sky-400" />
+        <StatBar value={attrs.pace} label="Tempo" color="bg-amber-300" />
+        <StatBar value={attrs.passing} label="Pas" color="bg-violet-400" />
         {row && (
           <>
             <StatBar value={row.energy} label="Enerji" color="bg-neon" />
@@ -77,6 +83,9 @@ export function PlayerCard({
       </div>
       <p className="mt-2 text-[11px] text-slate-500">
         Değer {formatCoins(marketValue(player, row?.form))} ₡
+        {row?.wage != null ? ` · Maaş ${formatCoins(row.wage)} ₡/h` : ""}
+        {row?.contractYears != null && row.contractYears < 90 ? ` · Sözleşme ${row.contractYears}s` : ""}
+        {player.position === "KL" ? ` · Kalecilik ${attrs.handling}` : ""}
       </p>
       {footer}
     </button>

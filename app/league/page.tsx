@@ -32,6 +32,39 @@ export default function LeaguePage() {
           <ChampionBanner title={lastTitle} />
         </div>
       )}
+      {world.cup && world.cup.season === (world.season || 1) && (
+        <div className="mb-6 rounded-3xl border border-gold/20 bg-gold/5 p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold">Liga Nova Kupası</p>
+          <p className="mt-1 text-sm text-slate-300">
+            {world.cup.championId
+              ? `Şampiyon: ${world.teams.find((t) => t.id === world.cup?.championId)?.name}`
+              : "Çeyrek 5. hafta · yarı 9 · final 13. Puan durumunda ilk 8."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            {world.cup.seeds.map((id, i) => (
+              <span key={id} className="rounded-full bg-white/5 px-3 py-1">
+                {i + 1}. {world.teams.find((t) => t.id === id)?.name}
+              </span>
+            ))}
+          </div>
+          <div className="mt-3 space-y-1 text-sm">
+            {world.matches
+              .filter((m) => m.kind === "cup")
+              .slice(-6)
+              .map((m) => (
+                <div key={m.id} className="flex justify-between rounded-xl bg-ink-800 px-3 py-2">
+                  <span>
+                    {world.teams.find((t) => t.id === m.home_team_id)?.name} —{" "}
+                    {world.teams.find((t) => t.id === m.away_team_id)?.name}
+                  </span>
+                  <span className="text-gold">
+                    {m.status === "completed" ? `${m.home_score}-${m.away_score}` : "kura"}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto rounded-2xl border border-white/10">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-white/5 text-[11px] uppercase tracking-wider text-slate-400">
