@@ -1,5 +1,5 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
-import { marketValue, positionFit } from "../lib/ratings";
+import { expectedGoals, marketValue, positionFit, teamProfile } from "../lib/ratings";
 import { playUserMatch, prepareWeek } from "../lib/season";
 import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
@@ -99,6 +99,27 @@ assert(
   "ratings must stay in 4.5–10",
 );
 assert(withSheet.motm && withSheet.ratings!.some((r) => r.playerId === withSheet.motm!.playerId), "MOTM rated");
+const forecast = expectedGoals(
+  teamProfile(home, homeSide.starters, true, away.tactics),
+  teamProfile(away, awaySide.starters, false, home.tactics),
+);
+let sheetXgHome = 0;
+let sheetXgAway = 0;
+for (let i = 0; i < 10; i++) {
+  const s = simulateMatch(homeSide, awaySide, 1, 9000 + i * 13);
+  sheetXgHome += s.sheet!.xg[0];
+  sheetXgAway += s.sheet!.xg[1];
+}
+sheetXgHome /= 10;
+sheetXgAway /= 10;
+assert(
+  Math.abs(sheetXgHome - forecast.home) < 1.1,
+  `preview xG should track live shots (home ${forecast.home.toFixed(2)} vs ${sheetXgHome.toFixed(2)})`,
+);
+assert(
+  Math.abs(sheetXgAway - forecast.away) < 1.1,
+  `preview xG should track live shots (away ${forecast.away.toFixed(2)} vs ${sheetXgAway.toFixed(2)})`,
+);
 
 const boosted = {
   ...homeSide,

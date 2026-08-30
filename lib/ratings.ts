@@ -151,11 +151,11 @@ export function shotXg(
 
 export function expectedGoals(home: TeamProfile, away: TeamProfile): { home: number; away: number } {
   const poss = possessionShare(home, away);
-  const homeChances = (7.2 + (home.attack - away.defense) / 14) * home.tempo * poss * 1.15;
-  const awayChances = (6.4 + (away.attack - home.defense) / 14) * away.tempo * (1 - poss) * 1.05;
-  const hx = clamp(homeChances, 4, 14) * 0.13 * home.conversion;
-  const ax = clamp(awayChances, 3.2, 12) * 0.12 * away.conversion;
-  return { home: clamp(hx, 0.35, 3.6), away: clamp(ax, 0.25, 3.2) };
+  const homeShots = clamp(18 * home.tempo * poss * 1.12 + (home.attack - away.defense) / 16, 7, 22);
+  const awayShots = clamp(16.5 * away.tempo * (1 - poss) * 1.08 + (away.attack - home.defense) / 16, 6, 20);
+  const hx = homeShots * 0.1 * home.conversion;
+  const ax = awayShots * 0.095 * away.conversion;
+  return { home: clamp(hx, 0.45, 3.8), away: clamp(ax, 0.35, 3.4) };
 }
 
 export function chemistryOf(team: Team, starters: SimLike[]): number {
