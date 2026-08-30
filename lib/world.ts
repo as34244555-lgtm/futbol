@@ -7,7 +7,7 @@ import {
   makeAbdullah,
   playsPosition,
 } from "./catalog";
-import { applyTrainingRecovery, hydrateWorld, isInjured, rollInjuries } from "./career";
+import { applyTrainingRecovery, hydrateWorld, isInjured, pushNews, rollInjuries } from "./career";
 import { marketValue } from "./ratings";
 import { FORMATION_SLOTS } from "./formations";
 import { SYSTEM_TEAM_ID } from "./types";
@@ -422,7 +422,9 @@ export function applyMatchResult(
     };
   };
 
-  const drained = {
+  const home = world.teams.find((t) => t.id === homeId);
+  const away = world.teams.find((t) => t.id === awayId);
+  let drained: GameWorld = {
     ...world,
     teams: world.teams.map((t) => {
       if (t.id === homeId) return update(t, homeScore, awayScore, true);
@@ -431,6 +433,11 @@ export function applyMatchResult(
     }),
     teamPlayers: world.teamPlayers.map((tp) => drain(tp)),
   };
+  drained = pushNews(drained, {
+    kind: "form",
+    teamId: homeId,
+    text: `${opts?.cup ? "Kupa · " : ""}${home?.name ?? "Ev"} ${homeScore}-${awayScore} ${away?.name ?? "Dep"}`,
+  });
   return rollInjuries(drained, homeId, awayId);
 }
 

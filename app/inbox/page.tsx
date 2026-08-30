@@ -4,8 +4,8 @@ import { GameShell } from "@/components/GameShell";
 import { useGame } from "@/lib/game-context";
 
 export default function InboxPage() {
-  const { world, userTeam } = useGame();
-  const items = (world.news ?? []).filter((n) => !n.teamId || n.teamId === userTeam?.id || n.kind === "cup" || n.kind === "title");
+  const { world } = useGame();
+  const items = world.news ?? [];
 
   return (
     <GameShell>
