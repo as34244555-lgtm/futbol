@@ -19,7 +19,17 @@ export function ChampionBanner({ title }: { title: SeasonTitle }) {
           <p className="mt-1 text-sm text-slate-400">
             {title.points} puan · {title.won} galibiyet · {title.played} maç · av {title.goalDiff > 0 ? "+" : ""}
             {title.goalDiff}
+            {title.cupWinner ? ` · kupa ${title.cupWinner}` : ""}
           </p>
+          {title.shareText && (
+            <button
+              type="button"
+              className="mt-2 text-xs text-gold underline-offset-2 hover:underline"
+              onClick={() => void navigator.clipboard.writeText(title.shareText ?? "")}
+            >
+              Sezon özetini kopyala
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -55,6 +65,15 @@ export function ChampionOverlay({
           </p>
         )}
         {!mine && <p className="mt-4 text-sm text-slate-400">Yeni sezonun puanları sıfırlandı. Kupa avı yeniden başlar.</p>}
+        {title.shareText && (
+          <Button
+            className="mt-4"
+            variant="outline"
+            onClick={() => void navigator.clipboard.writeText(title.shareText ?? "")}
+          >
+            Özeti kopyala
+          </Button>
+        )}
         <Button className="mt-6" variant="gold" onClick={onClose}>
           Devam
         </Button>

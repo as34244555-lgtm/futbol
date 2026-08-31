@@ -282,9 +282,35 @@ export function MatchSimulation({
             </div>
           ))}
         </div>
-        {result.motm && (
+        {(result.motm || result.sheet || (result.ratings && result.ratings.length > 0)) && (
           <div className="border-t border-white/10 px-4 py-3 text-sm text-slate-300">
-            Maçın adamı: <span className="text-neon">{result.motm.name}</span>
+            {result.motm && (
+              <p>
+                Maçın adamı: <span className="text-neon">{result.motm.name}</span>
+                {result.ratings && (
+                  <span className="ml-2 text-xs text-slate-400">
+                    {result.ratings.find((r) => r.playerId === result.motm?.playerId)?.rating.toFixed(1)}
+                  </span>
+                )}
+              </p>
+            )}
+            {result.sheet && (
+              <p className="mt-1 text-xs text-slate-400">
+                xG {result.sheet.xg[0].toFixed(1)}–{result.sheet.xg[1].toFixed(1)} · şut {result.sheet.shots[0]}–
+                {result.sheet.shots[1]} · isabet {result.sheet.shotsOn[0]}–{result.sheet.shotsOn[1]} · top %
+                {result.sheet.possession[0]}–{result.sheet.possession[1]}
+              </p>
+            )}
+            {result.ratings && result.ratings.length > 0 && (
+              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-400">
+                {result.ratings.slice(0, 6).map((r) => (
+                  <p key={r.playerId} className="truncate">
+                    <span className={r.team === "home" ? "text-neon" : "text-gold"}>{r.rating.toFixed(1)}</span>{" "}
+                    {r.name}
+                  </p>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -5,15 +5,21 @@ import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { TACTIC_MOD } from "@/lib/formations";
 import { useGame } from "@/lib/game-context";
-import { FORMATIONS as FORMATION_LIST, TACTIC_LABEL, TACTICS } from "@/lib/types";
+import { chemistryOf, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
+import { trainingHint } from "@/lib/career";
+import { FORMATIONS as FORMATION_LIST, TACTIC_LABEL, TACTICS, TRAINING_LABEL, TRAININGS } from "@/lib/types";
 import { rosterOf } from "@/lib/world";
 import { useMemo } from "react";
 
 export default function TacticsPage() {
-  const { world, userTeam, setFormation, setTactics } = useGame();
+  const { world, userTeam, setFormation, setTactics, setTraining } = useGame();
   const roster = useMemo(() => (userTeam ? rosterOf(world, userTeam.id) : []), [world, userTeam]);
   if (!userTeam) return null;
   const mod = TACTIC_MOD[userTeam.tactics];
+  const starters = startersOf(userTeam, roster);
+  const profile = teamProfile(userTeam, starters, true);
+  const grade = teamGrade(profile);
+  const chem = Math.round(chemistryOf(userTeam, starters) * 100);
 
   return (
     <GameShell>
@@ -53,14 +59,32 @@ export default function TacticsPage() {
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Mod label="Hücum" value={mod.attack} />
-            <Mod label="Savunma" value={mod.defense} />
-            <Mod label="Tempo" value={mod.tempo} />
-            <Mod label="Posesyon" value={mod.possession} />
+            <Mod label="Hücum gücü" value={`${grade.attack}`} />
+            <Mod label="Savunma gücü" value={`${grade.defense}`} />
+            <Mod label="Orta saha" value={`${grade.mid}`} />
+            <Mod label="Mevki uyumu" value={`${chem}%`} />
+            <Mod label="Tempo" value={mod.tempo.toFixed(2) + "x"} />
+            <Mod label="Posesyon" value={mod.possession.toFixed(2) + "x"} />
+          </div>
+          <div>
+            <p className="mb-2 text-sm text-slate-400">Antrenman</p>
+            <div className="flex flex-wrap gap-2">
+              {TRAININGS.map((t) => (
+                <Button
+                  key={t}
+                  size="sm"
+                  variant={(userTeam.training ?? "FITNESS") === t ? "outline" : "ghost"}
+                  onClick={() => void setTraining(t)}
+                >
+                  {TRAINING_LABEL[t]}
+                </Button>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-slate-500">{trainingHint(userTeam.training ?? "FITNESS")}</p>
           </div>
           <p className="text-sm text-slate-400">
-            Formasyon değişince ilk 11 mevkilere göre yeniden dizilir. Maç motoru bu çarpanları
-            milisaniyede uygular.
+            Skor önceden yazılmaz. Her şut, bitiricilik − markaj − kalecilik farkından xG üretir.
+            Yanlış mevki, sakatlık, düşük enerji ve form gücü düşürür.
           </p>
         </div>
       </div>
@@ -68,11 +92,11 @@ export default function TacticsPage() {
   );
 }
 
-function Mod({ label, value }: { label: string; value: number }) {
+function Mod({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/10 bg-ink-800 p-3">
       <p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="font-display text-2xl">{value.toFixed(2)}x</p>
+      <p className="font-display text-2xl">{value}</p>
     </div>
   );
 }

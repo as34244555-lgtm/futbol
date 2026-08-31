@@ -3,7 +3,7 @@ import { ActionError } from "@/lib/server/actions";
 import * as actions from "@/lib/server/actions";
 import { getSession } from "@/lib/server/session";
 import { runWithRoom } from "@/lib/server/store";
-import type { Formation, Player, Tactic } from "@/lib/types";
+import type { Formation, Player, Tactic, Training } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -18,6 +18,10 @@ type Body =
   | { type: "buyListing"; listingId: string; teamPlayerId?: string; playerId?: string; sellerTeamId?: string; price?: number }
   | { type: "ensureFixtures" }
   | { type: "playMatch" }
+  | { type: "setTraining"; training: Training }
+  | { type: "setReady" }
+  | { type: "makeOffer"; listingId: string; price: number }
+  | { type: "respondOffer"; offerId: string; accept: boolean }
   | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" };
 
 export async function POST(req: Request) {
@@ -53,6 +57,14 @@ export async function POST(req: Request) {
           return NextResponse.json(await actions.ensureFixtures(session));
         case "playMatch":
           return NextResponse.json(await actions.playMatch(session));
+        case "setTraining":
+          return NextResponse.json(await actions.setTraining(session, body.training));
+        case "setReady":
+          return NextResponse.json(await actions.setReady(session));
+        case "makeOffer":
+          return NextResponse.json(await actions.makeOffer(session, body.listingId, body.price));
+        case "respondOffer":
+          return NextResponse.json(await actions.respondOffer(session, body.offerId, body.accept));
         case "importPlayers":
           return NextResponse.json({ error: "Kapalı" }, { status: 404 });
         default:

@@ -6,6 +6,8 @@ import { PlayerCard } from "@/components/PlayerCard";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
+import { teamWageBill } from "@/lib/career";
+import { expectedGoals, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { formatCoins } from "@/lib/utils";
@@ -20,6 +22,9 @@ export default function DashboardPage() {
     [world, userTeam],
   );
   const starters = roster.filter((r) => r.is_starter);
+  const grade = userTeam
+    ? teamGrade(teamProfile(userTeam, startersOf(userTeam, roster), true))
+    : null;
   const legend = roster.find((r) => r.player.legend || r.player.overall >= 100);
   const stars = [...roster]
     .sort(
@@ -39,6 +44,29 @@ export default function DashboardPage() {
       : next.home_team_id
     : null;
   const opponent = world.teams.find((t) => t.id === oppId);
+  const nextXg =
+    userTeam && opponent && next
+      ? expectedGoals(
+          teamProfile(
+            next.home_team_id === userTeam.id ? userTeam : opponent,
+            startersOf(
+              next.home_team_id === userTeam.id ? userTeam : opponent,
+              rosterOf(world, next.home_team_id === userTeam.id ? userTeam.id : opponent.id),
+            ),
+            true,
+            (next.home_team_id === userTeam.id ? opponent : userTeam).tactics,
+          ),
+          teamProfile(
+            next.home_team_id === userTeam.id ? opponent : userTeam,
+            startersOf(
+              next.home_team_id === userTeam.id ? opponent : userTeam,
+              rosterOf(world, next.home_team_id === userTeam.id ? opponent.id : userTeam.id),
+            ),
+            false,
+            (next.home_team_id === userTeam.id ? userTeam : opponent).tactics,
+          ),
+        )
+      : null;
 
   return (
     <GameShell>
@@ -80,8 +108,38 @@ export default function DashboardPage() {
         <Stat title="Bütçe" value={`${formatCoins(userTeam?.coins ?? 0)} ₡`} />
         <Stat title="Puan" value={`${userTeam?.points ?? 0}`} />
         <Stat title="Kupa" value={`${userTeam?.titles ?? 0}`} />
-        <Stat title="Sezon" value={`${weekInSeason(world.week)}/${SEASON_WEEKS}`} />
+        <Stat title="Takım gücü" value={grade ? `${grade.attack}/${grade.defense}` : "—"} />
       </div>
+      {userTeam && (
+        <p className="mt-3 text-sm text-slate-400">
+          Haftalık maaş {teamWageBill(world, userTeam.id)} ₡ · antrenman{" "}
+          {userTeam.training === "ATTACK"
+            ? "hücum"
+            : userTeam.training === "DEFENSE"
+              ? "savunma"
+              : userTeam.training === "TACTIC"
+                ? "taktik"
+                : "toparlanma"}
+        </p>
+      )}
+      {(world.news ?? []).length > 0 && (
+        <div className="mt-6 rounded-3xl border border-white/10 bg-ink-800/60 p-4">
+          <div className="mb-2 flex items-center justify-between">
+            <h2 className="font-display text-2xl">Haberler</h2>
+            <Link href="/inbox" prefetch={false} className="text-sm text-neon">
+              Tümü
+            </Link>
+          </div>
+          <ul className="space-y-2 text-sm text-slate-300">
+            {(world.news ?? []).slice(0, 4).map((n) => (
+              <li key={n.id} className="rounded-xl bg-white/5 px-3 py-2">
+                <span className="mr-2 text-[10px] uppercase text-slate-500">H{n.week}</span>
+                {n.text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="rounded-3xl border border-white/10 bg-ink-800/60 p-4">
           <div className="mb-3 flex items-center justify-between">
@@ -95,6 +153,11 @@ export default function DashboardPage() {
               Hafta {weekInSeason(world.week)}/{SEASON_WEEKS}: {next?.home_team_id === userTeam?.id ? "Ev sahibi" : "Deplasman"} —{" "}
               <span className="text-neon">{opponent.name}</span>
               {opponent.user_id ? " · insan menajer" : " · bot menajer"}
+              {nextXg && (
+                <span className="mt-2 block text-sm text-gold">
+                  Beklenen gol {nextXg.home.toFixed(2)} — {nextXg.away.toFixed(2)}
+                </span>
+              )}
             </p>
           ) : (
             <p className="text-slate-400">Fikstür henüz yok. Maç ekranından haftayı başlatın.</p>

@@ -46,7 +46,13 @@ assert(
 );
 
 const live = prepareWeek(b.world);
-const first = playUserMatch(live, a.team.id);
+const liveReady = {
+  ...live,
+  teams: live.teams.map((t) =>
+    t.id === a.team.id || t.id === b.team.id ? { ...t, readyWeek: live.week } : t,
+  ),
+};
+const first = playUserMatch(liveReady, a.team.id);
 assert(typeof first.result !== "string", `A should play, got ${first.result}`);
 assert(first.world.week === live.week + 1, `week must move after the match is simulated once, got ${first.world.week}`);
 const fxAfterA = first.world.matches.find(
@@ -65,7 +71,13 @@ assert(again.result.match.home_score === first.result.match.home_score, "stored 
 assert(again.result.match.away_score === first.result.match.away_score, "stored away score must match without lastSim");
 assert((again.result.timeline?.length ?? 0) > 0, "replay timeline must be stored on the match");
 
-const aAgain = playUserMatch(first.world, a.team.id);
+const week2Ready = {
+  ...first.world,
+  teams: first.world.teams.map((t) =>
+    t.id === a.team.id || t.id === b.team.id ? { ...t, readyWeek: first.world.week } : t,
+  ),
+};
+const aAgain = playUserMatch(week2Ready, a.team.id);
 assert(typeof aAgain.result !== "string", `A week 2 should be a new match, got ${aAgain.result}`);
 assert(aAgain.result.match.id !== first.result.match.id, "A must not replay the same H2H fixture");
 

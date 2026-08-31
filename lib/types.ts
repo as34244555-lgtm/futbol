@@ -28,6 +28,19 @@ export type TransferStatus = (typeof TRANSFER_STATUS)[number];
 export const MATCH_STATUS = ["pending", "completed"] as const;
 export type MatchStatus = (typeof MATCH_STATUS)[number];
 
+export const TRAININGS = ["FITNESS", "ATTACK", "DEFENSE", "TACTIC"] as const;
+export type Training = (typeof TRAININGS)[number];
+
+export const TRAINING_LABEL: Record<Training, string> = {
+  FITNESS: "Toparlanma",
+  ATTACK: "Hücum",
+  DEFENSE: "Savunma",
+  TACTIC: "Taktik",
+};
+
+export const OFFER_STATUS = ["pending", "accepted", "rejected"] as const;
+export type OfferStatus = (typeof OFFER_STATUS)[number];
+
 export type Profile = {
   id: string;
   username: string;
@@ -54,6 +67,10 @@ export type Team = {
   goals_against: number;
   /** Kazanılan Liga Nova şampiyonlukları */
   titles?: number;
+  /** Haftalık antrenman odağı */
+  training?: Training;
+  /** Bu hafta düdük için hazır (insan-insan). */
+  readyWeek?: number;
 };
 
 export type Player = {
@@ -72,6 +89,11 @@ export type Player = {
   /** Efsane kart — 999 gibi özel genel puan. */
   legend?: boolean;
   portrait?: string;
+  pace?: number;
+  finishing?: number;
+  passing?: number;
+  marking?: number;
+  handling?: number;
 };
 
 export type TeamPlayer = {
@@ -83,6 +105,10 @@ export type TeamPlayer = {
   is_starter: boolean;
   squad_position: string | null;
   acquired_at: string;
+  wage?: number;
+  contractYears?: number;
+  injuryWeeks?: number;
+  injury?: string;
 };
 
 export type TransferListing = {
@@ -110,6 +136,7 @@ export type Match = {
     timeline: TimelineEvent[];
     motm?: MatchSimulationResult["motm"];
   };
+  kind?: "league" | "cup";
 };
 
 export type MatchLog = {
@@ -131,6 +158,8 @@ export type SeasonTitle = {
   won: number;
   goalDiff: number;
   crownedAt: string;
+  shareText?: string;
+  cupWinner?: string;
 };
 
 export type TimelineEvent = {
@@ -145,6 +174,20 @@ export type TimelineEvent = {
   score: [number, number];
 };
 
+export type MatchSheet = {
+  xg: [number, number];
+  shots: [number, number];
+  shotsOn: [number, number];
+  possession: [number, number];
+};
+
+export type MatchRating = {
+  playerId: string;
+  name: string;
+  team: "home" | "away";
+  rating: number;
+};
+
 export type MatchSimulationResult = {
   match: Match;
   logs: MatchLog[];
@@ -154,6 +197,37 @@ export type MatchSimulationResult = {
   pointsDelta?: number;
   /** Bu maç sezonu kapattıysa kupa. */
   title?: SeasonTitle;
+  /** xG, şut ve topa sahip olma. */
+  sheet?: MatchSheet;
+  /** İlk 11 maç notları (4.5–10.0). */
+  ratings?: MatchRating[];
+};
+
+export type NewsItem = {
+  id: string;
+  week: number;
+  season: number;
+  at: string;
+  kind: "injury" | "wage" | "contract" | "transfer" | "cup" | "title" | "form" | "ready";
+  text: string;
+  teamId?: string;
+};
+
+export type TransferOffer = {
+  id: string;
+  listingId: string;
+  buyerTeamId: string;
+  sellerTeamId: string;
+  playerId: string;
+  price: number;
+  status: OfferStatus;
+  created_at: string;
+};
+
+export type CupState = {
+  season: number;
+  seeds: string[];
+  championId?: string;
 };
 
 export type GameWorld = {
@@ -167,6 +241,9 @@ export type GameWorld = {
   season: number;
   titles?: SeasonTitle[];
   lastTitle?: SeasonTitle;
+  news?: NewsItem[];
+  offers?: TransferOffer[];
+  cup?: CupState;
 };
 
 export type Account = {

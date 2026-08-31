@@ -21,7 +21,7 @@ const FEATURES = [
   {
     icon: Swords,
     title: "2D Canlı Saha",
-    text: "Milisaniyelik istatistik motoru 90 dakikayı anında üretir, sahada izlersiniz.",
+    text: "xG motoru: her şut hücum, savunma, kaleci, form ve yorgunluktan hesaplanır. Skor önceden yazılmaz.",
   },
   {
     icon: Radio,

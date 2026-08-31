@@ -3,7 +3,7 @@
 import { ChampionBanner } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
 import { useGame } from "@/lib/game-context";
-import { formatSeasonWeek, leagueTable, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
+import { formatSeasonWeek, leagueTable, recentForm, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { cn } from "@/lib/utils";
 import { Trophy } from "lucide-react";
 import { useMemo } from "react";
@@ -32,6 +32,39 @@ export default function LeaguePage() {
           <ChampionBanner title={lastTitle} />
         </div>
       )}
+      {world.cup && world.cup.season === (world.season || 1) && (
+        <div className="mb-6 rounded-3xl border border-gold/20 bg-gold/5 p-4">
+          <p className="text-xs uppercase tracking-[0.2em] text-gold">Liga Nova Kupası</p>
+          <p className="mt-1 text-sm text-slate-300">
+            {world.cup.championId
+              ? `Şampiyon: ${world.teams.find((t) => t.id === world.cup?.championId)?.name}`
+              : "Çeyrek 5. hafta · yarı 9 · final 13. Puan durumunda ilk 8."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs">
+            {world.cup.seeds.map((id, i) => (
+              <span key={id} className="rounded-full bg-white/5 px-3 py-1">
+                {i + 1}. {world.teams.find((t) => t.id === id)?.name}
+              </span>
+            ))}
+          </div>
+          <div className="mt-3 space-y-1 text-sm">
+            {world.matches
+              .filter((m) => m.kind === "cup")
+              .slice(-6)
+              .map((m) => (
+                <div key={m.id} className="flex justify-between rounded-xl bg-ink-800 px-3 py-2">
+                  <span>
+                    {world.teams.find((t) => t.id === m.home_team_id)?.name} —{" "}
+                    {world.teams.find((t) => t.id === m.away_team_id)?.name}
+                  </span>
+                  <span className="text-gold">
+                    {m.status === "completed" ? `${m.home_score}-${m.away_score}` : "kura"}
+                  </span>
+                </div>
+              ))}
+          </div>
+        </div>
+      )}
       <div className="overflow-x-auto rounded-2xl border border-white/10">
         <table className="w-full min-w-[560px] text-left text-sm">
           <thead className="bg-white/5 text-[11px] uppercase tracking-wider text-slate-400">
@@ -46,6 +79,7 @@ export default function LeaguePage() {
               <th>Y</th>
               <th>Av</th>
               <th>P</th>
+              <th>Form</th>
               <th>Kupa</th>
             </tr>
           </thead>
@@ -53,6 +87,7 @@ export default function LeaguePage() {
             {table.map((t, i) => {
               const mine = t.id === userTeam?.id;
               const gd = t.goals_for - t.goals_against;
+              const form = recentForm(world, t.id);
               return (
                 <tr
                   key={t.id}
@@ -81,6 +116,24 @@ export default function LeaguePage() {
                   <td>{t.goals_against}</td>
                   <td>{gd > 0 ? `+${gd}` : gd}</td>
                   <td className="font-bold">{t.points}</td>
+                  <td>
+                    <span className="inline-flex gap-0.5">
+                      {form.length === 0 && <span className="text-slate-600">—</span>}
+                      {form.map((r, fi) => (
+                        <span
+                          key={`${t.id}-${fi}`}
+                          className={cn(
+                            "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold",
+                            r === "G" && "bg-emerald-500/80 text-ink-950",
+                            r === "B" && "bg-slate-400/80 text-ink-950",
+                            r === "M" && "bg-rose-500/80 text-white",
+                          )}
+                        >
+                          {r}
+                        </span>
+                      ))}
+                    </span>
+                  </td>
                   <td className="text-gold">{t.titles ?? 0}</td>
                 </tr>
               );

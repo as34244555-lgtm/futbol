@@ -9,12 +9,13 @@ import { useGame } from "@/lib/game-context";
 import { botManagerName } from "@/lib/catalog";
 import type { MatchSimulationResult, SeasonTitle } from "@/lib/types";
 import { playCrowd, playFanfare, playWhistle, unlockAudio } from "@/lib/sfx";
+import { expectedGoals, possessionShare, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, seasonOf, weekInSeason } from "@/lib/titles";
 import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
 export default function MatchPage() {
-  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching } = useGame();
+  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching, markReady } = useGame();
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -56,6 +57,23 @@ export default function MatchPage() {
       ? world.teams.find((t) => t.id === (next.home_team_id === userTeam.id ? next.away_team_id : next.home_team_id))
       : null;
 
+  const preview = useMemo(() => {
+    if (!userTeam || !opp) return null;
+    const homeTeam = next?.home_team_id === userTeam.id ? userTeam : opp;
+    const awayTeam = next?.home_team_id === userTeam.id ? opp : userTeam;
+    const hp = teamProfile(homeTeam, startersOf(homeTeam, rosterOf(world, homeTeam.id)), true, awayTeam.tactics);
+    const ap = teamProfile(awayTeam, startersOf(awayTeam, rosterOf(world, awayTeam.id)), false, homeTeam.tactics);
+    const xg = expectedGoals(hp, ap);
+    const poss = possessionShare(hp, ap);
+    return {
+      homeName: homeTeam.name,
+      awayName: awayTeam.name,
+      xg,
+      poss: [Math.round(poss * 100), Math.round((1 - poss) * 100)] as const,
+      home: teamGrade(hp),
+      away: teamGrade(ap),
+    };
+  }, [userTeam, opp, next, world]);
   const homeRoster = useMemo(() => (home ? rosterOf(world, home.id) : []), [world, home]);
   const awayRoster = useMemo(() => (away ? rosterOf(world, away.id) : []), [world, away]);
 
@@ -101,8 +119,23 @@ export default function MatchPage() {
           </p>
           {opp && (
             <p className="mt-1 text-sm text-slate-400">
-              {opp.user_id ? "İnsan menajer · tek maç, tek skor" : `Bot menajer · ${botManagerName(opp.name)}`}
+              {opp.user_id
+                ? `İnsan menajer · ${opp.readyWeek === world.week ? "rakip hazır" : "rakip bekleniyor"}`
+                : `Bot menajer · ${botManagerName(opp.name)}`}
             </p>
+          )}
+          {preview && (
+            <div className="mt-4 grid gap-2 sm:grid-cols-3">
+              <PreviewStat
+                label="Beklenen gol (xG)"
+                value={`${preview.xg.home.toFixed(2)} — ${preview.xg.away.toFixed(2)}`}
+              />
+              <PreviewStat label="Topa sahip olma" value={`%${preview.poss[0]} — %${preview.poss[1]}`} />
+              <PreviewStat
+                label="Hücum / savunma"
+                value={`${preview.home.attack}/${preview.home.defense} · ${preview.away.attack}/${preview.away.defense}`}
+              />
+            </div>
           )}
           {waitingToWatch && next && (
             <p className="mt-3 text-sm text-neon">
@@ -119,6 +152,11 @@ export default function MatchPage() {
             <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
               Fikstürü oluştur
             </Button>
+            {opp?.user_id && (
+              <Button variant="outline" onClick={() => void markReady()}>
+                {userTeam?.readyWeek === world.week ? "Hazırsınız" : "Hazırım"}
+              </Button>
+            )}
             <Button
               disabled={busy || alreadyPlayed}
               onClick={async () => {
@@ -236,5 +274,14 @@ export default function MatchPage() {
         />
       )}
     </GameShell>
+  );
+}
+
+function PreviewStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-gold/20 bg-gold/5 px-3 py-2">
+      <p className="text-[10px] uppercase tracking-wider text-gold/80">{label}</p>
+      <p className="font-display text-lg text-gold sm:text-xl">{value}</p>
+    </div>
   );
 }

@@ -1,11 +1,13 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
+import { ageSquads, deriveAttrs, ensureCup, hydrateWorld, teamWageBill, weeklyWage } from "../lib/career";
+import { expectedGoals, marketValue, positionFit, teamProfile } from "../lib/ratings";
 import { playUserMatch, prepareWeek } from "../lib/season";
-import { applyMatchResult, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
+import { applyMatchResult, autoSelectStarters, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
 import { listingId } from "../lib/utils";
 import { SYSTEM_TEAM_ID } from "../lib/types";
 import { packLeague, unpackLeague } from "../lib/server/remote-kv";
-import { CHAMPION_PRIZE, crownSeason, seasonOf, weekInSeason } from "../lib/titles";
+import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from "../lib/titles";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -88,7 +90,58 @@ for (let i = 0; i < 16; i++) {
   assert(last.score[0] === sim.match.home_score && last.score[1] === sim.match.away_score, "final score mismatch");
 }
 const avgGoals = totalGoals / 16;
-assert(avgGoals >= 1.5, `expected ~2-4 goals, got avg ${avgGoals.toFixed(2)}`);
+assert(avgGoals >= 1.2, `expected live xG scores, got avg ${avgGoals.toFixed(2)}`);
+const withSheet = simulateMatch(homeSide, awaySide, 1, 4242);
+assert(withSheet.sheet, "match sheet (xG) required");
+assert(withSheet.sheet!.possession[0] + withSheet.sheet!.possession[1] === 100, "possession must sum 100");
+assert(withSheet.ratings && withSheet.ratings.length >= 20, "both XIs should have match ratings");
+assert(
+  withSheet.ratings!.every((r) => r.rating >= 4.5 && r.rating <= 10),
+  "ratings must stay in 4.5–10",
+);
+assert(withSheet.motm && withSheet.ratings!.some((r) => r.playerId === withSheet.motm!.playerId), "MOTM rated");
+const forecast = expectedGoals(
+  teamProfile(home, homeSide.starters, true, away.tactics),
+  teamProfile(away, awaySide.starters, false, home.tactics),
+);
+let sheetXgHome = 0;
+let sheetXgAway = 0;
+for (let i = 0; i < 10; i++) {
+  const s = simulateMatch(homeSide, awaySide, 1, 9000 + i * 13);
+  sheetXgHome += s.sheet!.xg[0];
+  sheetXgAway += s.sheet!.xg[1];
+}
+sheetXgHome /= 10;
+sheetXgAway /= 10;
+assert(
+  Math.abs(sheetXgHome - forecast.home) < 1.1,
+  `preview xG should track live shots (home ${forecast.home.toFixed(2)} vs ${sheetXgHome.toFixed(2)})`,
+);
+assert(
+  Math.abs(sheetXgAway - forecast.away) < 1.1,
+  `preview xG should track live shots (away ${forecast.away.toFixed(2)} vs ${sheetXgAway.toFixed(2)})`,
+);
+
+const boosted = {
+  ...homeSide,
+  starters: homeSide.starters.map((p) => ({ ...p, attack: 99, defense: 90, energy: 100, form: 95 })),
+};
+const weak = {
+  ...awaySide,
+  starters: awaySide.starters.map((p) => ({ ...p, attack: 40, defense: 40, energy: 55, form: 45 })),
+};
+let strongGoals = 0;
+let weakGoals = 0;
+for (let i = 0; i < 12; i++) {
+  const s = simulateMatch(boosted, weak, 1, 5000 + i * 11);
+  strongGoals += s.match.home_score;
+  weakGoals += s.match.away_score;
+}
+assert(strongGoals > weakGoals, `stronger XI should score more (${strongGoals} vs ${weakGoals})`);
+assert(positionFit("FV", "KL") < 0.6, "striker in goal is a bad fit");
+assert(positionFit("OS", "FV") > positionFit("KL", "FV"), "adjacent roles beat opposite roles");
+const star = joined.world.players.find((p) => p.name === "Erlung Haland")!;
+assert(marketValue(star, 95) > marketValue(star, 40), "hot form raises market value");
 
 const dense = densifyTimeline(
   {
@@ -129,6 +182,9 @@ assert(typeof played.result !== "string", `human match should simulate, got ${pl
 const afterPlay = played.world.teams.find((t) => t.id === fresh.team.id)!;
 assert(afterPlay.played === 1, "playing a match should increment played");
 assert(afterPlay.coins !== fresh.team.coins, "match reward should change coins");
+const formAfter = recentForm(played.world, fresh.team.id);
+assert(formAfter.length === 1, `form should have one result, got ${formAfter.join("")}`);
+assert(["G", "B", "M"].includes(formAfter[0]!), "form letter must be G/B/M");
 
 assert(seasonOf(1) === 1 && weekInSeason(1) === 1, "week 1 is season 1 week 1");
 assert(seasonOf(18) === 1 && weekInSeason(18) === 18, "week 18 is last of season 1");
@@ -157,6 +213,39 @@ assert(champTeam.coins === 15_000 + CHAMPION_PRIZE, `champion prize ${CHAMPION_P
 const againCrown = crownSeason(crowned);
 assert((againCrown.titles ?? []).length === 1, "crowning is idempotent");
 assert(againCrown.teams.find((t) => t.id === joined.team.id)?.titles === 1, "titles not doubled");
+
+const wet = hydrateWorld(joined.world);
+assert(teamWageBill(wet, joined.team.id) > 0, "human squad should have a weekly wage bill");
+assert(weeklyWage(star) > 0, "normal player has a wage");
+assert(deriveAttrs(star).finishing >= 80, "striker finishing should be high");
+const aged = ageSquads(wet);
+const agedStar = aged.players.find((p) => p.name === "Erlung Haland")!;
+assert(agedStar.age === star.age + 1, "players age one year at season end");
+
+const cupWorld = ensureCup({ ...wet, week: 5 });
+assert(
+  cupWorld.matches.filter((m) => m.kind === "cup" && m.week === 5).length >= 2,
+  "week 5 should draw cup quarterfinals",
+);
+
+const three = createUserTeam(createUserTeam(createUserTeam(createFreshWorld(), "h1", "Alpha SK").world, "h2", "Beta SK").world, "h3", "Gama SK");
+const threeWeek = prepareWeek(three.world);
+for (const id of ["team_h1", "team_h2", "team_h3"]) {
+  const has = threeWeek.matches.some(
+    (m) => m.week === threeWeek.week && m.kind !== "cup" && (m.home_team_id === id || m.away_team_id === id),
+  );
+  assert(has, `${id} should not get a bye`);
+}
+
+const baseRoster = wet.teamPlayers.filter((tp) => tp.team_id === joined.team.id);
+const injuredId = baseRoster.find((r) => !r.player_id.includes("aaa999"))?.id;
+assert(injuredId, "need a non-legend row");
+const hurtRoster = baseRoster.map((r) => (r.id === injuredId ? { ...r, injuryWeeks: 2, is_starter: true } : r));
+const filledHurt = autoSelectStarters(hurtRoster, wet.players, joined.team.formation);
+assert(
+  !filledHurt.find((r) => r.id === injuredId)?.is_starter,
+  "injured player should not start",
+);
 
 console.log(
   JSON.stringify({

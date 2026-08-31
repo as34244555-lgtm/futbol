@@ -1,9 +1,19 @@
-import { FORMATION_SLOTS, TACTIC_MOD } from "./formations";
-import { simOverall } from "./catalog";
+import { FORMATION_SLOTS } from "./formations";
+import {
+  expectedGoals,
+  lateFatigue,
+  playerLive,
+  playingRole,
+  possessionShare,
+  shotXg,
+  teamProfile,
+  type SimLike,
+} from "./ratings";
 import type {
   Formation,
   Match,
   MatchLog,
+  MatchSheet,
   MatchSimulationResult,
   PitchPoint,
   Player,
@@ -14,11 +24,7 @@ import type {
 } from "./types";
 import { clamp, seededRandom, uid } from "./utils";
 
-export type SimPlayer = Player & {
-  energy: number;
-  form: number;
-  slotKey: string;
-};
+export type SimPlayer = SimLike;
 
 export type SimSide = {
   team: Team;
@@ -26,40 +32,12 @@ export type SimSide = {
 };
 
 function role(p: SimPlayer, formation: Formation): Position {
-  if (!p.versatile) return p.position;
-  return FORMATION_SLOTS[formation].find((s) => s.key === p.slotKey)?.position ?? p.position;
+  return playingRole(p, formation);
 }
 
-function rating(p: SimPlayer, key: "attack" | "defense"): number {
-  const cond = (p.energy / 100) * (0.55 + p.form / 220);
-  return p[key] * cond;
-}
-
-function sideStrength(side: SimSide) {
-  const tac = TACTIC_MOD[side.team.tactics];
-  const formation = side.team.formation;
-  const atk =
-    side.starters.reduce((s, p) => {
-      const pos = role(p, formation);
-      const w = pos === "FV" ? 1.25 : pos === "OS" ? 1.05 : pos === "KL" ? 0.15 : 0.55;
-      return s + rating(p, "attack") * w;
-    }, 0) / 11;
-  const def =
-    side.starters.reduce((s, p) => {
-      const pos = role(p, formation);
-      const w = pos === "KL" ? 1.4 : pos === "DEF" ? 1.2 : pos === "OS" ? 0.85 : 0.4;
-      return s + rating(p, "defense") * w;
-    }, 0) / 11;
-  const mids = side.starters.filter((p) => role(p, formation) === "OS");
-  const mid =
-    mids.reduce((s, p) => s + (simOverall(p) * p.form) / 100, 0) / Math.max(1, mids.length);
-  return {
-    attack: atk * tac.attack,
-    defense: def * tac.defense,
-    tempo: tac.tempo,
-    possession: tac.possession * (mid / 75),
-    conversion: tac.conversion,
-  };
+function ratingOn(p: SimPlayer, formation: Formation, key: "attack" | "defense"): number {
+  const live = playerLive(p, formation);
+  return key === "attack" ? live.rawAttack : live.rawDefense;
 }
 
 function slotPos(formation: Formation, slotKey: string, home: boolean): PitchPoint {
@@ -138,9 +116,19 @@ export function simulateMatch(
   const timeline: TimelineEvent[] = [];
   let homeScore = 0;
   let awayScore = 0;
-  const hs = sideStrength(home);
-  const as = sideStrength(away);
-  const homePoss = hs.possession / (hs.possession + as.possession || 1);
+  const hp = teamProfile(home.team, home.starters, true, away.team.tactics);
+  const ap = teamProfile(away.team, away.starters, false, home.team.tactics);
+  const homePoss = possessionShare(hp, ap);
+  const homeEnergy = home.starters.reduce((s, p) => s + p.energy, 0) / Math.max(1, home.starters.length);
+  const awayEnergy = away.starters.reduce((s, p) => s + p.energy, 0) / Math.max(1, away.starters.length);
+  const sheet: MatchSheet = {
+    xg: [0, 0],
+    shots: [0, 0],
+    shotsOn: [0, 0],
+    possession: [Math.round(homePoss * 100), Math.round((1 - homePoss) * 100)],
+  };
+  const contrib = new Map<string, number>();
+  const addC = (id: string, n: number) => contrib.set(id, (contrib.get(id) ?? 0) + n);
 
   const push = (
     minute: number,
@@ -179,93 +167,107 @@ export function simulateMatch(
   const gk = (side: SimSide) =>
     side.starters.find((p) => role(p, side.team.formation) === "KL") ?? side.starters[0]!;
 
-  const homeLambda = clamp(1.35 + (hs.attack - as.defense) / 48, 0.7, 3.4);
-  const awayLambda = clamp(1.15 + (as.attack - hs.defense) / 48, 0.55, 3.1);
-  let homeGoals = poisson(rand, homeLambda);
-  let awayGoals = poisson(rand, awayLambda);
-  if (homeGoals + awayGoals === 0 && rand() < 0.82) {
-    if (rand() < homePoss) homeGoals = 1;
-    else awayGoals = 1;
-  }
-
-  const usedMinutes = new Set<number>([1, 45, 90]);
-  const pickMinute = () => {
-    for (let i = 0; i < 40; i++) {
-      const m = 6 + Math.floor(rand() * 82);
-      if (!usedMinutes.has(m)) {
-        usedMinutes.add(m);
-        return m;
-      }
-    }
-    return 12 + Math.floor(rand() * 70);
-  };
-  const goalPlan = new Map<number, "home" | "away">();
-  for (let i = 0; i < homeGoals; i++) goalPlan.set(pickMinute(), "home");
-  for (let i = 0; i < awayGoals; i++) goalPlan.set(pickMinute(), "away");
-
-  const playMinute = (minute: number, forceGoal?: "home" | "away") => {
-    const homeHas = forceGoal ? forceGoal === "home" : rand() < homePoss;
+  const playMinute = (minute: number) => {
+    const homeHas = rand() < homePoss;
     const att = homeHas ? home : away;
     const def = homeHas ? away : home;
+    const attP = homeHas ? hp : ap;
+    const defP = homeHas ? ap : hp;
     const side: "home" | "away" = homeHas ? "home" : "away";
-    const actor = safePick(rand, attackers(att), att.starters, (p) => rating(p, "attack") + 8);
-    const marker = safePick(rand, defenders(def), def.starters, (p) => rating(p, "defense") + 8);
+    const actor = safePick(rand, attackers(att), att.starters, (p) => ratingOn(p, att.team.formation, "attack") + 8);
+    const marker = safePick(rand, defenders(def), def.starters, (p) => ratingOn(p, def.team.formation, "defense") + 8);
     const keeper = gk(def);
     const from = jitter(rand, slotPos(att.team.formation, actor.slotKey, homeHas));
     const towardGoal: PitchPoint = homeHas ? { x: 94, y: 50 } : { x: 6, y: 50 };
     const box = lerp(from, towardGoal, 0.72 + rand() * 0.18);
+    const fat = lateFatigue(minute, homeHas ? awayEnergy : homeEnergy);
 
-    if (forceGoal) {
-      push(
-        minute,
-        EVENT.CHANCE,
-        line(
-          [
-            "Tehlikeli atak! {att} ceza sahasına süzüldü.",
-            "{att} savunmayı yardı, kaleci yalnız kaldı!",
-            "Pozisyon olgunlaşıyor… {att} kaleyi karşısına aldı.",
-          ],
-          { att: actor.name },
-          rand,
-        ),
-        jitter(rand, box, 8),
-        side,
-        actor,
+    const resolveShot = (close: boolean) => {
+      const xg = shotXg(
+        ratingOn(actor, att.team.formation, "attack"),
+        defP.defense,
+        ratingOn(keeper, def.team.formation, "defense"),
+        attP.conversion,
+        fat,
+        close,
       );
+      if (homeHas) {
+        sheet.xg[0] += xg;
+        sheet.shots[0] += 1;
+      } else {
+        sheet.xg[1] += xg;
+        sheet.shots[1] += 1;
+      }
+      addC(actor.id, 2);
       push(
         minute,
         EVENT.SHOT,
-        line(["ŞUT! {att} deniyor!", "{att} yerden köşeye vuruyor!", "Uzak mesafeden {att}!"], { att: actor.name }, rand),
+        line(["ŞUT! {att} deniyor!", "{att} kaleyi karşısına aldı ve vurdu!", "Uzak mesafeden {att}!"], { att: actor.name }, rand),
         jitter(rand, box, 6),
         side,
         actor,
       );
-      if (homeHas) homeScore += 1;
-      else awayScore += 1;
-      push(
-        minute,
-        EVENT.GOAL,
-        line(
-          [
-            "GOOOOL! {att} fileleri havalandırdı! {home} {hs} - {as} {away}",
-            "AĞLARDA! {att} skoru {hs}-{as} yaptı.",
-            "Muhteşem gol! {att} stadyumu ayağa kaldırdı. {hs}-{as}",
-          ],
-          {
-            att: actor.name,
-            home: home.team.name,
-            away: away.team.name,
-            hs: String(homeScore),
-            as: String(awayScore),
-          },
-          rand,
-        ),
-        towardGoal,
-        side,
-        actor,
-      );
-      return;
-    }
+      if (rand() < xg) {
+        if (homeHas) {
+          homeScore += 1;
+          sheet.shotsOn[0] += 1;
+        } else {
+          awayScore += 1;
+          sheet.shotsOn[1] += 1;
+        }
+        addC(actor.id, 12);
+        push(
+          minute,
+          EVENT.GOAL,
+          line(
+            [
+              "GOOOOL! {att} fileleri havalandırdı! {home} {hs} - {as} {away}",
+              "AĞLARDA! {att} skoru {hs}-{as} yaptı.",
+              "Muhteşem gol! {att} stadyumu ayağa kaldırdı. {hs}-{as}",
+            ],
+            {
+              att: actor.name,
+              home: home.team.name,
+              away: away.team.name,
+              hs: String(homeScore),
+              as: String(awayScore),
+            },
+            rand,
+          ),
+          towardGoal,
+          side,
+          actor,
+        );
+        return;
+      }
+      const onTarget = rand() < 0.52 + xg;
+      if (onTarget) {
+        if (homeHas) sheet.shotsOn[0] += 1;
+        else sheet.shotsOn[1] += 1;
+        addC(keeper.id, 3);
+        push(
+          minute,
+          EVENT.SAVE,
+          line(
+            ["Kaleci {gk} harika kurtardı!", "{gk} topu kornere çeldi.", "Müthiş refleks! {gk} gole izin vermedi."],
+            { gk: keeper.name },
+            rand,
+          ),
+          lerp(box, homeHas ? { x: 96, y: 50 } : { x: 4, y: 50 }, 0.9),
+          side === "home" ? "away" : "home",
+          keeper,
+        );
+      } else {
+        push(
+          minute,
+          EVENT.MISS,
+          line(["Direğin yanından dışarı!", "{att} topu tribüne gönderdi.", "Kaleciye gitmedi, aut."], { att: actor.name }, rand),
+          { x: clamp(towardGoal.x + (rand() - 0.5) * 8, 2, 98), y: rand() < 0.5 ? 8 : 92 },
+          side,
+          actor,
+        );
+      }
+    };
 
     const roll = rand();
     if (roll < 0.1) {
@@ -304,7 +306,7 @@ export function simulateMatch(
       );
       return;
     }
-    if (roll < 0.52) {
+    if (roll < 0.62) {
       const dest = safePick(rand, att.starters, att.starters, (p) => (role(p, att.team.formation) === "FV" ? 3 : 1));
       push(
         minute,
@@ -325,7 +327,8 @@ export function simulateMatch(
       );
       return;
     }
-    if (roll < 0.68) {
+    if (roll < 0.72) {
+      addC(actor.id, 1);
       push(
         minute,
         EVENT.CHANCE,
@@ -343,9 +346,10 @@ export function simulateMatch(
         side,
         actor,
       );
+      if (rand() < 0.42 * attP.tempo) resolveShot(true);
       return;
     }
-    if (roll < 0.78) {
+    if (roll < 0.8) {
       push(
         minute,
         EVENT.CORNER,
@@ -354,41 +358,11 @@ export function simulateMatch(
         side,
         actor,
       );
+      if (rand() < 0.28) resolveShot(true);
       return;
     }
 
-    push(
-      minute,
-      EVENT.SHOT,
-      line(["ŞUT! {att} deniyor!", "{att} kaleyi karşısına aldı ve vurdu!", "Uzak mesafeden {att}!"], { att: actor.name }, rand),
-      jitter(rand, box, 6),
-      side,
-      actor,
-    );
-    const onTarget = rand() < 0.58;
-    if (onTarget) {
-      push(
-        minute,
-        EVENT.SAVE,
-        line(
-          ["Kaleci {gk} harika kurtardı!", "{gk} topu kornere çeldi.", "Müthiş refleks! {gk} gole izin vermedi."],
-          { gk: keeper.name },
-          rand,
-        ),
-        lerp(box, homeHas ? { x: 96, y: 50 } : { x: 4, y: 50 }, 0.9),
-        side === "home" ? "away" : "home",
-        keeper,
-      );
-    } else {
-      push(
-        minute,
-        EVENT.MISS,
-        line(["Direğin yanından dışarı!", "{att} topu tribüne gönderdi.", "Kaleciye gitmedi, aut."], { att: actor.name }, rand),
-        { x: clamp(towardGoal.x + (rand() - 0.5) * 8, 2, 98), y: rand() < 0.5 ? 8 : 92 },
-        side,
-        actor,
-      );
-    }
+    resolveShot(rand() < 0.45);
   };
 
   push(1, EVENT.KICKOFF, `Hakem düdüğü çaldı! ${home.team.name} — ${away.team.name} karşılaşması başladı.`, { x: 50, y: 50 }, "neutral");
@@ -404,7 +378,7 @@ export function simulateMatch(
       );
       continue;
     }
-    playMinute(minute, goalPlan.get(minute));
+    playMinute(minute);
   }
 
   push(
@@ -415,17 +389,38 @@ export function simulateMatch(
     "neutral",
   );
 
-  const homeBest = [...home.starters].sort((a, b) => simOverall(b) * b.form - simOverall(a) * a.form)[0];
-  const awayBest = [...away.starters].sort((a, b) => simOverall(b) * b.form - simOverall(a) * a.form)[0];
-  const motmSide =
+  const scoreOf = (p: SimPlayer, formation: Formation) =>
+    (contrib.get(p.id) ?? 0) + playerLive(p, formation).rawAttack / 18;
+  const ratingOf = (p: SimPlayer, formation: Formation) => {
+    const live = playerLive(p, formation);
+    const base = 6.1 + live.cond * 0.7 + (live.fit - 1) * 1.4 + (contrib.get(p.id) ?? 0) / 7;
+    return Math.round(clamp(base, 4.5, 10) * 10) / 10;
+  };
+  const homeBest = [...home.starters].sort((a, b) => scoreOf(b, home.team.formation) - scoreOf(a, home.team.formation))[0];
+  const awayBest = [...away.starters].sort((a, b) => scoreOf(b, away.team.formation) - scoreOf(a, away.team.formation))[0];
+  const motmSide: "home" | "away" =
     homeScore > awayScore
       ? "home"
       : awayScore > homeScore
         ? "away"
-        : homeBest && awayBest && simOverall(homeBest) >= simOverall(awayBest)
+        : homeBest && awayBest && scoreOf(homeBest, home.team.formation) >= scoreOf(awayBest, away.team.formation)
           ? "home"
           : "away";
   const motmPlayer = motmSide === "home" ? homeBest : awayBest;
+  const ratings = [
+    ...home.starters.map((p) => ({
+      playerId: p.id,
+      name: p.name,
+      team: "home" as const,
+      rating: ratingOf(p, home.team.formation),
+    })),
+    ...away.starters.map((p) => ({
+      playerId: p.id,
+      name: p.name,
+      team: "away" as const,
+      rating: ratingOf(p, away.team.formation),
+    })),
+  ].sort((a, b) => b.rating - a.rating);
 
   const match: Match = {
     id: matchId,
@@ -443,6 +438,11 @@ export function simulateMatch(
     logs,
     timeline,
     motm: motmPlayer ? { playerId: motmPlayer.id, name: motmPlayer.name, team: motmSide } : undefined,
+    sheet: {
+      ...sheet,
+      xg: [Math.round(sheet.xg[0] * 10) / 10, Math.round(sheet.xg[1] * 10) / 10],
+    },
+    ratings,
   };
 }
 
@@ -454,16 +454,11 @@ export function simulateScoreOnly(
   seed = Date.now(),
 ): MatchSimulationResult {
   const rand = seededRandom(seed >>> 0);
-  const hs = sideStrength(home);
-  const as = sideStrength(away);
-  const homeL = clamp(1.35 + (hs.attack - as.defense) / 48, 0.7, 3.4);
-  const awayL = clamp(1.15 + (as.attack - hs.defense) / 48, 0.55, 3.1);
-  let homeScore = poisson(rand, homeL);
-  let awayScore = poisson(rand, awayL);
-  if (homeScore + awayScore === 0 && rand() < 0.82) {
-    if (rand() < 0.55) homeScore = 1;
-    else awayScore = 1;
-  }
+  const hp = teamProfile(home.team, home.starters, true, away.team.tactics);
+  const ap = teamProfile(away.team, away.starters, false, home.team.tactics);
+  const xg = expectedGoals(hp, ap);
+  const homeScore = poisson(rand, xg.home);
+  const awayScore = poisson(rand, xg.away);
   const match: Match = {
     id: uid("match"),
     home_team_id: home.team.id,
@@ -488,6 +483,15 @@ export function simulateScoreOnly(
         score: [homeScore, awayScore],
       },
     ],
+    sheet: {
+      xg: [Math.round(xg.home * 10) / 10, Math.round(xg.away * 10) / 10],
+      shots: [0, 0],
+      shotsOn: [0, 0],
+      possession: [
+        Math.round(possessionShare(hp, ap) * 100),
+        Math.round((1 - possessionShare(hp, ap)) * 100),
+      ],
+    },
   };
 }
 

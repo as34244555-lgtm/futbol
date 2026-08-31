@@ -11,6 +11,7 @@ import type {
   SessionUser,
   Tactic,
   Team,
+  Training,
 } from "./types";
 
 export type LeagueSnap = {
@@ -64,6 +65,10 @@ type GameContextValue = {
   }) => Promise<string | null>;
   ensureWeekFixtures: () => Promise<void>;
   playWeek: () => Promise<MatchSimulationResult | string>;
+  setTraining: (training: Training) => Promise<void>;
+  markReady: () => Promise<void>;
+  makeOffer: (listingId: string, price: number) => Promise<string | null>;
+  respondOffer: (offerId: string, accept: boolean) => Promise<string | null>;
   importPlayers: (players: Player[], mode: "merge" | "replace") => Promise<void>;
   watching: boolean;
   setWatching: (v: boolean) => void;
@@ -244,6 +249,32 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [apply]);
 
+  const setTraining = useCallback(async (training: Training) => {
+    apply(await postAction({ type: "setTraining", training }));
+  }, [apply]);
+
+  const markReady = useCallback(async () => {
+    apply(await postAction({ type: "setReady" }));
+  }, [apply]);
+
+  const makeOffer = useCallback(async (listingId: string, price: number) => {
+    try {
+      apply(await postAction({ type: "makeOffer", listingId, price }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Teklif gönderilemedi";
+    }
+  }, [apply]);
+
+  const respondOffer = useCallback(async (offerId: string, accept: boolean) => {
+    try {
+      apply(await postAction({ type: "respondOffer", offerId, accept }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Teklif yanıtlanamadı";
+    }
+  }, [apply]);
+
   const importPlayers = useCallback(async (players: Player[], mode: "merge" | "replace") => {
     apply(await postAction({ type: "importPlayers", players, mode }));
   }, [apply]);
@@ -272,6 +303,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       buyListing,
       ensureWeekFixtures,
       playWeek,
+      setTraining,
+      markReady,
+      makeOffer,
+      respondOffer,
       importPlayers,
       watching,
       setWatching,
@@ -292,6 +327,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       buyListing,
       ensureWeekFixtures,
       playWeek,
+      setTraining,
+      markReady,
+      makeOffer,
+      respondOffer,
       importPlayers,
       watching,
     ],
