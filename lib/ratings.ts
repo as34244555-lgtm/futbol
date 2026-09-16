@@ -1,6 +1,7 @@
 import { deriveAttrs } from "./career";
 import { FORMATION_SLOTS, TACTIC_MOD } from "./formations";
 import { computeBaseValue, simOverall } from "./catalog";
+import { lineOf, normalizePosition } from "./positions";
 import type { Formation, Player, Position, Tactic, Team, TeamPlayer } from "./types";
 import { clamp } from "./utils";
 
@@ -26,13 +27,18 @@ export function playingRole(p: SimLike, formation: Formation): Position {
   return FORMATION_SLOTS[formation].find((s) => s.key === p.slotKey)?.position ?? p.position;
 }
 
-/** Doğal mevki dışındaki düşüş. Kaleci forvette %45, komşu mevki %82. */
+/** Doğal mevki dışındaki düşüş. Kaleci forvette %45, komşu mevki %86. */
 export function positionFit(natural: Position, playing: Position, versatile?: boolean): number {
-  if (versatile || natural === playing) return 1;
-  if (natural === "KL" || playing === "KL") return 0.48;
+  const a = normalizePosition(natural);
+  const b = normalizePosition(playing);
+  if (versatile || a === b) return 1;
+  if (a === "KL" || b === "KL") return 0.48;
+  if (lineOf(a) === lineOf(b)) return 0.88;
   if (
-    (natural === "OS" && (playing === "FV" || playing === "DEF")) ||
-    (playing === "OS" && (natural === "FV" || natural === "DEF"))
+    (a === "MOS" && (b === "FV" || b === "STP" || b === "KANAT")) ||
+    (b === "MOS" && (a === "FV" || a === "STP" || a === "KANAT")) ||
+    (a === "KANAT" && (b === "FV" || b === "SLB" || b === "SĞB")) ||
+    (b === "KANAT" && (a === "FV" || a === "SLB" || a === "SĞB"))
   ) {
     return 0.84;
   }
@@ -48,9 +54,12 @@ export function condition(energy: number, form: number): number {
 }
 
 export function slotWeights(pos: Position): { attack: number; defense: number; mid: number } {
-  if (pos === "KL") return { attack: 0.12, defense: 1.45, mid: 0.15 };
-  if (pos === "DEF") return { attack: 0.48, defense: 1.22, mid: 0.55 };
-  if (pos === "OS") return { attack: 1.05, defense: 0.88, mid: 1.25 };
+  const p = normalizePosition(pos);
+  if (p === "KL") return { attack: 0.12, defense: 1.45, mid: 0.15 };
+  if (p === "STP") return { attack: 0.42, defense: 1.28, mid: 0.5 };
+  if (p === "SLB" || p === "SĞB") return { attack: 0.72, defense: 1.08, mid: 0.7 };
+  if (p === "MOS") return { attack: 1.02, defense: 0.9, mid: 1.28 };
+  if (p === "KANAT") return { attack: 1.18, defense: 0.52, mid: 0.92 };
   return { attack: 1.28, defense: 0.38, mid: 0.7 };
 }
 

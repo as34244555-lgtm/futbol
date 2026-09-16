@@ -1,4 +1,5 @@
-import { computeBaseValue, isLegend, simOverall } from "./catalog";
+import { computeBaseValue, computeOverall, generateExtraPlayers, isLegend, rollPotential, simOverall } from "./catalog";
+import { normalizePosition } from "./positions";
 import { SYSTEM_TEAM_ID } from "./types";
 import type {
   CupState,
@@ -45,8 +46,8 @@ export function deriveAttrs(p: Player): PlayerAttrs {
   }
   const atk = p.attack;
   const def = p.defense;
-  const pos = p.position;
-  const cap = (v: number) => clamp(Math.round(v), 8, p.legend ? 99 : 99);
+  const pos = normalizePosition(p.position);
+  const cap = (v: number) => clamp(Math.round(v), 8, 99);
   if (pos === "KL") {
     return {
       pace: cap(def * 0.42 + 18 + jitter(p.id + "p", 4)),
@@ -56,22 +57,40 @@ export function deriveAttrs(p: Player): PlayerAttrs {
       handling: cap(def * 0.96 + jitter(p.id + "h", 3)),
     };
   }
-  if (pos === "DEF") {
+  if (pos === "STP") {
     return {
-      pace: cap(def * 0.62 + atk * 0.22 + jitter(p.id + "p", 5)),
-      finishing: cap(atk * 0.55 + 12),
+      pace: cap(def * 0.58 + atk * 0.18 + jitter(p.id + "p", 5)),
+      finishing: cap(atk * 0.5 + 12),
       passing: cap((atk + def) / 2),
       marking: cap(def * 0.94 + jitter(p.id + "m", 3)),
       handling: cap(def * 0.28 + 12),
     };
   }
-  if (pos === "OS") {
+  if (pos === "SLB" || pos === "SĞB") {
+    return {
+      pace: cap(def * 0.48 + atk * 0.42 + jitter(p.id + "p", 4)),
+      finishing: cap(atk * 0.62 + 8),
+      passing: cap(atk * 0.55 + def * 0.38),
+      marking: cap(def * 0.86),
+      handling: cap(def * 0.22 + 10),
+    };
+  }
+  if (pos === "MOS") {
     return {
       pace: cap(atk * 0.62 + def * 0.28 + jitter(p.id + "p", 4)),
-      finishing: cap(atk * 0.78),
+      finishing: cap(atk * 0.74),
       passing: cap(atk * 0.55 + def * 0.42 + jitter(p.id + "pa", 4)),
       marking: cap(def * 0.72),
       handling: cap(def * 0.22 + 10),
+    };
+  }
+  if (pos === "KANAT") {
+    return {
+      pace: cap(atk * 0.88 + jitter(p.id + "p", 3)),
+      finishing: cap(atk * 0.82),
+      passing: cap(atk * 0.7 + 8),
+      marking: cap(def * 0.58 + 8),
+      handling: cap(def * 0.18 + 8),
     };
   }
   return {
@@ -130,7 +149,16 @@ export function teamWageBill(world: GameWorld, teamId: string): number {
 }
 
 export function hydrateWorld(world: GameWorld): GameWorld {
-  const players = world.players.map(withAttrs);
+  const players = world.players.map((p) => {
+    const position = normalizePosition(p.position);
+    const overall = p.legend ? p.overall : computeOverall(position, p.attack, p.defense);
+    return withAttrs({
+      ...p,
+      position,
+      overall: p.legend ? p.overall : overall,
+      potential: p.potential ?? rollPotential(simOverall({ overall: p.legend ? 99 : overall }), p.age, p.id, p.legend),
+    });
+  });
   const byId = new Map(players.map((p) => [p.id, p]));
   const teamPlayers = world.teamPlayers.map((tp) => {
     const p = byId.get(tp.player_id);
@@ -145,6 +173,7 @@ export function hydrateWorld(world: GameWorld): GameWorld {
   const teams = world.teams.map((t) => ({
     ...t,
     training: t.training ?? "FITNESS",
+    kit_style: t.kit_style ?? "solid",
   }));
   return { ...world, players, teamPlayers, teams, news: world.news ?? [], offers: world.offers ?? [] };
 }
@@ -445,15 +474,166 @@ export function crownCup(world: GameWorld): GameWorld {
 }
 
 export function trainingHint(focus: Training): string {
-  if (focus === "FITNESS") return "Yedekler ve ilk 11 daha çabuk toparlanır.";
-  if (focus === "ATTACK") return "Form ve bitiricilik hissi yükselir.";
-  if (focus === "DEFENSE") return "Savunma formu korunur.";
-  return "Mevki uyumu ve temposu pekişir.";
+  if (focus === "FITNESS") return "Enerji dolar; gençler biraz tempo kazanır.";
+  if (focus === "ATTACK") return "Bitiricilik ve hücum gelişir — genç yıldızlar daha hızlı büyür.";
+  if (focus === "DEFENSE") return "Markaj ve savunma gelişir.";
+  return "Pas, mevki uyumu ve oyun zekâsı pekişir.";
 }
 
 export function positionAttrKey(pos: Position): keyof PlayerAttrs {
-  if (pos === "KL") return "handling";
-  if (pos === "DEF") return "marking";
-  if (pos === "OS") return "passing";
+  const p = normalizePosition(pos);
+  if (p === "KL") return "handling";
+  if (p === "STP" || p === "SLB" || p === "SĞB") return "marking";
+  if (p === "MOS") return "passing";
+  if (p === "KANAT") return "pace";
   return "finishing";
+}
+
+function bumpAttr(p: Player, key: keyof PlayerAttrs, delta: number): Player {
+  const cur = deriveAttrs(p);
+  const next = clamp((cur[key] ?? 50) + delta, 8, p.legend ? 99 : 99);
+  return { ...p, [key]: next };
+}
+
+/** Haftalık gelişim: antrenman + yaş + oynama süresi. Efsane sabit. */
+export function developPlayers(world: GameWorld): GameWorld {
+  const trainingOf = new Map(world.teams.map((t) => [t.id, t.training ?? "FITNESS"]));
+  const byTp = new Map(world.teamPlayers.map((tp) => [tp.player_id, tp]));
+  const grown: string[] = [];
+  const players = world.players.map((p) => {
+    if (isLegend(p)) return { ...p, lastGrowth: 0 };
+    const tp = byTp.get(p.id);
+    if (!tp || tp.team_id === SYSTEM_TEAM_ID) return { ...p, lastGrowth: 0 };
+    if ((tp.injuryWeeks ?? 0) > 0) return { ...p, lastGrowth: 0 };
+    const potential = p.potential ?? rollPotential(simOverall(p), p.age, p.id, p.legend);
+    const h = hash32(`${p.id}:${world.week}:grow`);
+    const focus = trainingOf.get(tp.team_id) ?? "FITNESS";
+    const youth = p.age <= 21 ? 0.42 : p.age <= 24 ? 0.28 : p.age <= 28 ? 0.12 : p.age <= 32 ? 0.04 : 0;
+    const starter = tp.is_starter ? 0.18 : 0.06;
+    const train = focus === "FITNESS" ? 0.04 : 0.12;
+    const chance = youth + starter + train;
+    let attack = p.attack;
+    let defense = p.defense;
+    let delta = 0;
+    if (p.age >= 33 && (h % 1000) / 1000 < 0.35) {
+      attack = growStat(attack, -1);
+      defense = growStat(defense, -1);
+      delta = -1;
+    } else if (simOverall(p) < potential && (h % 1000) / 1000 < chance) {
+      if (focus === "ATTACK" || p.position === "FV" || p.position === "KANAT") attack = growStat(attack, 1);
+      else if (focus === "DEFENSE" || p.position === "STP" || p.position === "KL") defense = growStat(defense, 1);
+      else {
+        if (h % 2 === 0) attack = growStat(attack, 1);
+        else defense = growStat(defense, 1);
+      }
+      delta = 1;
+    }
+    const overall = p.legend ? p.overall : computeOverall(normalizePosition(p.position), attack, defense);
+    let next = withAttrs({
+      ...p,
+      attack,
+      defense,
+      overall,
+      potential,
+      lastGrowth: delta,
+      base_value: computeBaseValue(simOverall({ overall }), p.age, normalizePosition(p.position)),
+    });
+    if (delta > 0) {
+      const key = positionAttrKey(normalizePosition(p.position));
+      next = bumpAttr(next, key, 1);
+      grown.push(`${p.name} ${p.overall}→${next.overall}`);
+    }
+    return next;
+  });
+  let next: GameWorld = { ...world, players };
+  if (grown.length) {
+    next = pushNews(next, {
+      kind: "growth",
+      text: `Antrenman işe yaradı: ${grown.slice(0, 4).join(", ")}${grown.length > 4 ? "…" : ""}`,
+    });
+  }
+  return next;
+}
+
+export function intakeYouth(world: GameWorld): GameWorld {
+  const humans = world.teams.filter((t) => t.user_id);
+  if (!humans.length) return world;
+  const extras = generateExtraPlayers(humans.length * 3, 12_000 + world.players.length + world.week);
+  const youths = extras.map((p, i) => {
+    const age = 16 + (hash32(p.id) % 3);
+    const attack = clamp(p.attack - 12, 42, 68);
+    const defense = clamp(p.defense - 12, 40, 68);
+    const position = normalizePosition(p.position);
+    const overall = computeOverall(position, attack, defense);
+    return withAttrs({
+      ...p,
+      age,
+      attack,
+      defense,
+      overall,
+      potential: rollPotential(overall, age, p.id + ":y"),
+      base_value: computeBaseValue(overall, age, position),
+    });
+  });
+  const rows: TeamPlayer[] = [];
+  let i = 0;
+  for (const team of humans) {
+    const take = youths.slice(i, i + 3);
+    i += 3;
+    for (const p of take) {
+      rows.push({
+        id: rowId(team.id, p.id),
+        team_id: team.id,
+        player_id: p.id,
+        energy: 100,
+        form: 70,
+        is_starter: false,
+        squad_position: null,
+        acquired_at: new Date().toISOString(),
+        contractYears: 4,
+        wage: weeklyWage(p),
+      });
+    }
+  }
+  let next: GameWorld = {
+    ...world,
+    players: [...world.players, ...youths.slice(0, humans.length * 3)],
+    teamPlayers: [...world.teamPlayers, ...rows],
+  };
+  next = pushNews(next, {
+    kind: "youth",
+    text: `Altyapıdan ${rows.length} genç futbolcu A takıma çıktı.`,
+  });
+  return next;
+}
+
+export function retireVeterans(world: GameWorld): GameWorld {
+  const byId = new Map(world.players.map((p) => [p.id, p]));
+  const retired: string[] = [];
+  const keepTp: TeamPlayer[] = [];
+  const dropIds = new Set<string>();
+  for (const tp of world.teamPlayers) {
+    const p = byId.get(tp.player_id);
+    if (!p || isLegend(p) || tp.team_id === SYSTEM_TEAM_ID) {
+      keepTp.push(tp);
+      continue;
+    }
+    if (p.age >= 36 || (p.age >= 34 && p.overall <= 62)) {
+      retired.push(p.name);
+      dropIds.add(tp.id);
+      continue;
+    }
+    keepTp.push(tp);
+  }
+  if (!retired.length) return world;
+  let next: GameWorld = {
+    ...world,
+    teamPlayers: keepTp,
+    listings: world.listings.map((l) => (dropIds.has(l.team_player_id) ? { ...l, status: "cancelled" as const } : l)),
+  };
+  next = pushNews(next, {
+    kind: "retire",
+    text: `${retired.slice(0, 5).join(", ")} futbolu bıraktı.`,
+  });
+  return next;
 }

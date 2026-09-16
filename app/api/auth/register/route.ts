@@ -2,7 +2,9 @@ import { NextResponse } from "next/server";
 import { ActionError, registerManager } from "@/lib/server/actions";
 import { setSessionCookie } from "@/lib/server/session";
 import { runWithRoom } from "@/lib/server/store";
-import { normalizeRoom } from "@/lib/utils";
+import type { KitStyle } from "@/lib/types";
+import { KIT_STYLES } from "@/lib/types";
+import { makeRoomCode, normalizeRoom } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -13,10 +15,22 @@ export async function POST(req: Request) {
       password?: string;
       teamName?: string;
       roomCode?: string;
+      career?: boolean;
+      kit_primary?: string;
+      kit_secondary?: string;
+      kit_style?: string;
     };
-    const room = normalizeRoom(body.roomCode) || "NOVA";
+    const career = Boolean(body.career) && !normalizeRoom(body.roomCode);
+    const room = career
+      ? makeRoomCode(`${body.username ?? ""}-${Date.now()}`)
+      : normalizeRoom(body.roomCode) || "NOVA";
+    const style = KIT_STYLES.includes(body.kit_style as KitStyle) ? (body.kit_style as KitStyle) : undefined;
     const session = await runWithRoom(room, () =>
-      registerManager(body.username ?? "", body.password ?? "", body.teamName ?? ""),
+      registerManager(body.username ?? "", body.password ?? "", body.teamName ?? "", {
+        kit_primary: body.kit_primary,
+        kit_secondary: body.kit_secondary,
+        kit_style: style,
+      }),
     );
     await setSessionCookie({
       sub: session.userId,

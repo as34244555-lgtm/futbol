@@ -1,5 +1,6 @@
-import { catalogId, pick, seededRandom } from "./utils";
+import { catalogId, hash32, pick, seededRandom } from "./utils";
 import { NATIONS } from "./nations";
+import { normalizePosition } from "./positions";
 import type { Player, Position } from "./types";
 
 export const ABDULLAH_ID = "00000000-0000-4000-8000-aaa999000001";
@@ -23,6 +24,7 @@ export function makeAbdullah(): Player {
     base_value: 100_000,
     versatile: true,
     legend: true,
+    potential: 99,
     portrait: "/abdullah-sariyildiz.webp",
   };
 }
@@ -32,7 +34,17 @@ export function isLegend(p: Pick<Player, "id" | "name" | "legend">): boolean {
 }
 
 export function playsPosition(p: Player, position: Position): boolean {
-  return Boolean(p.versatile) || p.position === position;
+  const natural = normalizePosition(p.position);
+  if (p.versatile || natural === position) return true;
+  if (natural === "KL" || position === "KL") return false;
+  if (natural === "STP" && (position === "SLB" || position === "SĞB")) return true;
+  if ((natural === "SLB" || natural === "SĞB") && (position === "STP" || position === "KANAT")) return true;
+  if (natural === "MOS" && (position === "KANAT" || position === "STP")) return true;
+  if (natural === "KANAT" && (position === "MOS" || position === "FV" || position === "SLB" || position === "SĞB")) {
+    return true;
+  }
+  if (natural === "FV" && position === "KANAT") return true;
+  return false;
 }
 
 /** Simülasyon 0–99 bekler; 999 ekranda kalır. */
@@ -42,37 +54,58 @@ export function simOverall(p: { overall: number }): number {
 
 const STAR_PLAYERS: Array<Omit<Player, "id" | "overall" | "base_value"> & { overall?: number }> = [
   { name: "Erlung Haland", nationality: "Almanya", nationality_code: "de", position: "FV", age: 24, attack: 94, defense: 48 },
-  { name: "Lucas Silva", nationality: "Brezilya", nationality_code: "br", position: "OS", age: 27, attack: 88, defense: 76 },
-  { name: "Miko Vartan", nationality: "Türkiye", nationality_code: "tr", position: "OS", age: 23, attack: 86, defense: 71 },
+  { name: "Lucas Silva", nationality: "Brezilya", nationality_code: "br", position: "MOS", age: 27, attack: 88, defense: 76 },
+  { name: "Miko Vartan", nationality: "Türkiye", nationality_code: "tr", position: "MOS", age: 23, attack: 86, defense: 71 },
   { name: "Nelo Prest", nationality: "Fransa", nationality_code: "fr", position: "FV", age: 26, attack: 91, defense: 42 },
-  { name: "Sabri Koçhan", nationality: "Türkiye", nationality_code: "tr", position: "DEF", age: 29, attack: 62, defense: 90 },
-  { name: "Yuto Hanari", nationality: "Japonya", nationality_code: "jp", position: "OS", age: 22, attack: 84, defense: 73 },
+  { name: "Sabri Koçhan", nationality: "Türkiye", nationality_code: "tr", position: "STP", age: 29, attack: 62, defense: 90 },
+  { name: "Yuto Hanari", nationality: "Japonya", nationality_code: "jp", position: "KANAT", age: 22, attack: 84, defense: 73 },
   { name: "Kaan Altuner", nationality: "Türkiye", nationality_code: "tr", position: "KL", age: 31, attack: 28, defense: 89 },
   { name: "Rafa Moreira", nationality: "Portekiz", nationality_code: "pt", position: "FV", age: 25, attack: 89, defense: 51 },
-  { name: "Luka Peric", nationality: "Hırvatistan", nationality_code: "hr", position: "OS", age: 28, attack: 82, defense: 84 },
-  { name: "Iker Navarro", nationality: "İspanya", nationality_code: "es", position: "DEF", age: 27, attack: 58, defense: 88 },
+  { name: "Luka Peric", nationality: "Hırvatistan", nationality_code: "hr", position: "MOS", age: 28, attack: 82, defense: 84 },
+  { name: "Iker Navarro", nationality: "İspanya", nationality_code: "es", position: "STP", age: 27, attack: 58, defense: 88 },
+  { name: "Efe Solak", nationality: "Türkiye", nationality_code: "tr", position: "SLB", age: 24, attack: 71, defense: 82 },
+  { name: "Nico Brandt", nationality: "Almanya", nationality_code: "de", position: "SĞB", age: 26, attack: 74, defense: 80 },
 ];
 
 export function computeOverall(position: Position, attack: number, defense: number): number {
+  const pos = normalizePosition(position);
   const mix =
-    position === "KL"
+    pos === "KL"
       ? defense * 0.88 + attack * 0.12
-      : position === "DEF"
-        ? defense * 0.72 + attack * 0.28
-        : position === "OS"
-          ? attack * 0.52 + defense * 0.48
-          : attack * 0.82 + defense * 0.18;
+      : pos === "STP"
+        ? defense * 0.74 + attack * 0.26
+        : pos === "SLB" || pos === "SĞB"
+          ? defense * 0.58 + attack * 0.42
+          : pos === "MOS"
+            ? attack * 0.52 + defense * 0.48
+            : pos === "KANAT"
+              ? attack * 0.72 + defense * 0.28
+              : attack * 0.82 + defense * 0.18;
   return Math.max(1, Math.min(99, Math.round(mix)));
 }
 
 export function computeBaseValue(overall: number, age: number, position: Position): number {
-  const posMul = position === "FV" ? 1.15 : position === "OS" ? 1.08 : position === "KL" ? 0.92 : 1;
+  const pos = normalizePosition(position);
+  const posMul =
+    pos === "FV" ? 1.15 : pos === "KANAT" ? 1.12 : pos === "MOS" ? 1.08 : pos === "KL" ? 0.92 : 1;
   const ageMul = age <= 21 ? 1.25 : age <= 24 ? 1.15 : age <= 28 ? 1 : age <= 32 ? 0.78 : 0.55;
   const curve = Math.pow(overall / 70, 3.2);
   return Math.max(200, Math.round(850 * curve * posMul * ageMul));
 }
 
-function statFor(rand: () => number, band: "star" | "good" | "avg" | "youth", position: Position): { attack: number; defense: number } {
+export function rollPotential(overall: number, age: number, seed: string, legend?: boolean): number {
+  if (legend || overall >= 100) return 99;
+  const h = hash32(seed + ":pot");
+  const room = age <= 19 ? 14 : age <= 22 ? 10 : age <= 25 ? 6 : age <= 29 ? 3 : 1;
+  const bonus = h % (room + 1);
+  return Math.max(overall, Math.min(94, overall + bonus));
+}
+
+function statFor(
+  rand: () => number,
+  band: "star" | "good" | "avg" | "youth",
+  position: Position,
+): { attack: number; defense: number } {
   const bands = {
     star: [82, 94],
     good: [72, 84],
@@ -82,78 +115,102 @@ function statFor(rand: () => number, band: "star" | "good" | "avg" | "youth", po
   const [lo, hi] = bands[band];
   const primary = Math.round(lo + rand() * (hi - lo));
   const secondary = Math.round(lo - 18 + rand() * (hi - lo - 6));
-  if (position === "KL") return { attack: Math.max(15, secondary - 20), defense: primary };
-  if (position === "DEF") return { attack: Math.max(30, secondary), defense: primary };
-  if (position === "FV") return { attack: primary, defense: Math.max(28, secondary) };
+  const pos = normalizePosition(position);
+  if (pos === "KL") return { attack: Math.max(15, secondary - 20), defense: primary };
+  if (pos === "STP") return { attack: Math.max(30, secondary), defense: primary };
+  if (pos === "SLB" || pos === "SĞB") return { attack: Math.max(40, secondary + 4), defense: primary };
+  if (pos === "FV") return { attack: primary, defense: Math.max(28, secondary) };
+  if (pos === "KANAT") return { attack: primary, defense: Math.max(32, secondary) };
   return { attack: primary, defense: Math.max(40, secondary + 4) };
 }
 
-export function generateCatalog(count = 240): Player[] {
+const POS_CYCLE: Position[] = [
+  ...Array(18).fill("KL"),
+  ...Array(28).fill("STP"),
+  ...Array(16).fill("SLB"),
+  ...Array(16).fill("SĞB"),
+  ...Array(32).fill("MOS"),
+  ...Array(22).fill("KANAT"),
+  ...Array(24).fill("FV"),
+];
+
+export function generatePlayerAt(
+  index: number,
+  id: string,
+  rand: () => number,
+  position: Position,
+): Player {
+  const nation = NATIONS[index % NATIONS.length]!;
+  const roll = rand();
+  const band = roll > 0.92 ? "star" : roll > 0.62 ? "good" : roll > 0.28 ? "avg" : "youth";
+  const { attack, defense } = statFor(rand, band, position);
+  const overall = computeOverall(position, attack, defense);
+  const age =
+    band === "youth"
+      ? 17 + Math.floor(rand() * 4)
+      : band === "star"
+        ? 22 + Math.floor(rand() * 8)
+        : 19 + Math.floor(rand() * 16);
+  const first = pick(rand, nation.first);
+  const last = pick(rand, nation.last);
+  const atk = Math.max(1, Math.min(99, attack));
+  const def = Math.max(1, Math.min(99, defense));
+  return {
+    id,
+    name: `${first} ${last}`,
+    nationality: nation.name,
+    nationality_code: nation.code,
+    position,
+    age,
+    attack: atk,
+    defense: def,
+    overall,
+    base_value: computeBaseValue(overall, age, position),
+    potential: rollPotential(overall, age, id),
+  };
+}
+
+export function generateCatalog(count = 420): Player[] {
   const rand = seededRandom(20260828);
   const players: Player[] = [];
 
   players.push(makeAbdullah());
 
   STAR_PLAYERS.forEach((p, i) => {
-    const overall = p.overall ?? computeOverall(p.position, p.attack, p.defense);
+    const position = normalizePosition(p.position);
+    const overall = p.overall ?? computeOverall(position, p.attack, p.defense);
+    const id = catalogId(i + 1);
     players.push({
-      id: catalogId(i + 1),
+      id,
       name: p.name,
       nationality: p.nationality,
       nationality_code: p.nationality_code,
-      position: p.position,
+      position,
       age: p.age,
       attack: p.attack,
       defense: p.defense,
       overall,
-      base_value: computeBaseValue(overall, p.age, p.position),
+      base_value: computeBaseValue(overall, p.age, position),
+      potential: rollPotential(overall, p.age, id),
     });
   });
 
-  const positions: Position[] = [
-    ...Array(42).fill("KL"),
-    ...Array(74).fill("DEF"),
-    ...Array(70).fill("OS"),
-    ...Array(54).fill("FV"),
-  ];
-
   for (let i = STAR_PLAYERS.length; i < count; i++) {
-    const nation = NATIONS[i % NATIONS.length]!;
-    const position = positions[(i - STAR_PLAYERS.length) % positions.length]!;
-    const roll = rand();
-    const band = roll > 0.92 ? "star" : roll > 0.62 ? "good" : roll > 0.28 ? "avg" : "youth";
-    const { attack, defense } = statFor(rand, band, position);
-    const overall = computeOverall(position, attack, defense);
-    const age =
-      band === "youth"
-        ? 17 + Math.floor(rand() * 4)
-        : band === "star"
-          ? 22 + Math.floor(rand() * 8)
-          : 19 + Math.floor(rand() * 16);
-    const first = pick(rand, nation.first);
-    const last = pick(rand, nation.last);
-    players.push({
-      id: catalogId(i + 1),
-      name: `${first} ${last}`,
-      nationality: nation.name,
-      nationality_code: nation.code,
-      position,
-      age,
-      attack: Math.max(1, Math.min(99, attack)),
-      defense: Math.max(1, Math.min(99, defense)),
-      overall,
-      base_value: computeBaseValue(overall, age, position),
-    });
+    const position = POS_CYCLE[(i - STAR_PLAYERS.length) % POS_CYCLE.length]!;
+    players.push(generatePlayerAt(i, catalogId(i + 1), rand, position));
   }
 
   return players;
 }
 
 export function generateExtraPlayers(count: number, startIndex = 2000): Player[] {
-  const sample = generateCatalog(Math.max(50, count + 12))
-    .filter((p) => !isLegend(p))
-    .slice(10, 10 + count);
-  return sample.map((p, i) => ({ ...p, id: catalogId(startIndex + i + 1) }));
+  const rand = seededRandom(startIndex * 97 + 11);
+  const out: Player[] = [];
+  for (let i = 0; i < count; i++) {
+    const position = POS_CYCLE[i % POS_CYCLE.length]!;
+    out.push(generatePlayerAt(startIndex + i, catalogId(startIndex + i + 1), rand, position));
+  }
+  return out;
 }
 
 export const AI_CLUBS: Array<{

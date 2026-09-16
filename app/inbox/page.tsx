@@ -1,6 +1,7 @@
 "use client";
 
 import { GameShell } from "@/components/GameShell";
+import { NewsCard } from "@/components/NewsCard";
 import { useGame } from "@/lib/game-context";
 
 export default function InboxPage() {
@@ -12,14 +13,13 @@ export default function InboxPage() {
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Kulüp</p>
       <h1 className="font-display mb-6 text-4xl sm:text-5xl">Haber kutusu</h1>
       <div className="space-y-2">
-        {items.length === 0 && <p className="text-slate-500">Henüz haber yok. Maç oynayın, transfer yapın.</p>}
+        {items.length === 0 && (
+          <p className="rounded-2xl border border-white/10 bg-ink-800 px-4 py-8 text-center text-slate-500">
+            Henüz haber yok. Maç oynayın, antrenman seçin veya transfer yapın — sakatlık, gelişim ve kupa buraya düşer.
+          </p>
+        )}
         {items.map((n) => (
-          <div key={n.id} className="rounded-2xl border border-white/10 bg-ink-800 px-4 py-3">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">
-              Sezon {n.season} · Hafta {n.week} · {n.kind}
-            </p>
-            <p className="mt-1 text-sm">{n.text}</p>
-          </div>
+          <NewsCard key={n.id} item={n} />
         ))}
       </div>
     </GameShell>

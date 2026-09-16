@@ -1,18 +1,21 @@
 "use client";
 
 import { GameShell } from "@/components/GameShell";
+import { KitMark } from "@/components/KitMark";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { TACTIC_MOD } from "@/lib/formations";
 import { useGame } from "@/lib/game-context";
 import { chemistryOf, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { trainingHint } from "@/lib/career";
-import { FORMATIONS as FORMATION_LIST, TACTIC_LABEL, TACTICS, TRAINING_LABEL, TRAININGS } from "@/lib/types";
+import { FORMATIONS as FORMATION_LIST, KIT_STYLES, TACTIC_LABEL, TACTICS, TRAINING_LABEL, TRAININGS } from "@/lib/types";
+import type { KitStyle } from "@/lib/types";
+import { HUMAN_KITS } from "@/lib/world";
 import { rosterOf } from "@/lib/world";
 import { useMemo } from "react";
 
 export default function TacticsPage() {
-  const { world, userTeam, setFormation, setTactics, setTraining } = useGame();
+  const { world, userTeam, setFormation, setTactics, setTraining, setClub } = useGame();
   const roster = useMemo(() => (userTeam ? rosterOf(world, userTeam.id) : []), [world, userTeam]);
   if (!userTeam) return null;
   const mod = TACTIC_MOD[userTeam.tactics];
@@ -81,6 +84,33 @@ export default function TacticsPage() {
               ))}
             </div>
             <p className="mt-2 text-xs text-slate-500">{trainingHint(userTeam.training ?? "FITNESS")}</p>
+          </div>
+          <div>
+            <p className="mb-2 text-sm text-slate-400">Forma</p>
+            <div className="flex flex-wrap gap-2">
+              {HUMAN_KITS.map((k) => (
+                <button
+                  key={k[0]}
+                  type="button"
+                  onClick={() => void setClub({ kit_primary: k[0], kit_secondary: k[1], kit_style: k[2] })}
+                  className={`rounded-xl border p-2 ${userTeam.kit_primary === k[0] ? "border-neon" : "border-white/10"}`}
+                >
+                  <KitMark primary={k[0]} secondary={k[1]} style={k[2]} size={28} />
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {KIT_STYLES.map((s) => (
+                <Button
+                  key={s}
+                  size="sm"
+                  variant={(userTeam.kit_style ?? "solid") === s ? "outline" : "ghost"}
+                  onClick={() => void setClub({ kit_style: s as KitStyle })}
+                >
+                  {s}
+                </Button>
+              ))}
+            </div>
           </div>
           <p className="text-sm text-slate-400">
             Skor önceden yazılmaz. Her şut, bitiricilik − markaj − kalecilik farkından xG üretir.

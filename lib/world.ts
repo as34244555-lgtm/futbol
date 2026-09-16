@@ -7,13 +7,15 @@ import {
   makeAbdullah,
   playsPosition,
 } from "./catalog";
-import { applyTrainingRecovery, hydrateWorld, isInjured, pushNews, rollInjuries } from "./career";
+import { applyTrainingRecovery, hydrateWorld, isInjured, pushNews, rollInjuries, weeklyWage } from "./career";
 import { marketValue } from "./ratings";
 import { FORMATION_SLOTS } from "./formations";
+import { normalizePosition } from "./positions";
 import { SYSTEM_TEAM_ID } from "./types";
 import type {
   Formation,
   GameWorld,
+  KitStyle,
   Match,
   Player,
   Team,
@@ -31,6 +33,7 @@ function emptyTeam(
   kit_secondary: string,
   coins = 10000,
   division = 10,
+  kit_style: KitStyle = "solid",
 ): Team {
   return {
     id,
@@ -44,6 +47,7 @@ function emptyTeam(
     created_at: new Date().toISOString(),
     kit_primary,
     kit_secondary,
+    kit_style,
     played: 0,
     won: 0,
     drawn: 0,
@@ -89,9 +93,9 @@ export function autoSelectStarters(roster: TeamPlayer[], players: Player[], form
         const score = (p: Player, r: TeamPlayer) => {
           let s = p.overall + r.form / 10;
           if (playsPosition(p, slot.position)) s += 25;
-          if (p.position === slot.position) s += 8;
-          if (p.position === "KL" && slot.position !== "KL") s -= 90;
-          if (p.position !== "KL" && slot.position === "KL") s -= 90;
+          if (normalizePosition(p.position) === slot.position) s += 8;
+          if (normalizePosition(p.position) === "KL" && slot.position !== "KL") s -= 90;
+          if (normalizePosition(p.position) !== "KL" && slot.position === "KL") s -= 90;
           if (p.versatile && p.position !== "KL" && slot.position === "KL") s -= 40;
           return s;
         };
@@ -105,8 +109,9 @@ export function autoSelectStarters(roster: TeamPlayer[], players: Player[], form
 }
 
 function takePosition(pool: Player[], position: Player["position"], n: number): { taken: Player[]; rest: Player[] } {
-  const matches = pool.filter((p) => p.position === position);
-  const others = pool.filter((p) => p.position !== position);
+  const pos = normalizePosition(position);
+  const matches = pool.filter((p) => normalizePosition(p.position) === pos);
+  const others = pool.filter((p) => normalizePosition(p.position) !== pos);
   return { taken: matches.slice(0, n), rest: [...matches.slice(n), ...others] };
 }
 
@@ -118,16 +123,19 @@ function pickBalancedSquad(pool: Player[], strength: number, size = 18): { squad
   const squad: Player[] = [];
   const quotas: Array<[Player["position"], number]> = [
     ["KL", 2],
-    ["DEF", 6],
-    ["OS", 6],
-    ["FV", 4],
+    ["STP", 4],
+    ["SLB", 2],
+    ["SĞB", 2],
+    ["MOS", 4],
+    ["KANAT", 2],
+    ["FV", 2],
   ];
   for (const [pos, n] of quotas) {
     const chunk = takePosition(rest, pos, n);
     squad.push(...chunk.taken);
     rest = chunk.rest;
   }
-  if (!squad.some((p) => p.position === "KL")) {
+  if (!squad.some((p) => normalizePosition(p.position) === "KL")) {
     const stolen = takePosition(rest, "KL", 1);
     if (stolen.taken[0]) {
       squad[0] = stolen.taken[0];
@@ -155,6 +163,7 @@ function assignSquad(
     is_starter: false,
     squad_position: null,
     acquired_at: new Date().toISOString(),
+    wage: weeklyWage(p),
   }));
   const filled = autoSelectStarters(rows, taken, team.formation);
   return { remaining, rows: filled };
@@ -227,36 +236,57 @@ export function createFreshWorld(): GameWorld {
   return hydrateWorld(ensureBotWorld(world));
 }
 
-export const HUMAN_KITS: Array<[string, string]> = [
-  ["#3dff8a", "#0b1220"],
-  ["#38bdf8", "#0b1220"],
-  ["#f472b6", "#0b1220"],
-  ["#facc15", "#0b1220"],
-  ["#fb7185", "#0b1220"],
-  ["#a78bfa", "#0b1220"],
-  ["#fb923c", "#0b1220"],
-  ["#2dd4bf", "#0b1220"],
+export const HUMAN_KITS: Array<[string, string, KitStyle]> = [
+  ["#3dff8a", "#0b1220", "solid"],
+  ["#38bdf8", "#0b1220", "stripes"],
+  ["#f472b6", "#0b1220", "hoops"],
+  ["#facc15", "#0b1220", "sash"],
+  ["#fb7185", "#0b1220", "stripes"],
+  ["#a78bfa", "#0b1220", "solid"],
+  ["#fb923c", "#0b1220", "hoops"],
+  ["#2dd4bf", "#0b1220", "sash"],
 ];
 
-export function nextHumanKit(world: GameWorld): [string, string] {
+export function nextHumanKit(world: GameWorld): [string, string, KitStyle] {
   const used = new Set(world.teams.filter((t) => t.user_id).map((t) => t.kit_primary));
   return HUMAN_KITS.find((k) => !used.has(k[0])) ?? HUMAN_KITS[world.teams.length % HUMAN_KITS.length]!;
 }
 
-export function createUserTeam(world: GameWorld, userId: string, teamName: string): { world: GameWorld; team: Team } {
+export type ClubIdentity = {
+  kit_primary?: string;
+  kit_secondary?: string;
+  kit_style?: KitStyle;
+};
+
+export function createUserTeam(
+  world: GameWorld,
+  userId: string,
+  teamName: string,
+  identity?: ClubIdentity,
+): { world: GameWorld; team: Team } {
   const existing = world.teams.find((t) => t.user_id === userId);
   if (existing) return { world: ensureLegendWorld(world), team: existing };
-  const [kit_primary, kit_secondary] = nextHumanKit(world);
-  const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary, 15_000);
+  const fallback = nextHumanKit(world);
+  const kit_primary = identity?.kit_primary ?? fallback[0];
+  const kit_secondary = identity?.kit_secondary ?? fallback[1];
+  const kit_style = identity?.kit_style ?? fallback[2];
+  const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary, 15_000, 10, kit_style);
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
   const byId = new Map(world.players.map((p) => [p.id, p]));
   let agencyCatalog = agencyPlayers
     .map((tp) => byId.get(tp.player_id))
-    .filter((p): p is Player => Boolean(p));
+    .filter((p): p is Player => Boolean(p) && !isLegend(p as Player));
 
-  const countPos = (pos: Player["position"]) => agencyCatalog.filter((p) => p.position === pos).length;
+  const countPos = (pos: Player["position"]) =>
+    agencyCatalog.filter((p) => normalizePosition(p.position) === pos).length;
   let extraPlayers: Player[] = [];
-  if (countPos("KL") < 2 || countPos("DEF") < 6 || countPos("OS") < 6 || countPos("FV") < 4 || agencyCatalog.length < 18) {
+  if (
+    countPos("KL") < 2 ||
+    countPos("STP") < 3 ||
+    countPos("MOS") < 3 ||
+    countPos("FV") < 2 ||
+    agencyCatalog.length < 18
+  ) {
     extraPlayers = generateExtraPlayers(80, 900 + world.players.length);
     agencyCatalog = [...agencyCatalog, ...extraPlayers];
   }
@@ -293,71 +323,69 @@ export function createUserTeam(world: GameWorld, userId: string, teamName: strin
 
   return {
     team: userTeam,
-    world: hydrateWorld(ensureLegendWorld({
-      ...world,
-      players: extraPlayers.length ? [...world.players, ...extraPlayers] : world.players,
-      teams: [...world.teams, userTeam],
-      teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
-      listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
-    })),
+    world: hydrateWorld(
+      ensureLegendWorld({
+        ...world,
+        players: extraPlayers.length ? [...world.players, ...extraPlayers] : world.players,
+        teams: [...world.teams, userTeam],
+        teamPlayers: [...world.teamPlayers.filter((tp) => !packIds.has(tp.id)), ...filled],
+        listings: world.listings.filter((l) => !packIds.has(l.team_player_id)),
+      }),
+    ),
   };
 }
 
-function legendReady(world: GameWorld): boolean {
+function legendOnMarket(world: GameWorld): boolean {
   const p = world.players.find((x) => x.id === ABDULLAH_ID);
   if (!p || p.overall !== 999 || p.base_value !== 100_000 || !p.versatile || !p.legend) return false;
-  return world.teams
-    .filter((t) => t.user_id)
-    .every((t) => world.teamPlayers.some((tp) => tp.team_id === t.id && tp.player_id === ABDULLAH_ID));
+  const onClub = world.teamPlayers.some((tp) => tp.player_id === ABDULLAH_ID && tp.team_id !== SYSTEM_TEAM_ID);
+  if (onClub) return false;
+  const onAgency = world.teamPlayers.some((tp) => tp.player_id === ABDULLAH_ID && tp.team_id === SYSTEM_TEAM_ID);
+  const listed = world.listings.some((l) => {
+    if (l.status !== "active") return false;
+    const tp = world.teamPlayers.find((x) => x.id === l.team_player_id);
+    return tp?.player_id === ABDULLAH_ID;
+  });
+  return onAgency && listed;
 }
 
-/** Abdullah Sarıyıldız her insan kadrosuna 999'luk efsane olarak eklenir. */
+/** Abdullah Sarıyıldız kadroda değil — ajans listesinde 100.000 ₡. */
 export function ensureLegendWorld(world: GameWorld): GameWorld {
-  if (legendReady(world)) return world;
+  if (legendOnMarket(world)) return world;
   const legend = makeAbdullah();
   let players = world.players.filter((p) => p.id !== ABDULLAH_ID && p.name !== legend.name);
   players = [legend, ...players];
 
-  let teamPlayers = world.teamPlayers.map((tp) => {
-    const owned = world.players.find((p) => p.id === tp.player_id);
-    if (owned && owned.name === legend.name && tp.player_id !== ABDULLAH_ID) {
-      return { ...tp, player_id: ABDULLAH_ID, id: rowId(tp.team_id, ABDULLAH_ID) };
-    }
-    return tp;
-  });
-
-  teamPlayers = teamPlayers.filter((tp) => {
-    if (tp.player_id !== ABDULLAH_ID) return true;
-    const team = world.teams.find((t) => t.id === tp.team_id);
-    return Boolean(team?.user_id);
-  });
-
-  const dropIds = new Set(
-    world.teamPlayers.filter((tp) => !teamPlayers.some((x) => x.id === tp.id)).map((tp) => tp.id),
+  const dropClub = world.teamPlayers.filter(
+    (tp) => tp.player_id === ABDULLAH_ID || world.players.find((p) => p.id === tp.player_id)?.name === legend.name,
   );
+  const dropIds = new Set(dropClub.map((tp) => tp.id));
+  let teamPlayers = world.teamPlayers.filter((tp) => !dropIds.has(tp.id));
   const listings = world.listings.filter((l) => !dropIds.has(l.team_player_id));
 
-  let next: GameWorld = { ...world, players, teamPlayers, listings };
-  for (const team of next.teams.filter((t) => t.user_id)) {
-    if (next.teamPlayers.some((tp) => tp.team_id === team.id && tp.player_id === ABDULLAH_ID)) continue;
-    const row: TeamPlayer = {
-      id: rowId(team.id, ABDULLAH_ID),
-      team_id: team.id,
-      player_id: ABDULLAH_ID,
-      energy: 100,
-      form: 99,
-      is_starter: false,
-      squad_position: null,
-      acquired_at: new Date().toISOString(),
-    };
-    const roster = [...next.teamPlayers.filter((tp) => tp.team_id === team.id), row];
-    const filledLegend = autoSelectStarters(roster, next.players, team.formation);
-    next = {
-      ...next,
-      teamPlayers: [...next.teamPlayers.filter((tp) => tp.team_id !== team.id), ...filledLegend],
-    };
-  }
-  return next;
+  const row: TeamPlayer = {
+    id: rowId(SYSTEM_TEAM_ID, ABDULLAH_ID),
+    team_id: SYSTEM_TEAM_ID,
+    player_id: ABDULLAH_ID,
+    energy: 100,
+    form: 99,
+    is_starter: false,
+    squad_position: null,
+    acquired_at: new Date().toISOString(),
+    wage: 0,
+    contractYears: 99,
+  };
+  const listing: TransferListing = {
+    id: listingId(SYSTEM_TEAM_ID, ABDULLAH_ID),
+    team_player_id: row.id,
+    seller_team_id: SYSTEM_TEAM_ID,
+    price: 100_000,
+    status: "active",
+    created_at: new Date().toISOString(),
+  };
+  teamPlayers = [...teamPlayers.filter((tp) => tp.player_id !== ABDULLAH_ID), row];
+  const withoutOld = listings.filter((l) => l.id !== listing.id);
+  return { ...world, players, teamPlayers, listings: [...withoutOld, listing] };
 }
 
 export function leagueTeams(world: GameWorld): Team[] {

@@ -5,6 +5,7 @@ import { isInjured, pushNews, weeklyWage } from "@/lib/career";
 import type {
   Formation,
   GameWorld,
+  KitStyle,
   LeagueDocument,
   ManagerInfo,
   MatchSimulationResult,
@@ -14,7 +15,8 @@ import type {
 } from "@/lib/types";
 import { ONLINE_MS, SYSTEM_TEAM_ID } from "@/lib/types";
 import { botManagerName } from "@/lib/catalog";
-import { autoSelectStarters, createUserTeam, leagueTeams } from "@/lib/world";
+import { isPoolListingId, playerFromPoolListing } from "@/lib/market-pool";
+import { autoSelectStarters, createUserTeam, leagueTeams, type ClubIdentity } from "@/lib/world";
 import { listingId, rowId, uid } from "@/lib/utils";
 
 export class ActionError extends Error {
@@ -69,7 +71,12 @@ export function snapshot(doc: LeagueDocument, userId: string) {
   };
 }
 
-export async function registerManager(username: string, password: string, teamName: string) {
+export async function registerManager(
+  username: string,
+  password: string,
+  teamName: string,
+  identity?: ClubIdentity,
+) {
   const u = username.trim();
   const t = teamName.trim();
   if (u.length < 2) throw new ActionError("Menajer adı çok kısa.");
@@ -89,7 +96,7 @@ export async function registerManager(username: string, password: string, teamNa
       passwordHash: hashPassword(password),
       created_at: new Date().toISOString(),
     };
-    const joined = createUserTeam(doc.world, account.id, t);
+    const joined = createUserTeam(doc.world, account.id, t, identity);
     const world = prepareWeek(joined.world);
     const next: LeagueDocument = {
       ...doc,
@@ -296,6 +303,49 @@ export async function buyListing(session: SessionHint, payload: string | BuyPayl
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
     const team = teamOf(doc, session.sub);
+
+    if (input.listingId && isPoolListingId(input.listingId)) {
+      const player = playerFromPoolListing(input.listingId);
+      if (!player) throw new ActionError("Havuz oyuncusu bulunamadı.");
+      if (doc.world.teamPlayers.some((x) => x.player_id === player.id && x.team_id === team.id)) {
+        throw new ActionError("Bu oyuncu zaten kadronuzda.");
+      }
+      const price = Math.round(input.price ?? player.base_value);
+      if (team.coins < price) throw new ActionError("Yetersiz bütçe.");
+      const squadSize = doc.world.teamPlayers.filter((x) => x.team_id === team.id).length;
+      if (squadSize >= 28) throw new ActionError("Kadro dolu (maks. 28).");
+      const row = {
+        id: rowId(team.id, player.id),
+        team_id: team.id,
+        player_id: player.id,
+        energy: 100,
+        form: 78,
+        is_starter: false,
+        squad_position: null,
+        acquired_at: new Date().toISOString(),
+        contractYears: 3,
+        wage: weeklyWage(player),
+      };
+      const roster = [...doc.world.teamPlayers.filter((x) => x.team_id === team.id), row];
+      const others = doc.world.teamPlayers.filter((x) => x.team_id !== team.id);
+      const filled = autoSelectStarters(roster, [...doc.world.players, player], team.formation);
+      let world: GameWorld = {
+        ...doc.world,
+        players: doc.world.players.some((p) => p.id === player.id)
+          ? doc.world.players
+          : [...doc.world.players, player],
+        teams: doc.world.teams.map((t) => (t.id === team.id ? { ...t, coins: t.coins - price } : t)),
+        teamPlayers: [...others, ...filled],
+      };
+      world = pushNews(world, {
+        kind: "transfer",
+        teamId: team.id,
+        text: `${player.name} ${price} ₡ karşılığında ${team.name} kadrosuna katıldı.`,
+      });
+      const next = { ...doc, world };
+      return { doc: next, result: snapshot(next, session.sub) };
+    }
+
     const active = doc.world.listings.filter((l) => l.status === "active");
     let listing = active.find((l) => l.id === input.listingId);
     if (!listing && input.teamPlayerId) {
@@ -511,6 +561,26 @@ export async function makeOffer(session: SessionHint, listingIdArg: string, pric
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
     const team = teamOf(doc, session.sub);
+
+    if (isPoolListingId(listingIdArg)) {
+      const player = playerFromPoolListing(listingIdArg);
+      if (!player) throw new ActionError("İlan yok.");
+      const ask = Math.max(220, player.base_value);
+      if (team.coins < price) throw new ActionError("Yetersiz bütçe.");
+      if (price < ask * 0.85) {
+        let world: GameWorld = pushNews(doc.world, {
+          kind: "transfer",
+          teamId: team.id,
+          text: `Lig Ajansı ${player.name} teklifini (${price} ₡) düşük bulup reddetti.`,
+        });
+        const next = { ...doc, world };
+        return { doc: next, result: snapshot(next, session.sub) };
+      }
+      const bought = buyListingSync(doc, team.id, player, price);
+      const next = { ...doc, world: bought };
+      return { doc: next, result: snapshot(next, session.sub) };
+    }
+
     const listing = doc.world.listings.find((l) => l.id === listingIdArg && l.status === "active");
     if (!listing) throw new ActionError("İlan yok.");
     if (listing.seller_team_id === team.id) throw new ActionError("Kendi ilanınıza teklif veremezsiniz.");
@@ -528,10 +598,22 @@ export async function makeOffer(session: SessionHint, listingIdArg: string, pric
       status: "pending" as const,
       created_at: new Date().toISOString(),
     };
-    const auto = !seller?.user_id && price >= listing.price * 0.85;
-    if (auto) {
-      const world = executeBuy(doc, team.id, tp.id, listing.seller_team_id, Math.round(price), listing.id);
-      const next = { ...doc, world: { ...world, offers: [...(world.offers ?? []), { ...offer, status: "accepted" as const }] } };
+    if (!seller?.user_id) {
+      if (price >= listing.price * 0.85) {
+        const world = executeBuy(doc, team.id, tp.id, listing.seller_team_id, Math.round(price), listing.id);
+        const next = { ...doc, world: { ...world, offers: [...(world.offers ?? []), { ...offer, status: "accepted" as const }] } };
+        return { doc: next, result: snapshot(next, session.sub) };
+      }
+      let world: GameWorld = {
+        ...doc.world,
+        offers: [...(doc.world.offers ?? []), { ...offer, status: "rejected" as const }],
+      };
+      world = pushNews(world, {
+        kind: "transfer",
+        teamId: team.id,
+        text: `${seller?.name ?? "Satıcı"} ${price} ₡ teklifi reddetti (istenen ${listing.price} ₡).`,
+      });
+      const next = { ...doc, world };
       return { doc: next, result: snapshot(next, session.sub) };
     }
     let world: GameWorld = { ...doc.world, offers: [...(doc.world.offers ?? []), offer] };
@@ -540,6 +622,62 @@ export async function makeOffer(session: SessionHint, listingIdArg: string, pric
       teamId: listing.seller_team_id,
       text: `${team.name} ${price} ₡ teklif etti.`,
     });
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
+}
+
+function buyListingSync(doc: LeagueDocument, teamId: string, player: Player, price: number): GameWorld {
+  const team = doc.world.teams.find((t) => t.id === teamId);
+  if (!team) throw new ActionError("Takım yok.");
+  const row = {
+    id: rowId(team.id, player.id),
+    team_id: team.id,
+    player_id: player.id,
+    energy: 100,
+    form: 78,
+    is_starter: false,
+    squad_position: null as string | null,
+    acquired_at: new Date().toISOString(),
+    contractYears: 3,
+    wage: weeklyWage(player),
+  };
+  const roster = [...doc.world.teamPlayers.filter((x) => x.team_id === team.id), row];
+  const others = doc.world.teamPlayers.filter((x) => x.team_id !== team.id);
+  const filled = autoSelectStarters(roster, [...doc.world.players, player], team.formation);
+  let world: GameWorld = {
+    ...doc.world,
+    players: doc.world.players.some((p) => p.id === player.id) ? doc.world.players : [...doc.world.players, player],
+    teams: doc.world.teams.map((t) => (t.id === team.id ? { ...t, coins: t.coins - price } : t)),
+    teamPlayers: [...others, ...filled],
+  };
+  return pushNews(world, {
+    kind: "transfer",
+    teamId: team.id,
+    text: `${player.name} ${price} ₡ karşılığında ${team.name} kadrosuna katıldı.`,
+  });
+}
+
+export async function setClub(
+  session: SessionHint,
+  patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle },
+) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const world = {
+      ...doc.world,
+      teams: doc.world.teams.map((t) =>
+        t.id === team.id
+          ? {
+              ...t,
+              kit_primary: patch.kit_primary ?? t.kit_primary,
+              kit_secondary: patch.kit_secondary ?? t.kit_secondary,
+              kit_style: patch.kit_style ?? t.kit_style ?? "solid",
+            }
+          : t,
+      ),
+    };
     const next = { ...doc, world };
     return { doc: next, result: snapshot(next, session.sub) };
   });

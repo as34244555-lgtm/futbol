@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { OverallBadge, PositionChip, StatBar } from "@/components/ui/Stats";
+import { Portrait } from "@/components/Portrait";
 import { flagUrl } from "@/lib/nations";
 import { POSITION_LABEL } from "@/lib/types";
 import type { Player, TeamPlayer } from "@/lib/types";
@@ -28,23 +29,27 @@ export function PlayerCard({
   const legend = Boolean(player.legend) || player.overall >= 100;
   const attrs = deriveAttrs(player);
   const hurt = (row?.injuryWeeks ?? 0) > 0;
+  const growth = player.lastGrowth ?? 0;
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "w-full rounded-2xl border bg-ink-800/80 p-3 text-left transition hover:border-neon/40",
-        selected ? "border-neon shadow-glow" : "border-white/10",
-        (featured || legend) && "border-gold bg-ink-900/95 p-4 shadow-gold",
+        "w-full rounded-2xl border p-3 text-left transition",
+        legend
+          ? "border-gold bg-gradient-to-br from-amber-950/80 via-ink-900 to-ink-950 shadow-gold"
+          : "bg-ink-800/80 hover:border-neon/40",
+        selected ? "border-neon shadow-glow" : !legend && "border-white/10",
+        featured && !legend && "border-white/20",
       )}
     >
       <div className="flex items-start gap-3">
         {player.portrait ? (
-          <span className="relative h-14 w-11 shrink-0 overflow-hidden rounded-lg ring-1 ring-gold/50">
-            <Image src={player.portrait} alt={player.name} fill className="object-cover" sizes="44px" />
+          <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg ring-1 ring-gold/50">
+            <Image src={player.portrait} alt={player.name} fill className="object-cover" sizes="48px" />
           </span>
         ) : (
-          <OverallBadge overall={player.overall} />
+          <Portrait id={player.id} size={52} />
         )}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -59,13 +64,14 @@ export function PlayerCard({
             <p className="truncate font-semibold">{player.name}</p>
           </div>
           <p className="mt-0.5 text-xs text-slate-400">
-            {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position]} · {player.age} yaş · {player.nationality}
+            {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position] ?? player.position} · {player.age} yaş
             {legend ? " · Efsane" : ""}
             {hurt ? ` · Sakat ${row?.injuryWeeks}h` : ""}
+            {growth > 0 ? ` · +${growth}` : growth < 0 ? ` · ${growth}` : ""}
           </p>
         </div>
         <div className="flex flex-col items-end gap-1">
-          {player.portrait && <OverallBadge overall={player.overall} />}
+          <OverallBadge overall={player.overall} />
           <PositionChip position={player.position} versatile={player.versatile} />
         </div>
       </div>
@@ -85,6 +91,7 @@ export function PlayerCard({
         Değer {formatCoins(marketValue(player, row?.form))} ₡
         {row?.wage != null ? ` · Maaş ${formatCoins(row.wage)} ₡/h` : ""}
         {row?.contractYears != null && row.contractYears < 90 ? ` · Sözleşme ${row.contractYears}s` : ""}
+        {player.potential && player.potential < 100 && !legend ? ` · Tavan ${player.potential}` : ""}
         {player.position === "KL" ? ` · Kalecilik ${attrs.handling}` : ""}
       </p>
       {footer}

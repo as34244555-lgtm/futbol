@@ -102,7 +102,7 @@ export default function SquadPage() {
         </div>
       </div>
       <div className="mt-8 flex flex-wrap gap-2 text-xs text-slate-500">
-        {(["KL", "DEF", "OS", "FV"] as const).map((p) => (
+        {(["KL", "STP", "SLB", "SĞB", "MOS", "KANAT", "FV"] as const).map((p) => (
           <span key={p} className="rounded-full bg-white/5 px-3 py-1">
             {POSITION_LABEL[p]}: {roster.filter((r) => r.player.position === p).length}
           </span>

@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     icon: "/liga-nova-logo.png",
     apple: "/apple-touch-icon.png",
   },
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     title: "Liga Nova",

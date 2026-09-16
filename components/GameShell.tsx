@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useEffect } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
+import { Crest } from "@/components/Crest";
 import { useGame } from "@/lib/game-context";
 import { formatCoins } from "@/lib/utils";
 import { weekInSeason, SEASON_WEEKS } from "@/lib/titles";
@@ -99,9 +100,12 @@ export function GameShell({ children }: { children: React.ReactNode }) {
           <Link href="/dashboard" className="lg:hidden">
             <BrandLogo size={36} />
           </Link>
-          <div className="min-w-0">
-            <p className="text-[10px] uppercase tracking-wider text-slate-500">Kulüp</p>
-            <p className="truncate font-semibold">{userTeam.name}</p>
+          <div className="flex min-w-0 items-center gap-2">
+            <Crest name={userTeam.name} primary={userTeam.kit_primary} secondary={userTeam.kit_secondary} size={36} />
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-wider text-slate-500">Kulüp</p>
+              <p className="truncate font-semibold">{userTeam.name}</p>
+            </div>
           </div>
           <div className="ml-auto flex items-center gap-3 text-sm sm:gap-4">
             <Meta className="hidden sm:block" label="Oda" value={roomCode} />
@@ -109,7 +113,7 @@ export function GameShell({ children }: { children: React.ReactNode }) {
             <Meta label="S" value={`${world.season || 1}`} />
             <Meta label="H" value={`${weekInSeason(world.week)}/${SEASON_WEEKS}`} />
             <Meta className="hidden xs:block sm:block" label="Puan" value={`${userTeam.points}`} />
-            <Link href="/inbox" className="hidden text-xs text-slate-400 hover:text-neon sm:inline">
+            <Link href="/inbox" className="text-xs text-slate-400 hover:text-neon">
               Haber
             </Link>
             <span className="rounded-full bg-gold/15 px-2.5 py-1 text-xs font-semibold text-gold sm:px-3 sm:text-sm">

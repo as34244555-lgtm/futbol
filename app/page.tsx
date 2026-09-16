@@ -11,7 +11,7 @@ const FEATURES = [
   {
     icon: Users,
     title: "Kurgusal Kadro",
-    text: "Ligin efsanesi Abdullah Sarıyıldız (999, tüm mevkiler) ve yüzlerce telifsiz futbolcu.",
+    text: "Ligin efsanesi Abdullah Sarıyıldız pazarda 100.000 ₡. Binlerce telifsiz futbolcu gelişir.",
   },
   {
     icon: Flag,
@@ -129,6 +129,10 @@ export default function LandingPage() {
           </div>
         ))}
       </section>
+      <footer className="relative z-10 mx-auto flex max-w-6xl gap-4 px-6 pb-10 text-xs text-slate-500">
+        <Link href="/gizlilik">Gizlilik</Link>
+        <Link href="/kosullar">Koşullar</Link>
+      </footer>
     </div>
   );
 }

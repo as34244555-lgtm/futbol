@@ -161,9 +161,13 @@ export function simulateMatch(
   const attackers = (side: SimSide) =>
     side.starters.filter((p) => {
       const pos = role(p, side.team.formation);
-      return pos === "FV" || pos === "OS";
+      return pos === "FV" || pos === "KANAT" || pos === "MOS";
     });
-  const defenders = (side: SimSide) => side.starters.filter((p) => role(p, side.team.formation) === "DEF");
+  const defenders = (side: SimSide) =>
+    side.starters.filter((p) => {
+      const pos = role(p, side.team.formation);
+      return pos === "STP" || pos === "SLB" || pos === "SĞB";
+    });
   const gk = (side: SimSide) =>
     side.starters.find((p) => role(p, side.team.formation) === "KL") ?? side.starters[0]!;
 
@@ -307,7 +311,7 @@ export function simulateMatch(
       return;
     }
     if (roll < 0.62) {
-      const dest = safePick(rand, att.starters, att.starters, (p) => (role(p, att.team.formation) === "FV" ? 3 : 1));
+      const dest = safePick(rand, att.starters, att.starters, (p) => (role(p, att.team.formation) === "FV" || role(p, att.team.formation) === "KANAT" ? 3 : 1));
       push(
         minute,
         EVENT.PASS,

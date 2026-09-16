@@ -1,10 +1,11 @@
 import { z } from "zod";
 import { computeBaseValue, computeOverall } from "./catalog";
 import { NATION_BY_CODE, NATION_BY_NAME, NATIONS } from "./nations";
+import { normalizePosition } from "./positions";
 import type { CommunityPlayerRow, Player, Position } from "./types";
 import { catalogId, uid } from "./utils";
 
-const positionSchema = z.enum(["KL", "DEF", "OS", "FV"]);
+const positionSchema = z.string().transform((v) => normalizePosition(v));
 
 export const communityPlayerSchema = z.object({
   name: z.string().min(2).max(80),
@@ -37,7 +38,7 @@ function resolveNation(nationality: string, code?: string): { name: string; code
 function toPlayer(row: z.infer<typeof communityPlayerSchema>, index: number): Player | string {
   const posParse = positionSchema.safeParse(row.position);
   if (!posParse.success) {
-    return `${row.name}: geçersiz mevki (${row.position}). KL, DEF, OS veya FV olmalı.`;
+    return `${row.name}: geçersiz mevki (${row.position}). KL, STP, SLB, SĞB, MOS, KANAT veya FV olmalı.`;
   }
   const position = posParse.data as Position;
   const nation = resolveNation(row.nationality, row.nationality_code);
@@ -160,7 +161,7 @@ export const SAMPLE_JSON = JSON.stringify(
       name: "Lucas Silva",
       nationality: "Brezilya",
       nationality_code: "br",
-      position: "OS",
+      position: "MOS",
       age: 27,
       attack: 88,
       defense: 76,

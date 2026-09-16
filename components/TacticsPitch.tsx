@@ -58,11 +58,18 @@ export function TacticsPitch({
               <circle
                 cx={cx}
                 cy={cy}
-                r={selected ? 5.2 : holder?.player.legend ? 5 : 4.4}
+                r={selected ? 5.2 : holder?.player.legend ? 5 : 4.6}
                 fill={holder ? (holder.player.legend ? "#f0c14b" : kit) : "rgba(0,0,0,0.25)"}
                 stroke={selected || holder?.player.legend ? "#f0c14b" : "white"}
                 strokeWidth={selected || holder?.player.legend ? 0.7 : 0.35}
               />
+              {holder && (
+                <path
+                  d={`M${cx - 2.2},${cy - 1.2} L${cx - 3.4},${cy - 2.4} L${cx - 1.5},${cy - 2.6} L${cx - 0.6},${cy - 1.4} H${cx + 0.6} L${cx + 1.5},${cy - 2.6} L${cx + 3.4},${cy - 2.4} L${cx + 2.2},${cy - 1.2} V${cy + 3.2} H${cx - 2.2} Z`}
+                  fill={holder.player.legend ? "#f0c14b" : kit}
+                  opacity="0.95"
+                />
+              )}
               <text
                 x={cx}
                 y={cy + 0.8}

@@ -8,7 +8,7 @@ const playerSchema = z.object({
   name: z.string(),
   nationality: z.string(),
   nationality_code: z.string(),
-  position: z.enum(["KL", "DEF", "OS", "FV"]),
+  position: z.enum(["KL", "STP", "SLB", "SĞB", "MOS", "KANAT", "FV"]),
   age: z.number(),
   attack: z.number(),
   defense: z.number(),

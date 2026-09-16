@@ -8,7 +8,7 @@ import type { MatchSimulationResult, Player, Team, TeamPlayer, TimelineEvent } f
 import { Button } from "@/components/ui/Button";
 import { PlayerCard } from "@/components/PlayerCard";
 import { StadiumBowl } from "@/components/StadiumBowl";
-import { delayForEvent, densifyTimeline } from "@/lib/match-playback";
+import { delayForEvent, delayForHighlight, densifyTimeline, highlightEvents } from "@/lib/match-playback";
 import { cn } from "@/lib/utils";
 import { isMuted, playByEvent, playKick, setMuted, unlockAudio } from "@/lib/sfx";
 
@@ -43,7 +43,12 @@ export function MatchSimulation({
   awayRoster: Roster[];
   onClose?: () => void;
 }) {
-  const events = useMemo(() => densifyTimeline(result, home.name, away.name), [result, home.name, away.name]);
+  const fullEvents = useMemo(() => densifyTimeline(result, home.name, away.name), [result, home.name, away.name]);
+  const [mode, setMode] = useState<"highlights" | "full">("highlights");
+  const events = useMemo(
+    () => (mode === "highlights" ? highlightEvents(fullEvents) : fullEvents),
+    [mode, fullEvents],
+  );
   const [idx, setIdx] = useState(0);
   const [playing, setPlaying] = useState(true);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
@@ -67,7 +72,10 @@ export function MatchSimulation({
   useEffect(() => {
     if (!playing || events.length === 0) return;
     const current = events[Math.min(idx, events.length - 1)];
-    const delay = delayForEvent(current ?? events[0]!, null, speed);
+    const delay =
+      mode === "highlights"
+        ? delayForHighlight(current ?? events[0]!, speed)
+        : delayForEvent(current ?? events[0]!, null, speed);
     const t = window.setTimeout(() => {
       setIdx((i) => {
         if (i >= events.length - 1) {
@@ -78,7 +86,7 @@ export function MatchSimulation({
       });
     }, delay);
     return () => window.clearTimeout(t);
-  }, [playing, idx, speed, events, result.match.id]);
+  }, [playing, idx, speed, events, result.match.id, mode]);
 
   useEffect(() => {
     if (!event) return;
@@ -124,7 +132,9 @@ export function MatchSimulation({
             <p className="font-display text-2xl tabular-nums text-white sm:text-3xl">
               {String(event.minute).padStart(2, "0")}&apos;
             </p>
-            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">Canlı · {speed}x</p>
+            <p className="text-[10px] uppercase tracking-[0.25em] text-slate-400">
+              {mode === "highlights" ? "Özet" : "Canlı"} · {speed}x
+            </p>
           </div>
           <TeamScore name={away.name} score={event.score[1]} kit={away.kit_primary} align="right" />
         </div>
@@ -223,6 +233,17 @@ export function MatchSimulation({
             {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {playing ? "Duraklat" : "Oynat"}
           </Button>
+          <Button
+            size="sm"
+            variant={mode === "highlights" ? "gold" : "ghost"}
+            onClick={() => {
+              setMode((m) => (m === "highlights" ? "full" : "highlights"));
+              setIdx(0);
+              setPlaying(true);
+            }}
+          >
+            {mode === "highlights" ? "Tam maç" : "Özet"}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => setSpeed((s) => cycleSpeed(s))}>
             <FastForward className="h-4 w-4" />
             {speed}x
@@ -302,12 +323,14 @@ export function MatchSimulation({
               </p>
             )}
             {result.ratings && result.ratings.length > 0 && (
-              <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[11px] text-slate-400">
-                {result.ratings.slice(0, 6).map((r) => (
-                  <p key={r.playerId} className="truncate">
-                    <span className={r.team === "home" ? "text-neon" : "text-gold"}>{r.rating.toFixed(1)}</span>{" "}
-                    {r.name}
-                  </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {result.ratings.slice(0, 8).map((r) => (
+                  <div key={r.playerId} className="rounded-xl border border-white/10 bg-white/5 px-2 py-1.5">
+                    <p className={cn("font-display text-lg leading-none", r.team === "home" ? "text-neon" : "text-gold")}>
+                      {r.rating.toFixed(1)}
+                    </p>
+                    <p className="truncate text-[11px] text-slate-300">{r.name}</p>
+                  </div>
                 ))}
               </div>
             )}
@@ -362,12 +385,18 @@ function PlayerDot({
   const x = baseX + (event.ball.x - baseX) * pull;
   const y = baseY + (event.ball.y - baseY) * pull;
   return (
-    <motion.g
-      initial={{ x: mapX(x), y: mapY(y) }}
-      animate={{ x: mapX(x), y: mapY(y) }}
-      transition={{ type: "spring", stiffness: 60, damping: 16 }}
-    >
-      <circle cx={0} cy={0} r={involved ? 2.4 : 1.9} fill={kit} stroke="white" strokeWidth={0.25} />
-    </motion.g>
+      <motion.g
+        initial={{ x: mapX(x), y: mapY(y) }}
+        animate={{ x: mapX(x), y: mapY(y) }}
+        transition={{ type: "spring", stiffness: 60, damping: 16 }}
+      >
+        <path
+          d="M-2.1,-2.4 L-3.2,-3.4 L-1.4,-3.6 L-0.6,-2.6 H0.6 L1.4,-3.6 L3.2,-3.4 L2.1,-2.4 V2.8 H-2.1 Z"
+          fill={kit}
+          stroke="white"
+          strokeWidth={involved ? 0.35 : 0.2}
+        />
+        <circle cx={0} cy={-4.2} r={1.05} fill="#f1d2b0" stroke="white" strokeWidth={0.15} />
+      </motion.g>
   );
 }

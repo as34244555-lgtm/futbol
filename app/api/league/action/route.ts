@@ -22,6 +22,7 @@ type Body =
   | { type: "setReady" }
   | { type: "makeOffer"; listingId: string; price: number }
   | { type: "respondOffer"; offerId: string; accept: boolean }
+  | { type: "setClub"; kit_primary?: string; kit_secondary?: string; kit_style?: string }
   | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" };
 
 export async function POST(req: Request) {
@@ -65,6 +66,14 @@ export async function POST(req: Request) {
           return NextResponse.json(await actions.makeOffer(session, body.listingId, body.price));
         case "respondOffer":
           return NextResponse.json(await actions.respondOffer(session, body.offerId, body.accept));
+        case "setClub":
+          return NextResponse.json(
+            await actions.setClub(session, {
+              kit_primary: body.kit_primary,
+              kit_secondary: body.kit_secondary,
+              kit_style: body.kit_style as import("@/lib/types").KitStyle | undefined,
+            }),
+          );
         case "importPlayers":
           return NextResponse.json({ error: "Kapalı" }, { status: 404 });
         default:

@@ -2,15 +2,19 @@
 
 import { ChampionBanner } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
+import { NewsCard } from "@/components/NewsCard";
 import { PlayerCard } from "@/components/PlayerCard";
 import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
+import { ABDULLAH_ID } from "@/lib/catalog";
 import { teamWageBill } from "@/lib/career";
 import { expectedGoals, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { formatSeasonWeek, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
+import { isInjured } from "@/lib/career";
 import { rosterOf } from "@/lib/world";
 import { formatCoins } from "@/lib/utils";
+import { makeAbdullah } from "@/lib/catalog";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
@@ -26,6 +30,9 @@ export default function DashboardPage() {
     ? teamGrade(teamProfile(userTeam, startersOf(userTeam, roster), true))
     : null;
   const legend = roster.find((r) => r.player.legend || r.player.overall >= 100);
+  const abdullahOwned = roster.some((r) => r.player.id === ABDULLAH_ID);
+  const xiReady = starters.filter((r) => !isInjured(r)).length >= 11;
+  const trainingSet = Boolean(userTeam?.training);
   const stars = [...roster]
     .sort(
       (a, b) =>
@@ -99,6 +106,11 @@ export default function DashboardPage() {
         </Button>
         <span className="text-slate-500">Arkadaşın kayıt/girişte aynı kodu yazsın.</span>
       </div>
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        <Task done={xiReady} href="/squad" title="İlk 11" text={xiReady ? "Diziliş hazır" : "Sakatlık veya boş mevki var"} />
+        <Task done={trainingSet} href="/tactics" title="Antrenman" text={trainingSet ? "Odak seçildi" : "Bu hafta ne çalışılacak?"} />
+        <Task done={Boolean(userTeam?.readyWeek === world.week)} href="/match" title="Hazırım" text="Maç gününe git, düdüğü çal" />
+      </div>
       {world.lastTitle && (
         <div className="mb-6">
           <ChampionBanner title={world.lastTitle} />
@@ -130,14 +142,11 @@ export default function DashboardPage() {
               Tümü
             </Link>
           </div>
-          <ul className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2">
             {(world.news ?? []).slice(0, 4).map((n) => (
-              <li key={n.id} className="rounded-xl bg-white/5 px-3 py-2">
-                <span className="mr-2 text-[10px] uppercase text-slate-500">H{n.week}</span>
-                {n.text}
-              </li>
+              <NewsCard key={n.id} item={n} />
             ))}
-          </ul>
+          </div>
         </div>
       )}
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -216,12 +225,25 @@ export default function DashboardPage() {
         ))}
         {managers.length === 0 && <p className="text-sm text-slate-500">Henüz menajer yok.</p>}
       </div>
-      {legend && (
+      {legend ? (
         <div className="mt-8 max-w-md">
           <h2 className="font-display text-2xl text-gold">Efsane</h2>
           <p className="mb-3 mt-1 text-sm text-slate-400">999 genel · Türkiye · her mevkiye uyumlu</p>
           <PlayerCard player={legend.player} row={legend} featured />
         </div>
+      ) : (
+        !abdullahOwned && (
+          <div className="mt-8 max-w-md">
+            <h2 className="font-display text-2xl text-gold">Pazarda efsane</h2>
+            <p className="mb-3 mt-1 text-sm text-slate-400">
+              Abdullah Sarıyıldız kadroda değil — Lig Ajansı 100.000 ₡ istiyor.
+            </p>
+            <PlayerCard player={makeAbdullah()} featured />
+            <Link href="/transfer" className="mt-3 inline-block text-sm text-neon">
+              Piyasaya git
+            </Link>
+          </div>
+        )
       )}
       <h2 className="font-display mt-10 text-2xl">Yıldızlar</h2>
       <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -230,6 +252,19 @@ export default function DashboardPage() {
         ))}
       </div>
     </GameShell>
+  );
+}
+
+function Task({ done, href, title, text }: { done: boolean; href: string; title: string; text: string }) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-2xl border px-4 py-3 ${done ? "border-neon/30 bg-neon/10" : "border-white/10 bg-ink-800"}`}
+    >
+      <p className="text-xs uppercase tracking-wider text-slate-500">{done ? "Tamam" : "Bu hafta"}</p>
+      <p className="font-semibold">{title}</p>
+      <p className="text-sm text-slate-400">{text}</p>
+    </Link>
   );
 }
 

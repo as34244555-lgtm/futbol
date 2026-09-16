@@ -1,12 +1,18 @@
-export const POSITIONS = ["KL", "DEF", "OS", "FV"] as const;
+export const POSITIONS = ["KL", "STP", "SLB", "SĞB", "MOS", "KANAT", "FV"] as const;
 export type Position = (typeof POSITIONS)[number];
 
 export const POSITION_LABEL: Record<Position, string> = {
   KL: "Kaleci",
-  DEF: "Defans",
-  OS: "Orta Saha",
+  STP: "Stoper",
+  SLB: "Sol Bek",
+  SĞB: "Sağ Bek",
+  MOS: "Orta Saha",
+  KANAT: "Kanat",
   FV: "Forvet",
 };
+
+export const KIT_STYLES = ["solid", "stripes", "hoops", "sash"] as const;
+export type KitStyle = (typeof KIT_STYLES)[number];
 
 export const TACTICS = ["BALANCED", "ATTACKING", "DEFENSIVE", "POSSESSION", "COUNTER"] as const;
 export type Tactic = (typeof TACTICS)[number];
@@ -59,6 +65,7 @@ export type Team = {
   created_at: string;
   kit_primary: string;
   kit_secondary: string;
+  kit_style?: KitStyle;
   played: number;
   won: number;
   drawn: number;
@@ -94,6 +101,10 @@ export type Player = {
   passing?: number;
   marking?: number;
   handling?: number;
+  /** Gelişim tavanı (gizli tavan, 8–99). */
+  potential?: number;
+  /** Bu hafta genel puanda değişim. */
+  lastGrowth?: number;
 };
 
 export type TeamPlayer = {
@@ -208,7 +219,7 @@ export type NewsItem = {
   week: number;
   season: number;
   at: string;
-  kind: "injury" | "wage" | "contract" | "transfer" | "cup" | "title" | "form" | "ready";
+  kind: "injury" | "wage" | "contract" | "transfer" | "cup" | "title" | "form" | "ready" | "growth" | "youth" | "retire";
   text: string;
   teamId?: string;
 };

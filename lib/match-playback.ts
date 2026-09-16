@@ -100,9 +100,31 @@ export function densifyTimeline(
   return out;
 }
 
+export function highlightEvents(events: TimelineEvent[]): TimelineEvent[] {
+  return events.filter(
+    (e) =>
+      e.eventType === "goal" ||
+      e.eventType === "shot" ||
+      e.eventType === "chance" ||
+      e.eventType === "card" ||
+      e.eventType === "whistle" ||
+      e.eventType === "kickoff" ||
+      e.minute === 1 ||
+      e.minute === 45 ||
+      e.minute === 90,
+  );
+}
+
 export function delayForEvent(event: TimelineEvent, _prev: TimelineEvent | null, speed: number): number {
   if (event.eventType === "goal") return Math.max(2200, 2600 / speed);
   if (event.eventType === "whistle") return Math.max(1200, 1600 / speed);
+  if (event.eventType === "shot" || event.eventType === "chance") return Math.max(900, 1100 / speed);
   // Tam 90 tik: 1x ≈ 1.7 sn/dk → maç ~2.5 dakika
   return Math.max(1500, 1700 / speed);
+}
+
+export function delayForHighlight(event: TimelineEvent, speed: number): number {
+  if (event.eventType === "goal") return Math.max(2400, 2800 / speed);
+  if (event.eventType === "shot" || event.eventType === "chance") return Math.max(1100, 1400 / speed);
+  return Math.max(700, 900 / speed);
 }

@@ -2,9 +2,12 @@ import {
   ageSquads,
   applyTrainingRecovery,
   crownCup,
+  developPlayers,
   ensureCup,
   hydrateWorld,
+  intakeYouth,
   payWeeklyWages,
+  retireVeterans,
   stampShare,
 } from "./career";
 import { buildSimSide, simulateMatch, simulateScoreOnly } from "./match-engine";
@@ -147,10 +150,10 @@ function closeWeekIfReady(world: GameWorld): GameWorld {
     if (out) acc = out.world;
   }
   const beforeTitles = (acc.titles ?? []).length;
-  let closed = applyTrainingRecovery(payWeeklyWages({ ...acc, week: acc.week + 1 }));
+  let closed = developPlayers(applyTrainingRecovery(payWeeklyWages({ ...acc, week: acc.week + 1 })));
   closed = crownSeason(closed);
   if ((closed.titles ?? []).length > beforeTitles) {
-    closed = stampShare(ageSquads(closed));
+    closed = stampShare(intakeYouth(retireVeterans(ageSquads(closed))));
   }
   return crownCup(closed);
 }

@@ -1,6 +1,7 @@
 import { buildSimSide, simulateMatch } from "../lib/match-engine";
-import { ageSquads, deriveAttrs, ensureCup, hydrateWorld, teamWageBill, weeklyWage } from "../lib/career";
+import { ageSquads, deriveAttrs, developPlayers, ensureCup, hydrateWorld, intakeYouth, teamWageBill, weeklyWage } from "../lib/career";
 import { expectedGoals, marketValue, positionFit, teamProfile } from "../lib/ratings";
+import { marketCount } from "../lib/market-pool";
 import { playUserMatch, prepareWeek } from "../lib/season";
 import { applyMatchResult, autoSelectStarters, createFreshWorld, createUserTeam, generateWeekFixtures, leagueTeams, rosterOf } from "../lib/world";
 import { densifyTimeline } from "../lib/match-playback";
@@ -23,6 +24,7 @@ assert(
   ids0.every((id) => id.startsWith("tm_")),
   "listing ids should be stable listingId() values",
 );
+assert(marketCount(world0) >= 1000, `market must list 1000+ players, got ${marketCount(world0)}`);
 
 const joined = createUserTeam(world0, "user-a", "Ada SK");
 assert(joined.team.id === "team_user-a", `expected humanTeamId, got ${joined.team.id}`);
@@ -36,14 +38,22 @@ assert(abdullah!.base_value === 100_000, `Abdullah value should be 100000, got $
 assert(abdullah!.nationality_code === "tr", "Abdullah must be Turkish");
 assert(abdullah!.versatile, "Abdullah must play every position");
 assert(
-  joined.world.teamPlayers.some((tp) => tp.team_id === joined.team.id && tp.player_id === abdullah!.id),
-  "new human squad should receive Abdullah",
+  !joined.world.teamPlayers.some((tp) => tp.team_id === joined.team.id && tp.player_id === abdullah!.id),
+  "new human squad must NOT receive Abdullah",
 );
-const abdullahStart = joined.world.teamPlayers.find(
-  (tp) => tp.team_id === joined.team.id && tp.player_id === abdullah!.id,
+assert(
+  joined.world.teamPlayers.some((tp) => tp.team_id === SYSTEM_TEAM_ID && tp.player_id === abdullah!.id),
+  "Abdullah must sit on the agency",
 );
-assert(abdullahStart?.is_starter, "999 overall should start");
-assert(abdullahStart?.squad_position === "st", `Abdullah should start at ST, got ${abdullahStart?.squad_position}`);
+assert(
+  joined.world.listings.some(
+    (l) =>
+      l.status === "active" &&
+      l.price === 100_000 &&
+      joined.world.teamPlayers.find((tp) => tp.id === l.team_player_id)?.player_id === abdullah!.id,
+  ),
+  "Abdullah must be listed for 100000",
+);
 
 const sample = world0.listings.find((l) => l.status === "active")!;
 const seller = world0.teams.find((t) => t.id === sample.seller_team_id)!;
@@ -139,7 +149,7 @@ for (let i = 0; i < 12; i++) {
 }
 assert(strongGoals > weakGoals, `stronger XI should score more (${strongGoals} vs ${weakGoals})`);
 assert(positionFit("FV", "KL") < 0.6, "striker in goal is a bad fit");
-assert(positionFit("OS", "FV") > positionFit("KL", "FV"), "adjacent roles beat opposite roles");
+assert(positionFit("MOS", "FV") > positionFit("KL", "FV"), "adjacent roles beat opposite roles");
 const star = joined.world.players.find((p) => p.name === "Erlung Haland")!;
 assert(marketValue(star, 95) > marketValue(star, 40), "hot form raises market value");
 
@@ -221,6 +231,14 @@ assert(deriveAttrs(star).finishing >= 80, "striker finishing should be high");
 const aged = ageSquads(wet);
 const agedStar = aged.players.find((p) => p.name === "Erlung Haland")!;
 assert(agedStar.age === star.age + 1, "players age one year at season end");
+const withYouth = intakeYouth(wet);
+assert(
+  withYouth.teamPlayers.filter((tp) => tp.team_id === joined.team.id).length >
+    wet.teamPlayers.filter((tp) => tp.team_id === joined.team.id).length,
+  "youth should join the human squad at season turn",
+);
+const developed = developPlayers(wet);
+assert(developed.players.every((p) => p.potential == null || p.potential >= Math.min(99, p.overall) || p.legend), "potential holds");
 
 const cupWorld = ensureCup({ ...wet, week: 5 });
 assert(

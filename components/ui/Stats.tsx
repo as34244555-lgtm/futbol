@@ -54,8 +54,13 @@ export function PositionChip({ position, versatile }: { position: string; versat
   }
   const map: Record<string, string> = {
     KL: "bg-amber-500/20 text-amber-300",
+    STP: "bg-sky-500/20 text-sky-300",
+    SLB: "bg-cyan-500/20 text-cyan-300",
+    SĞB: "bg-indigo-500/20 text-indigo-300",
     DEF: "bg-sky-500/20 text-sky-300",
+    MOS: "bg-emerald-500/20 text-emerald-300",
     OS: "bg-emerald-500/20 text-emerald-300",
+    KANAT: "bg-lime-500/20 text-lime-300",
     FV: "bg-rose-500/20 text-rose-300",
   };
   return (

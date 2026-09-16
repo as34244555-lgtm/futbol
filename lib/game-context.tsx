@@ -2,9 +2,12 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { OpeningSplash } from "@/components/OpeningSplash";
+import { RegisterPwa } from "@/components/RegisterPwa";
+import { enableNotifications, notifyReady } from "@/lib/notify";
 import type {
   Formation,
   GameWorld,
+  KitStyle,
   ManagerInfo,
   MatchSimulationResult,
   Player,
@@ -47,11 +50,18 @@ type GameContextValue = {
   humans: number;
   bots: number;
   roomCode: string;
-  register: (username: string, password: string, teamName: string, roomCode?: string) => Promise<string | null>;
+  register: (
+    username: string,
+    password: string,
+    teamName: string,
+    roomCode?: string,
+    extra?: { career?: boolean; kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle },
+  ) => Promise<string | null>;
   login: (username: string, password: string, roomCode?: string) => Promise<string | null>;
   logout: () => Promise<void>;
   setFormation: (formation: Formation) => Promise<void>;
   setTactics: (tactics: Tactic) => Promise<void>;
+  setClub: (patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle }) => Promise<void>;
   assignSlot: (slotKey: string, teamPlayerId: string) => Promise<void>;
   autoPick: () => Promise<void>;
   listForSale: (teamPlayerId: string, price: number) => Promise<string | null>;
@@ -152,17 +162,43 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     [snap],
   );
 
-  const register = useCallback(async (username: string, password: string, teamName: string, roomCode?: string) => {
-    const res = await fetch("/api/auth/register", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ username, password, teamName, roomCode }),
-    });
-    const json = (await readJson(res)) as { error?: string };
-    if (!res.ok) return json.error ?? "Kayıt başarısız";
-    await refresh();
-    return null;
-  }, [refresh]);
+  useEffect(() => {
+    if (!userTeam) return;
+    const next = snap.world.matches.find(
+      (m) =>
+        m.week === snap.world.week &&
+        m.status === "pending" &&
+        (m.home_team_id === userTeam.id || m.away_team_id === userTeam.id),
+    );
+    if (!next) return;
+    const oppId = next.home_team_id === userTeam.id ? next.away_team_id : next.home_team_id;
+    const opp = snap.world.teams.find((t) => t.id === oppId);
+    if (opp?.user_id && opp.readyWeek === snap.world.week && userTeam.readyWeek !== snap.world.week) {
+      notifyReady("Rakip hazır", `${opp.name} düdük için bekliyor.`);
+    }
+  }, [snap.world, userTeam]);
+
+  const register = useCallback(
+    async (
+      username: string,
+      password: string,
+      teamName: string,
+      roomCode?: string,
+      extra?: { career?: boolean; kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle },
+    ) => {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ username, password, teamName, roomCode, ...extra }),
+      });
+      const json = (await readJson(res)) as { error?: string };
+      if (!res.ok) return json.error ?? "Kayıt başarısız";
+      await refresh();
+      void enableNotifications();
+      return null;
+    },
+    [refresh],
+  );
 
   const login = useCallback(async (username: string, password: string, roomCode?: string) => {
     const res = await fetch("/api/auth/login", {
@@ -187,6 +223,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const setTactics = useCallback(async (tactics: Tactic) => {
     apply(await postAction({ type: "setTactics", tactics }));
+  }, [apply]);
+
+  const setClub = useCallback(async (patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle }) => {
+    apply(await postAction({ type: "setClub", ...patch }));
   }, [apply]);
 
   const assignSlot = useCallback(async (slotKey: string, teamPlayerId: string) => {
@@ -296,6 +336,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       logout,
       setFormation,
       setTactics,
+      setClub,
       assignSlot,
       autoPick,
       listForSale,
@@ -320,6 +361,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       logout,
       setFormation,
       setTactics,
+      setClub,
       assignSlot,
       autoPick,
       listForSale,
@@ -338,6 +380,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <GameContext.Provider value={value}>
+      <RegisterPwa />
       <OpeningSplash>{children}</OpeningSplash>
     </GameContext.Provider>
   );
