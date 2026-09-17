@@ -1,15 +1,30 @@
 "use client";
 
-import Image from "next/image";
-import { OverallBadge, PositionChip, StatBar } from "@/components/ui/Stats";
-import { Portrait } from "@/components/Portrait";
+import { CardArt } from "@/components/Portrait";
+import { cardRarity, displayOvr, EF_POS, RARITY_LABEL, RARITY_THEME } from "@/lib/card-rarity";
+import { deriveAttrs } from "@/lib/career";
 import { flagUrl } from "@/lib/nations";
+import { marketValue } from "@/lib/ratings";
 import { POSITION_LABEL } from "@/lib/types";
 import type { Player, TeamPlayer } from "@/lib/types";
-import { formatCoins } from "@/lib/utils";
-import { deriveAttrs } from "@/lib/career";
-import { marketValue } from "@/lib/ratings";
-import { cn } from "@/lib/utils";
+import { cn, formatCoins } from "@/lib/utils";
+import { RotateCcw } from "lucide-react";
+import Image from "next/image";
+import { useState, type ReactNode } from "react";
+
+function AttrRow({ label, value, tone }: { label: string; value: number; tone: string }) {
+  return (
+    <div>
+      <div className="mb-0.5 flex justify-between text-[10px] uppercase tracking-wider text-white/70">
+        <span>{label}</span>
+        <span className="font-semibold text-white">{value}</span>
+      </div>
+      <div className="h-1 overflow-hidden rounded-full bg-white/10">
+        <div className={cn("h-full rounded-full", tone)} style={{ width: `${Math.min(100, value)}%` }} />
+      </div>
+    </div>
+  );
+}
 
 export function PlayerCard({
   player,
@@ -18,83 +33,138 @@ export function PlayerCard({
   featured,
   onClick,
   footer,
+  kit,
+  compact,
 }: {
   player: Player;
   row?: TeamPlayer;
   selected?: boolean;
   featured?: boolean;
   onClick?: () => void;
-  footer?: React.ReactNode;
+  footer?: ReactNode;
+  kit?: string;
+  compact?: boolean;
 }) {
-  const legend = Boolean(player.legend) || player.overall >= 100;
+  const [flipped, setFlipped] = useState(false);
+  const rarity = cardRarity(player);
+  const theme = RARITY_THEME[rarity];
   const attrs = deriveAttrs(player);
   const hurt = (row?.injuryWeeks ?? 0) > 0;
   const growth = player.lastGrowth ?? 0;
+  const pos = player.versatile ? "ALL" : EF_POS[player.position] ?? player.position;
+  const ovr = displayOvr(player.overall);
+
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "w-full rounded-2xl border p-3 text-left transition",
-        legend
-          ? "border-gold bg-gradient-to-br from-amber-950/80 via-ink-900 to-ink-950 shadow-gold"
-          : "bg-ink-800/80 hover:border-neon/40",
-        selected ? "border-neon shadow-glow" : !legend && "border-white/10",
-        featured && !legend && "border-white/20",
-      )}
-    >
-      <div className="flex items-start gap-3">
-        {player.portrait ? (
-          <span className="relative h-16 w-12 shrink-0 overflow-hidden rounded-lg ring-1 ring-gold/50">
-            <Image src={player.portrait} alt={player.name} fill className="object-cover" sizes="48px" />
-          </span>
-        ) : (
-          <Portrait id={player.id} size={52} />
+    <div className={cn("w-full", featured && "max-w-none")}>
+      <div
+        className={cn(
+          "ef-scene",
+          onClick && "cursor-pointer",
+          selected && "rounded-[1.15rem] ring-2 ring-neon ring-offset-2 ring-offset-ink-950",
         )}
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <Image
-              src={flagUrl(player.nationality_code, 40)}
-              alt={player.nationality}
-              width={20}
-              height={14}
-              className="h-3.5 w-5 rounded-sm object-cover"
-              unoptimized
-            />
-            <p className="truncate font-semibold">{player.name}</p>
+        role={onClick ? "button" : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={onClick}
+        onKeyDown={(e) => {
+          if (!onClick) return;
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onClick();
+          }
+        }}
+      >
+        <div className={cn("ef-inner", flipped && "is-flipped")}>
+          <div className={cn("ef-face overflow-hidden rounded-[1.05rem] bg-gradient-to-br p-[3px]", theme.frame, theme.glow)}>
+            <div className="relative h-full overflow-hidden rounded-[0.92rem] bg-ink-950">
+              <CardArt id={player.id} kit={kit} portrait={player.portrait} name={player.name} />
+              <span className={cn("ef-foil", `ef-foil-${rarity}`)} />
+              <span className="pointer-events-none absolute inset-0 rounded-[0.92rem] ring-1 ring-inset ring-white/15" />
+              <div className="absolute left-2 top-2 z-10 min-w-[2.6rem] rounded-md bg-black/45 px-1.5 py-1 text-center backdrop-blur-[2px]">
+                <p className={cn("font-display leading-none", compact ? "text-2xl" : "text-3xl", theme.ovr)}>{ovr}</p>
+                <p className="mt-0.5 text-[10px] font-bold tracking-[0.18em] text-white/85">{pos}</p>
+              </div>
+              <div className="absolute right-2 top-2 z-10 flex flex-col items-end gap-1">
+                <Image
+                  src={flagUrl(player.nationality_code, 40)}
+                  alt={player.nationality}
+                  width={22}
+                  height={15}
+                  className="h-[15px] w-[22px] rounded-[2px] object-cover ring-1 ring-black/40"
+                  unoptimized
+                />
+                <span className={cn("rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-wider text-ink-950", theme.gem)}>
+                  {RARITY_LABEL[rarity]}
+                </span>
+              </div>
+              <div className={cn("absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t to-transparent p-2 pt-10", theme.plate)}>
+                <p className={cn("truncate font-display uppercase leading-tight tracking-wide text-white", compact ? "text-sm" : "text-base")}>
+                  {player.name}
+                </p>
+                <p className="truncate text-[10px] text-white/65">
+                  {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position] ?? player.position} · {player.age} yaş
+                  {hurt ? ` · Sakat ${row?.injuryWeeks}h` : ""}
+                  {growth > 0 ? ` · +${growth}` : growth < 0 ? ` · ${growth}` : ""}
+                </p>
+              </div>
+              <button
+                type="button"
+                aria-label="Kartı çevir"
+                className="absolute bottom-2 right-2 z-20 rounded-full bg-black/45 p-1 text-white/80 hover:bg-black/70"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setFlipped((v) => !v);
+                }}
+              >
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
-          <p className="mt-0.5 text-xs text-slate-400">
-            {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position] ?? player.position} · {player.age} yaş
-            {legend ? " · Efsane" : ""}
-            {hurt ? ` · Sakat ${row?.injuryWeeks}h` : ""}
-            {growth > 0 ? ` · +${growth}` : growth < 0 ? ` · ${growth}` : ""}
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <OverallBadge overall={player.overall} />
-          <PositionChip position={player.position} versatile={player.versatile} />
+          <div className={cn("ef-face ef-back overflow-hidden rounded-[1.05rem] bg-gradient-to-br p-[3px]", theme.frame, theme.glow)}>
+            <div className={cn("flex h-full flex-col rounded-[0.92rem] bg-ink-950/95 px-3 py-3", compact && "px-2 py-2")}>
+              <div className="mb-2 flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate font-display text-sm uppercase tracking-wide">{player.name}</p>
+                  <p className="text-[10px] text-slate-400">
+                    {RARITY_LABEL[rarity]} · {pos} · {ovr}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Karta dön"
+                  className="rounded-full bg-white/10 p-1 text-white/80 hover:bg-white/20"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setFlipped(false);
+                  }}
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <div className="space-y-1.5">
+                <AttrRow label="Tempo" value={attrs.pace} tone="bg-amber-300" />
+                <AttrRow label="Bitiricilik" value={attrs.finishing} tone="bg-rose-400" />
+                <AttrRow label="Pas" value={attrs.passing} tone="bg-violet-400" />
+                <AttrRow label="Markaj" value={attrs.marking} tone="bg-sky-400" />
+                {player.position === "KL" ? (
+                  <AttrRow label="Kalecilik" value={attrs.handling} tone="bg-lime-400" />
+                ) : row ? (
+                  <AttrRow label="Form" value={row.form} tone="bg-gold" />
+                ) : (
+                  <AttrRow label="Kalecilik" value={attrs.handling} tone="bg-lime-400" />
+                )}
+                {row && <AttrRow label="Enerji" value={row.energy} tone="bg-neon" />}
+              </div>
+              <p className="mt-auto pt-2 text-[10px] leading-snug text-slate-500">
+                Değer {formatCoins(marketValue(player, row?.form))} ₡
+                {row?.wage != null ? ` · Maaş ${formatCoins(row.wage)} ₡/h` : ""}
+                {row?.contractYears != null && row.contractYears < 90 ? ` · Sözleşme ${row.contractYears}s` : ""}
+                {player.potential && player.potential < 100 && rarity !== "legend" ? ` · Tavan ${player.potential}` : ""}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <StatBar value={attrs.finishing} label="Bitiricilik" color="bg-rose-400" />
-        <StatBar value={attrs.marking} label="Markaj" color="bg-sky-400" />
-        <StatBar value={attrs.pace} label="Tempo" color="bg-amber-300" />
-        <StatBar value={attrs.passing} label="Pas" color="bg-violet-400" />
-        {row && (
-          <>
-            <StatBar value={row.energy} label="Enerji" color="bg-neon" />
-            <StatBar value={row.form} label="Form" color="bg-gold" />
-          </>
-        )}
-      </div>
-      <p className="mt-2 text-[11px] text-slate-500">
-        Değer {formatCoins(marketValue(player, row?.form))} ₡
-        {row?.wage != null ? ` · Maaş ${formatCoins(row.wage)} ₡/h` : ""}
-        {row?.contractYears != null && row.contractYears < 90 ? ` · Sözleşme ${row.contractYears}s` : ""}
-        {player.potential && player.potential < 100 && !legend ? ` · Tavan ${player.potential}` : ""}
-        {player.position === "KL" ? ` · Kalecilik ${attrs.handling}` : ""}
-      </p>
       {footer}
-    </button>
+    </div>
   );
 }

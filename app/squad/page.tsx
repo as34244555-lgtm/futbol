@@ -54,13 +54,16 @@ export default function SquadPage() {
               : "Oyuncu yerleştirmek için sahadaki bir noktaya tıklayın."}
           </p>
           {msg && <p className="mb-3 text-sm text-gold">{msg}</p>}
-          <div className="max-h-[640px] space-y-3 overflow-y-auto pr-1">
+          <div className="grid max-h-[720px] grid-cols-2 gap-3 overflow-y-auto pr-1">
             {roster.map((r) => (
               <div key={r.id} className="space-y-2">
                 <PlayerCard
                   player={r.player}
                   row={r}
+                  kit={userTeam.kit_primary}
+                  compact
                   selected={selected === r.id}
+                  featured={Boolean(r.player.legend)}
                   onClick={() => {
                     setSelected(r.id);
                     if (slot) {
@@ -69,20 +72,20 @@ export default function SquadPage() {
                     }
                   }}
                   footer={
-                    <p className="mt-2 text-[11px] text-slate-500">
+                    <p className="mt-1 text-[10px] text-slate-500">
                       {isInjured(r) ? `Sakat · ${r.injury ?? "Tedavi"}` : r.is_starter ? `İlk 11 · ${r.squad_position}` : "Yedek"}
                       {listed.has(r.id) ? " · Listede" : ""}
                     </p>
                   }
                 />
                 {selected === r.id && (
-                  <div className="flex items-center gap-2 px-1">
+                  <div className="flex flex-col gap-2 px-1">
                     <input
                       type="number"
                       min={1}
                       value={price}
                       onChange={(e) => setPrice(Number(e.target.value))}
-                      className="w-32 rounded-lg border border-white/10 bg-ink-800 px-2 py-1 text-sm"
+                      className="w-full rounded-lg border border-white/10 bg-ink-800 px-2 py-1 text-sm"
                     />
                     <Button
                       size="sm"

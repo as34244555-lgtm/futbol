@@ -1,17 +1,16 @@
 "use client";
 
 import { GameShell } from "@/components/GameShell";
-import { Portrait } from "@/components/Portrait";
-import { PositionChip } from "@/components/ui/Stats";
+import { PlayerCard } from "@/components/PlayerCard";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
-import { flagUrl } from "@/lib/nations";
 import { ABDULLAH_ID, botManagerName } from "@/lib/catalog";
 import { mergeMarket, positionFilters } from "@/lib/market-pool";
 import { SYSTEM_TEAM_ID } from "@/lib/types";
 import { formatCoins } from "@/lib/utils";
-import Image from "next/image";
 import { useMemo, useState } from "react";
+
+const PAGE = 36;
 
 export default function TransferPage() {
   const { world, userTeam, buyListing, cancelListing, makeOffer, respondOffer } = useGame();
@@ -19,6 +18,7 @@ export default function TransferPage() {
   const [pos, setPos] = useState("ALL");
   const [msg, setMsg] = useState<string | null>(null);
   const [bid, setBid] = useState<Record<string, number>>({});
+  const [shown, setShown] = useState(PAGE);
 
   const all = useMemo(() => mergeMarket(world), [world]);
   const rows = useMemo(() => {
@@ -37,6 +37,7 @@ export default function TransferPage() {
     })
     .filter((x) => x.player);
   const market = rows.filter((r) => r.listing.seller_team_id !== userTeam?.id);
+  const visible = market.slice(0, shown);
 
   return (
     <GameShell>
@@ -49,12 +50,23 @@ export default function TransferPage() {
       <div className="mb-6 flex flex-wrap gap-3">
         <input
           value={q}
-          onChange={(e) => setQ(e.target.value)}
+          onChange={(e) => {
+            setQ(e.target.value);
+            setShown(PAGE);
+          }}
           placeholder="Oyuncu ara"
           className="rounded-xl border border-white/10 bg-ink-800 px-4 py-2 text-sm outline-none ring-neon focus:ring-2"
         />
         {positionFilters().map((p) => (
-          <Button key={p.id} size="sm" variant={pos === p.id ? "primary" : "ghost" } onClick={() => setPos(p.id)}>
+          <Button
+            key={p.id}
+            size="sm"
+            variant={pos === p.id ? "primary" : "ghost"}
+            onClick={() => {
+              setPos(p.id);
+              setShown(PAGE);
+            }}
+          >
             {p.label}
           </Button>
         ))}
@@ -108,114 +120,77 @@ export default function TransferPage() {
           Bu filtrede oyuncu yok. Mevkiyi Tümü yapın veya aramayı silin — pazarda her zaman en az 1000 isim durur.
         </p>
       ) : (
-      <div className="overflow-x-auto rounded-2xl border border-white/10">
-        <table className="w-full min-w-[640px] text-left text-sm">
-          <thead className="bg-white/5 text-xs uppercase tracking-wider text-slate-400">
-            <tr>
-              <th className="px-4 py-3">Oyuncu</th>
-              <th>Mevki</th>
-              <th>OVR</th>
-              <th>Satıcı</th>
-              <th>Fiyat</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {market.slice(0, 120).map((r) => (
-              <tr key={r.listing.id} className="border-t border-white/5">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {r.player.portrait ? (
-                      <Image
-                        src={flagUrl(r.player.nationality_code)}
-                        alt=""
-                        width={20}
-                        height={14}
-                        className="h-3.5 w-5 rounded-sm object-cover"
-                        unoptimized
+        <>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+            {visible.map((r) => {
+              const seller =
+                r.listing.seller_team_id === SYSTEM_TEAM_ID
+                  ? "Lig Ajansı"
+                  : `${world.teams.find((t) => t.id === r.listing.seller_team_id)?.name ?? "Kulüp"} · ${
+                      world.teams.find((t) => t.id === r.listing.seller_team_id)?.user_id
+                        ? "insan"
+                        : botManagerName(world.teams.find((t) => t.id === r.listing.seller_team_id)?.name ?? "")
+                    }`;
+              const kit = world.teams.find((t) => t.id === r.listing.seller_team_id)?.kit_primary;
+              return (
+                <PlayerCard
+                  key={r.listing.id}
+                  player={r.player}
+                  kit={kit}
+                  compact
+                  featured={r.player.id === ABDULLAH_ID}
+                  footer={
+                    <div className="mt-2 space-y-1.5">
+                      <p className="truncate text-[10px] text-slate-500">{seller}</p>
+                      <p className="text-sm font-semibold text-gold">{formatCoins(r.listing.price)} ₡</p>
+                      <input
+                        type="number"
+                        min={1}
+                        value={bid[r.listing.id] ?? Math.round(r.listing.price * 0.9)}
+                        onChange={(e) => setBid((b) => ({ ...b, [r.listing.id]: Number(e.target.value) }))}
+                        className="w-full rounded-lg border border-white/10 bg-ink-900 px-2 py-1 text-sm"
                       />
-                    ) : (
-                      <Portrait id={r.player.id} size={36} />
-                    )}
-                    <Image
-                      src={flagUrl(r.player.nationality_code)}
-                      alt=""
-                      width={20}
-                      height={14}
-                      className="h-3.5 w-5 rounded-sm object-cover"
-                      unoptimized
-                    />
-                    <div>
-                      <p className="font-medium">
-                        {r.player.name}
-                        {r.player.id === ABDULLAH_ID ? <span className="ml-2 text-gold">Efsane</span> : null}
-                      </p>
-                      <p className="text-xs text-slate-500">
-                        {r.player.age} yaş · {r.player.nationality}
-                        {r.player.potential ? ` · tavan ${r.player.potential}` : ""}
-                      </p>
+                      <div className="flex flex-wrap gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={async () => {
+                            const err = await makeOffer(r.listing.id, bid[r.listing.id] ?? Math.round(r.listing.price * 0.9));
+                            setMsg(err ?? `${r.player.name} için teklif gitti.`);
+                          }}
+                        >
+                          Teklif
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={async () => {
+                            const err = await buyListing({
+                              listingId: r.listing.id,
+                              playerId: r.player.id,
+                              sellerTeamId: r.listing.seller_team_id,
+                              price: r.listing.price,
+                            });
+                            setMsg(err ?? `${r.player.name} kadroya katıldı.`);
+                          }}
+                        >
+                          Al
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td>
-                  <PositionChip position={r.player.position} versatile={r.player.versatile} />
-                </td>
-                <td className="font-semibold">{r.player.overall}</td>
-                <td className="text-slate-400">
-                  {r.listing.seller_team_id === SYSTEM_TEAM_ID
-                    ? "Lig Ajansı"
-                    : `${world.teams.find((t) => t.id === r.listing.seller_team_id)?.name ?? "Kulüp"} · ${
-                        world.teams.find((t) => t.id === r.listing.seller_team_id)?.user_id
-                          ? "insan"
-                          : botManagerName(world.teams.find((t) => t.id === r.listing.seller_team_id)?.name ?? "")
-                      }`}
-                </td>
-                <td className="text-gold">{formatCoins(r.listing.price)} ₡</td>
-                <td className="pr-4 text-right">
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      value={bid[r.listing.id] ?? Math.round(r.listing.price * 0.9)}
-                      onChange={(e) => setBid((b) => ({ ...b, [r.listing.id]: Number(e.target.value) }))}
-                      className="w-24 rounded-lg border border-white/10 bg-ink-900 px-2 py-1 text-sm"
-                    />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={async () => {
-                        const err = await makeOffer(r.listing.id, bid[r.listing.id] ?? Math.round(r.listing.price * 0.9));
-                        setMsg(err ?? `${r.player.name} için teklif gitti.`);
-                      }}
-                    >
-                      Teklif
-                    </Button>
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        const err = await buyListing({
-                          listingId: r.listing.id,
-                          playerId: r.player.id,
-                          sellerTeamId: r.listing.seller_team_id,
-                          price: r.listing.price,
-                        });
-                        setMsg(err ?? `${r.player.name} kadroya katıldı.`);
-                      }}
-                    >
-                      Satın al
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {market.length > 120 && (
-          <p className="px-4 py-3 text-xs text-slate-500">
-            {market.length - 120} oyuncu daha var — arama veya mevki ile daraltın. Toplam {all.length} satılık.
-          </p>
-        )}
-      </div>
+                  }
+                />
+              );
+            })}
+          </div>
+          {market.length > shown && (
+            <div className="mt-6 text-center">
+              <Button variant="outline" onClick={() => setShown((n) => n + PAGE)}>
+                Daha fazla kart ({market.length - shown} kaldı)
+              </Button>
+              <p className="mt-2 text-xs text-slate-500">Toplam {all.length} satılık.</p>
+            </div>
+          )}
+        </>
       )}
     </GameShell>
   );

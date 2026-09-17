@@ -218,7 +218,7 @@ export function MatchSimulation({
                     <motion.div
                       initial={{ y: 40, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
-                      className="pointer-events-auto mt-3 w-full max-w-sm"
+                      className="pointer-events-auto mt-3 w-full max-w-[220px]"
                     >
                       <PlayerCard player={scorer.player} row={scorer} featured />
                     </motion.div>

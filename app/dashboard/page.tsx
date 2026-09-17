@@ -226,14 +226,14 @@ export default function DashboardPage() {
         {managers.length === 0 && <p className="text-sm text-slate-500">Henüz menajer yok.</p>}
       </div>
       {legend ? (
-        <div className="mt-8 max-w-md">
+        <div className="mt-8 max-w-[240px]">
           <h2 className="font-display text-2xl text-gold">Efsane</h2>
           <p className="mb-3 mt-1 text-sm text-slate-400">999 genel · Türkiye · her mevkiye uyumlu</p>
-          <PlayerCard player={legend.player} row={legend} featured />
+          <PlayerCard player={legend.player} row={legend} kit={userTeam?.kit_primary} featured />
         </div>
       ) : (
         !abdullahOwned && (
-          <div className="mt-8 max-w-md">
+          <div className="mt-8 max-w-[240px]">
             <h2 className="font-display text-2xl text-gold">Pazarda efsane</h2>
             <p className="mb-3 mt-1 text-sm text-slate-400">
               Abdullah Sarıyıldız kadroda değil — Lig Ajansı 100.000 ₡ istiyor.
@@ -246,9 +246,16 @@ export default function DashboardPage() {
         )
       )}
       <h2 className="font-display mt-10 text-2xl">Yıldızlar</h2>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {stars.map((r) => (
-          <PlayerCard key={r.id} player={r.player} row={r} featured={Boolean(r.player.legend)} />
+          <PlayerCard
+            key={r.id}
+            player={r.player}
+            row={r}
+            kit={userTeam?.kit_primary}
+            compact
+            featured={Boolean(r.player.legend)}
+          />
         ))}
       </div>
     </GameShell>
