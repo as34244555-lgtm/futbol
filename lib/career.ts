@@ -559,7 +559,7 @@ export function intakeYouth(world: GameWorld): GameWorld {
   const humans = world.teams.filter((t) => t.user_id);
   if (!humans.length) return world;
   const extras = generateExtraPlayers(humans.length * 3, 12_000 + world.players.length + world.week);
-  const youths = extras.map((p, i) => {
+  const youths = extras.map((p) => {
     const age = 16 + (hash32(p.id) % 3);
     const attack = clamp(p.attack - 12, 42, 68);
     const defense = clamp(p.defense - 12, 40, 68);

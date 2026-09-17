@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function PrivacyPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-16 text-slate-300">
@@ -8,9 +10,9 @@ export default function PrivacyPage() {
         gönderilmez. Veriyi silmek için çıkış yapıp odayı bırakın veya işletmeciye yazın.
       </p>
       <p className="mt-4 text-sm">
-        <a className="text-neon" href="/">
+        <Link className="text-neon" href="/">
           Ana sayfa
-        </a>
+        </Link>
       </p>
     </main>
   );

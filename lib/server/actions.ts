@@ -568,7 +568,7 @@ export async function makeOffer(session: SessionHint, listingIdArg: string, pric
       const ask = Math.max(220, player.base_value);
       if (team.coins < price) throw new ActionError("Yetersiz bütçe.");
       if (price < ask * 0.85) {
-        let world: GameWorld = pushNews(doc.world, {
+        const world: GameWorld = pushNews(doc.world, {
           kind: "transfer",
           teamId: team.id,
           text: `Lig Ajansı ${player.name} teklifini (${price} ₡) düşük bulup reddetti.`,
@@ -645,7 +645,7 @@ function buyListingSync(doc: LeagueDocument, teamId: string, player: Player, pri
   const roster = [...doc.world.teamPlayers.filter((x) => x.team_id === team.id), row];
   const others = doc.world.teamPlayers.filter((x) => x.team_id !== team.id);
   const filled = autoSelectStarters(roster, [...doc.world.players, player], team.formation);
-  let world: GameWorld = {
+  const world: GameWorld = {
     ...doc.world,
     players: doc.world.players.some((p) => p.id === player.id) ? doc.world.players : [...doc.world.players, player],
     teams: doc.world.teams.map((t) => (t.id === team.id ? { ...t, coins: t.coins - price } : t)),
