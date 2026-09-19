@@ -9,10 +9,13 @@ import { useGame } from "@/lib/game-context";
 import { chemistryOf, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { trainingHint } from "@/lib/career";
 import { FORMATIONS as FORMATION_LIST, KIT_STYLES, TACTIC_LABEL, TACTICS, TRAINING_LABEL, TRAININGS } from "@/lib/types";
-import type { KitStyle } from "@/lib/types";
+import type { KitStyle, StadiumPrefs } from "@/lib/types";
 import { HUMAN_KITS } from "@/lib/world";
 import { rosterOf } from "@/lib/world";
 import { useMemo } from "react";
+import { StadiumSettings } from "@/components/StadiumSettings";
+import { PlayerInspect } from "@/components/scene/PlayerInspect";
+import { normalizeStadium } from "@/lib/stadium";
 
 export default function TacticsPage() {
   const { world, userTeam, setFormation, setTactics, setTraining, setClub } = useGame();
@@ -23,6 +26,7 @@ export default function TacticsPage() {
   const profile = teamProfile(userTeam, starters, true);
   const grade = teamGrade(profile);
   const chem = Math.round(chemistryOf(userTeam, starters) * 100);
+  const preview = roster.find((r) => r.is_starter) ?? roster[0];
 
   return (
     <GameShell>
@@ -112,6 +116,24 @@ export default function TacticsPage() {
               ))}
             </div>
           </div>
+          <StadiumSettings
+            value={normalizeStadium(userTeam.stadium)}
+            onChange={(stadium: StadiumPrefs) => void setClub({ stadium })}
+          />
+          {preview && (
+            <div>
+              <p className="mb-2 text-sm text-slate-400">3D oyuncu modeli</p>
+              <div className="overflow-hidden rounded-2xl border border-white/10">
+                <PlayerInspect
+                  player={preview.player}
+                  kit={userTeam.kit_primary}
+                  kitSecondary={userTeam.kit_secondary}
+                  kitStyle={userTeam.kit_style}
+                  className="h-64 w-full"
+                />
+              </div>
+            </div>
+          )}
           <p className="text-sm text-slate-400">
             Skor önceden yazılmaz. Her şut, bitiricilik − markaj − kalecilik farkından xG üretir.
             Yanlış mevki, sakatlık, düşük enerji ve form gücü düşürür.

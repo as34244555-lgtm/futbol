@@ -131,12 +131,15 @@ export default function TransferPage() {
                         ? "insan"
                         : botManagerName(world.teams.find((t) => t.id === r.listing.seller_team_id)?.name ?? "")
                     }`;
-              const kit = world.teams.find((t) => t.id === r.listing.seller_team_id)?.kit_primary;
+              const sellerTeam = world.teams.find((t) => t.id === r.listing.seller_team_id);
+              const kit = sellerTeam?.kit_primary;
               return (
                 <PlayerCard
                   key={r.listing.id}
                   player={r.player}
                   kit={kit}
+                  kitSecondary={sellerTeam?.kit_secondary}
+                  kitStyle={sellerTeam?.kit_style}
                   compact
                   featured={r.player.id === ABDULLAH_ID}
                   footer={

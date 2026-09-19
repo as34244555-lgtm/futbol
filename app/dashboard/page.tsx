@@ -229,7 +229,7 @@ export default function DashboardPage() {
         <div className="mt-8 max-w-[240px]">
           <h2 className="font-display text-2xl text-gold">Efsane</h2>
           <p className="mb-3 mt-1 text-sm text-slate-400">999 genel · Türkiye · her mevkiye uyumlu</p>
-          <PlayerCard player={legend.player} row={legend} kit={userTeam?.kit_primary} featured />
+          <PlayerCard player={legend.player} row={legend} kit={userTeam?.kit_primary} kitSecondary={userTeam?.kit_secondary} kitStyle={userTeam?.kit_style} featured />
         </div>
       ) : (
         !abdullahOwned && (
@@ -253,6 +253,8 @@ export default function DashboardPage() {
             player={r.player}
             row={r}
             kit={userTeam?.kit_primary}
+            kitSecondary={userTeam?.kit_secondary}
+            kitStyle={userTeam?.kit_style}
             compact
             featured={Boolean(r.player.legend)}
           />

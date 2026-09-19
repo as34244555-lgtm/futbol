@@ -1,6 +1,7 @@
 import { computeBaseValue, computeOverall, generateExtraPlayers, isLegend, rollPotential, simOverall } from "./catalog";
 import { normalizePosition } from "./positions";
 import { SYSTEM_TEAM_ID } from "./types";
+import { normalizeStadium } from "./stadium";
 import type {
   CupState,
   GameWorld,
@@ -174,6 +175,7 @@ export function hydrateWorld(world: GameWorld): GameWorld {
     ...t,
     training: t.training ?? "FITNESS",
     kit_style: t.kit_style ?? "solid",
+    stadium: normalizeStadium(t.stadium),
   }));
   return { ...world, players, teamPlayers, teams, news: world.news ?? [], offers: world.offers ?? [] };
 }

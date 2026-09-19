@@ -10,6 +10,7 @@ import type {
   ManagerInfo,
   MatchSimulationResult,
   Player,
+  StadiumPrefs,
   Tactic,
   Training,
 } from "@/lib/types";
@@ -660,7 +661,7 @@ function buyListingSync(doc: LeagueDocument, teamId: string, player: Player, pri
 
 export async function setClub(
   session: SessionHint,
-  patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle },
+  patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle; stadium?: StadiumPrefs },
 ) {
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
@@ -674,6 +675,7 @@ export async function setClub(
               kit_primary: patch.kit_primary ?? t.kit_primary,
               kit_secondary: patch.kit_secondary ?? t.kit_secondary,
               kit_style: patch.kit_style ?? t.kit_style ?? "solid",
+              stadium: patch.stadium ?? t.stadium,
             }
           : t,
       ),

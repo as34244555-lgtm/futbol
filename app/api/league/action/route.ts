@@ -3,7 +3,7 @@ import { ActionError } from "@/lib/server/actions";
 import * as actions from "@/lib/server/actions";
 import { getSession } from "@/lib/server/session";
 import { runWithRoom } from "@/lib/server/store";
-import type { Formation, Player, Tactic, Training } from "@/lib/types";
+import type { Formation, Player, StadiumPrefs, Tactic, Training } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -22,7 +22,7 @@ type Body =
   | { type: "setReady" }
   | { type: "makeOffer"; listingId: string; price: number }
   | { type: "respondOffer"; offerId: string; accept: boolean }
-  | { type: "setClub"; kit_primary?: string; kit_secondary?: string; kit_style?: string }
+  | { type: "setClub"; kit_primary?: string; kit_secondary?: string; kit_style?: string; stadium?: StadiumPrefs }
   | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" };
 
 export async function POST(req: Request) {
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
               kit_primary: body.kit_primary,
               kit_secondary: body.kit_secondary,
               kit_style: body.kit_style as import("@/lib/types").KitStyle | undefined,
+              stadium: body.stadium,
             }),
           );
         case "importPlayers":

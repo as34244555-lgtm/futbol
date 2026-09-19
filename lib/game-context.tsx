@@ -12,6 +12,7 @@ import type {
   MatchSimulationResult,
   Player,
   SessionUser,
+  StadiumPrefs,
   Tactic,
   Team,
   Training,
@@ -61,7 +62,12 @@ type GameContextValue = {
   logout: () => Promise<void>;
   setFormation: (formation: Formation) => Promise<void>;
   setTactics: (tactics: Tactic) => Promise<void>;
-  setClub: (patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle }) => Promise<void>;
+  setClub: (patch: {
+    kit_primary?: string;
+    kit_secondary?: string;
+    kit_style?: KitStyle;
+    stadium?: StadiumPrefs;
+  }) => Promise<void>;
   assignSlot: (slotKey: string, teamPlayerId: string) => Promise<void>;
   autoPick: () => Promise<void>;
   listForSale: (teamPlayerId: string, price: number) => Promise<string | null>;
@@ -225,9 +231,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     apply(await postAction({ type: "setTactics", tactics }));
   }, [apply]);
 
-  const setClub = useCallback(async (patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle }) => {
-    apply(await postAction({ type: "setClub", ...patch }));
-  }, [apply]);
+  const setClub = useCallback(
+    async (patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle; stadium?: StadiumPrefs }) => {
+      apply(await postAction({ type: "setClub", ...patch }));
+    },
+    [apply],
+  );
 
   const assignSlot = useCallback(async (slotKey: string, teamPlayerId: string) => {
     apply(await postAction({ type: "assignSlot", slotKey, teamPlayerId }));

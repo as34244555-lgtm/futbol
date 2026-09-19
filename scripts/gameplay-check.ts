@@ -10,6 +10,7 @@ import { SYSTEM_TEAM_ID } from "../lib/types";
 import { packLeague, unpackLeague } from "../lib/server/remote-kv";
 import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from "../lib/titles";
 import { cardRarity, displayOvr } from "../lib/card-rarity";
+import { normalizeStadium } from "../lib/stadium";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -60,6 +61,8 @@ assert(displayOvr(999) === "99+", "legend overall displays as 99+");
 assert(cardRarity({ overall: 64 }) === "bronze", "low overall is bronze");
 assert(cardRarity({ overall: 82 }) === "featured", "82 is featured");
 assert(cardRarity({ overall: 93 }) === "showtime", "93 is showtime");
+assert(normalizeStadium(joined.team.stadium).camera === "broadcast", "default stadium camera");
+assert(hydrateWorld(joined.world).teams[0]?.stadium?.sky, "hydrate fills stadium");
 
 const sample = world0.listings.find((l) => l.status === "active")!;
 const seller = world0.teams.find((t) => t.id === sample.seller_team_id)!;

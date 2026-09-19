@@ -14,6 +14,29 @@ export const POSITION_LABEL: Record<Position, string> = {
 export const KIT_STYLES = ["solid", "stripes", "hoops", "sash"] as const;
 export type KitStyle = (typeof KIT_STYLES)[number];
 
+export const STADIUM_SKIES = ["day", "sunset", "night"] as const;
+export type StadiumSky = (typeof STADIUM_SKIES)[number];
+export const STADIUM_WEATHER = ["clear", "rain"] as const;
+export type StadiumWeather = (typeof STADIUM_WEATHER)[number];
+export const STADIUM_CROWD = ["low", "full"] as const;
+export type StadiumCrowd = (typeof STADIUM_CROWD)[number];
+export const STADIUM_CAMERAS = ["broadcast", "sideline", "tactical"] as const;
+export type StadiumCamera = (typeof STADIUM_CAMERAS)[number];
+
+export type StadiumPrefs = {
+  sky: StadiumSky;
+  weather: StadiumWeather;
+  crowd: StadiumCrowd;
+  camera: StadiumCamera;
+};
+
+export const DEFAULT_STADIUM: StadiumPrefs = {
+  sky: "night",
+  weather: "clear",
+  crowd: "full",
+  camera: "broadcast",
+};
+
 export const TACTICS = ["BALANCED", "ATTACKING", "DEFENSIVE", "POSSESSION", "COUNTER"] as const;
 export type Tactic = (typeof TACTICS)[number];
 
@@ -78,6 +101,8 @@ export type Team = {
   training?: Training;
   /** Bu hafta düdük için hazır (insan-insan). */
   readyWeek?: number;
+  /** Maç stadyumu: gökyüzü, hava, tribün, kamera. */
+  stadium?: StadiumPrefs;
 };
 
 export type Player = {

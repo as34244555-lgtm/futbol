@@ -3,11 +3,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Pause, Play, FastForward, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { FORMATION_SLOTS } from "@/lib/formations";
-import type { MatchSimulationResult, Player, Team, TeamPlayer, TimelineEvent } from "@/lib/types";
+import type { MatchSimulationResult, Player, Team, TeamPlayer } from "@/lib/types";
 import { Button } from "@/components/ui/Button";
 import { PlayerCard } from "@/components/PlayerCard";
 import { StadiumBowl } from "@/components/StadiumBowl";
+import { StadiumMatch } from "@/components/scene/StadiumMatch";
+import { normalizeStadium } from "@/lib/stadium";
 import { delayForEvent, delayForHighlight, densifyTimeline, highlightEvents } from "@/lib/match-playback";
 import { cn } from "@/lib/utils";
 import { isMuted, playByEvent, playKick, setMuted, unlockAudio } from "@/lib/sfx";
@@ -19,13 +20,6 @@ const SPEEDS = [1, 2, 4] as const;
 function cycleSpeed(s: (typeof SPEEDS)[number]): (typeof SPEEDS)[number] {
   const i = SPEEDS.indexOf(s);
   return SPEEDS[(i + 1) % SPEEDS.length]!;
-}
-
-function mapX(x: number) {
-  return 2 + (x / 100) * 96;
-}
-function mapY(y: number) {
-  return 2 + (y / 100) * 64;
 }
 
 export function MatchSimulation({
@@ -149,49 +143,14 @@ export function MatchSimulation({
         </div>
         <StadiumBowl caption={stadium}>
           <div className="relative">
-            <svg viewBox="0 0 100 68" className="h-auto w-full rounded-xl">
-              <defs>
-                <pattern id="mg" width="10" height="68" patternUnits="userSpaceOnUse">
-                  <rect width="5" height="68" fill="#157f38" />
-                  <rect x="5" width="5" height="68" fill="#117433" />
-                </pattern>
-              </defs>
-              <rect width="100" height="68" fill="url(#mg)" />
-              <g fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="0.35">
-                <rect x="2" y="2" width="96" height="64" />
-                <line x1="50" y1="2" x2="50" y2="66" />
-                <circle cx="50" cy="34" r="8" />
-                <rect x="2" y="20.5" width="14" height="27" />
-                <rect x="84" y="20.5" width="14" height="27" />
-              </g>
-              {homeStarters.map((r) => (
-                <PlayerDot
-                  key={r.id}
-                  row={r}
-                  home
-                  formation={home.formation}
-                  kit={home.kit_primary}
-                  event={event}
-                />
-              ))}
-              {awayStarters.map((r) => (
-                <PlayerDot
-                  key={r.id}
-                  row={r}
-                  home={false}
-                  formation={away.formation}
-                  kit={away.kit_primary}
-                  event={event}
-                />
-              ))}
-              <motion.g
-                initial={{ x: mapX(event.ball.x), y: mapY(event.ball.y) }}
-                animate={{ x: mapX(event.ball.x), y: mapY(event.ball.y) }}
-                transition={{ type: "spring", stiffness: 70, damping: 18 }}
-              >
-                <circle r={1.15} cx={0} cy={0} fill="white" stroke="#111" strokeWidth={0.25} />
-              </motion.g>
-            </svg>
+            <StadiumMatch
+              home={home}
+              away={away}
+              homeStarters={homeStarters}
+              awayStarters={awayStarters}
+              event={event}
+              prefs={normalizeStadium(home.stadium)}
+            />
             <AnimatePresence>
               {onGoal && (
                 <motion.div
@@ -220,7 +179,14 @@ export function MatchSimulation({
                       animate={{ y: 0, opacity: 1 }}
                       className="pointer-events-auto mt-3 w-full max-w-[220px]"
                     >
-                      <PlayerCard player={scorer.player} row={scorer} featured />
+                      <PlayerCard
+                        player={scorer.player}
+                        row={scorer}
+                        kit={homeRoster.some((r) => r.id === scorer.id) ? home.kit_primary : away.kit_primary}
+                        kitSecondary={homeRoster.some((r) => r.id === scorer.id) ? home.kit_secondary : away.kit_secondary}
+                        kitStyle={homeRoster.some((r) => r.id === scorer.id) ? home.kit_style : away.kit_style}
+                        featured
+                      />
                     </motion.div>
                   )}
                 </motion.div>
@@ -360,43 +326,5 @@ function TeamScore({
         <p className="font-display text-3xl leading-none sm:text-4xl">{score}</p>
       </div>
     </div>
-  );
-}
-
-function PlayerDot({
-  row,
-  home,
-  formation,
-  kit,
-  event,
-}: {
-  row: Roster;
-  home: boolean;
-  formation: Team["formation"];
-  kit: string;
-  event: TimelineEvent;
-}) {
-  const slots = FORMATION_SLOTS[formation];
-  const slot = slots.find((s) => s.key === row.squad_position) ?? slots[0]!;
-  const baseX = home ? slot.x : 100 - slot.x;
-  const baseY = home ? slot.y : 100 - slot.y;
-  const involved = event.actorId === row.player.id;
-  const pull = involved ? 0.55 : event.team === (home ? "home" : "away") ? 0.12 : 0.04;
-  const x = baseX + (event.ball.x - baseX) * pull;
-  const y = baseY + (event.ball.y - baseY) * pull;
-  return (
-      <motion.g
-        initial={{ x: mapX(x), y: mapY(y) }}
-        animate={{ x: mapX(x), y: mapY(y) }}
-        transition={{ type: "spring", stiffness: 60, damping: 16 }}
-      >
-        <path
-          d="M-2.1,-2.4 L-3.2,-3.4 L-1.4,-3.6 L-0.6,-2.6 H0.6 L1.4,-3.6 L3.2,-3.4 L2.1,-2.4 V2.8 H-2.1 Z"
-          fill={kit}
-          stroke="white"
-          strokeWidth={involved ? 0.35 : 0.2}
-        />
-        <circle cx={0} cy={-4.2} r={1.05} fill="#f1d2b0" stroke="white" strokeWidth={0.15} />
-      </motion.g>
   );
 }

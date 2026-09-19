@@ -55,6 +55,7 @@ function emptyTeam(
     goals_for: 0,
     goals_against: 0,
     titles: 0,
+    stadium: { sky: "night", weather: "clear", crowd: "full", camera: "broadcast" },
   };
 }
 

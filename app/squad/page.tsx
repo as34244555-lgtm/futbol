@@ -61,6 +61,8 @@ export default function SquadPage() {
                   player={r.player}
                   row={r}
                   kit={userTeam.kit_primary}
+                  kitSecondary={userTeam.kit_secondary}
+                  kitStyle={userTeam.kit_style}
                   compact
                   selected={selected === r.id}
                   featured={Boolean(r.player.legend)}
