@@ -52,12 +52,12 @@ export function PlayerInspect({
         portraitUrl: photoPortrait(player),
       });
       fig.rotation.y = 0.25;
-      fig.scale.setScalar(1.45);
+      fig.scale.setScalar(1.12);
       figure.current = fig;
       scene.add(fig);
 
-      camera.position.set(0.55, 1.25, 2.15);
-      camera.lookAt(0, 1.05, 0);
+      camera.position.set(1.15, 1.55, 3.35);
+      camera.lookAt(0, 0.95, 0);
       return () => {
         figure.current = null;
       };
@@ -70,9 +70,9 @@ export function PlayerInspect({
       t.current += dt;
       if (figure.current) {
         tickPlayerFigure(figure.current, t.current, clip, true);
-        figure.current.rotation.y = Math.PI + Math.sin(t.current * 0.5) * 0.35;
+        figure.current.rotation.y = 0.35 + Math.sin(t.current * 0.45) * 0.25;
       }
-      camera.lookAt(0, 1.0, 0);
+      camera.lookAt(0, 0.95, 0);
     },
     [clip],
   );
