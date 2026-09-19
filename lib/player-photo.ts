@@ -1,6 +1,8 @@
 import { hash32 } from "./utils";
 
 export const PHOTO_COUNT = 24;
+/** Bump when the portrait files change so next/image and browsers drop stale busts. */
+export const PHOTO_VER = "cin2";
 
 const ALL = Array.from({ length: PHOTO_COUNT }, (_, i) => i);
 
@@ -41,5 +43,5 @@ export function photoPortrait(player: {
     if (older.length) pool = older;
   }
   const i = pool[hash32(player.id) % pool.length]!;
-  return `/portraits/p${String(i).padStart(2, "0")}.webp`;
+  return `/portraits/p${String(i).padStart(2, "0")}.webp?v=${PHOTO_VER}`;
 }

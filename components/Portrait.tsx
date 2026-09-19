@@ -22,7 +22,14 @@ export function CardArt({
   const tint = Boolean(kit) && !portrait;
   return (
     <span className="absolute inset-0">
-      <Image src={src} alt={name ?? ""} fill className="object-cover object-top" sizes="280px" />
+      <Image
+        src={src}
+        alt={name ?? ""}
+        fill
+        unoptimized
+        className="object-cover object-[center_22%]"
+        sizes="280px"
+      />
       {tint && (
         <span
           className="pointer-events-none absolute inset-x-0 bottom-0 h-[30%] mix-blend-multiply opacity-75"
