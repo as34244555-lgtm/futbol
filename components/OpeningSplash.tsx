@@ -3,10 +3,12 @@
 import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
-const SESSION_KEY = "liga-nova-opened";
+const SESSION_KEY = "ml-opened";
 
 export function OpeningSplash({ children }: { children: React.ReactNode }) {
+  const { t } = useI18n();
   const [phase, setPhase] = useState<"boot" | "show" | "out" | "done">("boot");
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export function OpeningSplash({ children }: { children: React.ReactNode }) {
       return;
     }
     setPhase("show");
-    const fade = window.setTimeout(() => setPhase("out"), 2400);
+    const fade = window.setTimeout(() => setPhase("out"), 2800);
     const end = window.setTimeout(() => {
       try {
         sessionStorage.setItem(SESSION_KEY, "1");
@@ -29,7 +31,7 @@ export function OpeningSplash({ children }: { children: React.ReactNode }) {
         /* ignore */
       }
       setPhase("done");
-    }, 3100);
+    }, 3500);
     return () => {
       window.clearTimeout(fade);
       window.clearTimeout(end);
@@ -43,40 +45,30 @@ export function OpeningSplash({ children }: { children: React.ReactNode }) {
         {phase !== "done" && (
           <motion.div
             key="splash"
-            className="fixed inset-0 z-[80] flex flex-col items-center justify-center overflow-hidden bg-ink-950"
+            className="fixed inset-0 z-[80] flex flex-col items-center justify-center overflow-hidden bg-white"
             initial={{ opacity: 1 }}
             animate={{ opacity: phase === "out" ? 0 : 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.65 }}
-            aria-label="Liga Nova açılış"
+            aria-label={`${t("studio")} ${t("studioPresents")} ${t("game")}`}
           >
-            <Image
-              src="/liga-nova-splash.webp"
-              alt=""
-              fill
-              priority
-              className="object-cover opacity-70"
-              sizes="100vw"
-            />
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-ink-950/40 via-transparent to-ink-950/80" />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(40,70,180,0.12),transparent_55%)]" />
             <motion.div
               className="relative z-10 flex flex-col items-center px-6 text-center"
-              initial={{ opacity: 0, scale: 0.86, y: 18 }}
+              initial={{ opacity: 0, scale: 0.88, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ duration: 0.7, ease: "easeOut" }}
             >
-              <span className="splash-pulse inline-flex rounded-[2rem] shadow-gold">
-                <Image
-                  src="/liga-nova-logo.png"
-                  alt="Liga Nova"
-                  width={220}
-                  height={220}
-                  priority
-                  className="h-[min(42vw,220px)] w-[min(42vw,220px)] rounded-[2rem] object-cover ring-1 ring-gold/40"
-                />
-              </span>
-              <p className="mt-6 font-display text-5xl tracking-[0.18em] text-gold sm:text-6xl">LIGA NOVA</p>
-              <p className="mt-2 text-xs uppercase tracking-[0.42em] text-neon">Futbol menajerlik</p>
+              <Image
+                src="/a-studio-logo.jpg"
+                alt={t("studio")}
+                width={720}
+                height={392}
+                priority
+                className="h-auto w-[min(88vw,520px)] object-contain"
+              />
+              <p className="mt-4 text-[11px] uppercase tracking-[0.48em] text-slate-500">{t("studioPresents")}</p>
+              <p className="mt-2 font-display text-4xl tracking-[0.14em] text-[#1a2a6c] sm:text-5xl">{t("game")}</p>
             </motion.div>
           </motion.div>
         )}

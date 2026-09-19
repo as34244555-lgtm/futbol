@@ -3,6 +3,7 @@
 import { ChampionBanner } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
 import { useGame } from "@/lib/game-context";
+import { useI18n } from "@/lib/i18n";
 import { formatSeasonWeek, leagueTable, recentForm, SEASON_WEEKS, weekInSeason } from "@/lib/titles";
 import { cn } from "@/lib/utils";
 import { Trophy } from "lucide-react";
@@ -10,6 +11,7 @@ import { useMemo } from "react";
 
 export default function LeaguePage() {
   const { world, userTeam } = useGame();
+  const { t } = useI18n();
   const table = useMemo(() => leagueTable(world), [world]);
   const titles = world.titles ?? [];
   const lastTitle = world.lastTitle ?? titles[titles.length - 1];
@@ -23,7 +25,7 @@ export default function LeaguePage() {
   return (
     <GameShell>
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">{formatSeasonWeek(world.week)}</p>
-      <h1 className="font-display mb-2 text-4xl sm:text-5xl">Liga Nova puan durumu</h1>
+      <h1 className="font-display mb-2 text-4xl sm:text-5xl">{t("league.title")}</h1>
       <p className="mb-6 text-sm text-slate-400">
         {SEASON_WEEKS} haftalık sezon. {SEASON_WEEKS}. hafta bitince lider kupayı alır, puanlar sıfırlanır.
       </p>
@@ -34,7 +36,7 @@ export default function LeaguePage() {
       )}
       {world.cup && world.cup.season === (world.season || 1) && (
         <div className="mb-6 rounded-3xl border border-gold/20 bg-gold/5 p-4">
-          <p className="text-xs uppercase tracking-[0.2em] text-gold">Liga Nova Kupası</p>
+          <p className="text-xs uppercase tracking-[0.2em] text-gold">{t("league.cup")}</p>
           <p className="mt-1 text-sm text-slate-300">
             {world.cup.championId
               ? `Şampiyon: ${world.teams.find((t) => t.id === world.cup?.championId)?.name}`

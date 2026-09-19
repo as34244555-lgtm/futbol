@@ -6,6 +6,7 @@ import { TacticsPitch } from "@/components/TacticsPitch";
 import { Button } from "@/components/ui/Button";
 import { TACTIC_MOD } from "@/lib/formations";
 import { useGame } from "@/lib/game-context";
+import { useI18n } from "@/lib/i18n";
 import { chemistryOf, startersOf, teamGrade, teamProfile } from "@/lib/ratings";
 import { trainingHint } from "@/lib/career";
 import { FORMATIONS as FORMATION_LIST, KIT_STYLES, TACTIC_LABEL, TACTICS, TRAINING_LABEL, TRAININGS } from "@/lib/types";
@@ -19,6 +20,7 @@ import { normalizeStadium } from "@/lib/stadium";
 
 export default function TacticsPage() {
   const { world, userTeam, setFormation, setTactics, setTraining, setClub } = useGame();
+  const { t } = useI18n();
   const roster = useMemo(() => (userTeam ? rosterOf(world, userTeam.id) : []), [world, userTeam]);
   if (!userTeam) return null;
   const mod = TACTIC_MOD[userTeam.tactics];
@@ -30,13 +32,13 @@ export default function TacticsPage() {
 
   return (
     <GameShell>
-      <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Taktik tahtası</p>
-      <h1 className="font-display mb-6 text-4xl sm:text-5xl">Diziliş ve oyun planı</h1>
+      <p className="text-xs uppercase tracking-[0.25em] text-slate-500">{t("tactic.board")}</p>
+      <h1 className="font-display mb-6 text-4xl sm:text-5xl">{t("tactic.title")}</h1>
       <div className="grid gap-8 lg:grid-cols-2">
         <TacticsPitch formation={userTeam.formation} roster={roster} kit={userTeam.kit_primary} />
         <div className="space-y-6">
           <div>
-            <p className="mb-2 text-sm text-slate-400">Formasyon</p>
+            <p className="mb-2 text-sm text-slate-400">{t("tactic.formation")}</p>
             <div className="flex flex-wrap gap-2">
               {FORMATION_LIST.map((f) => (
                 <Button
@@ -51,7 +53,7 @@ export default function TacticsPage() {
             </div>
           </div>
           <div>
-            <p className="mb-2 text-sm text-slate-400">Oyun stili</p>
+            <p className="mb-2 text-sm text-slate-400">{t("tactic.style")}</p>
             <div className="flex flex-wrap gap-2">
               {TACTICS.map((t) => (
                 <Button
@@ -74,7 +76,7 @@ export default function TacticsPage() {
             <Mod label="Posesyon" value={mod.possession.toFixed(2) + "x"} />
           </div>
           <div>
-            <p className="mb-2 text-sm text-slate-400">Antrenman</p>
+            <p className="mb-2 text-sm text-slate-400">{t("tactic.train")}</p>
             <div className="flex flex-wrap gap-2">
               {TRAININGS.map((t) => (
                 <Button
@@ -90,7 +92,7 @@ export default function TacticsPage() {
             <p className="mt-2 text-xs text-slate-500">{trainingHint(userTeam.training ?? "FITNESS")}</p>
           </div>
           <div>
-            <p className="mb-2 text-sm text-slate-400">Forma</p>
+            <p className="mb-2 text-sm text-slate-400">{t("tactic.kit")}</p>
             <div className="flex flex-wrap gap-2">
               {HUMAN_KITS.map((k) => (
                 <button
@@ -122,7 +124,7 @@ export default function TacticsPage() {
           />
           {preview && (
             <div>
-              <p className="mb-2 text-sm text-slate-400">Sinematik fotoğraf kartı</p>
+              <p className="mb-2 text-sm text-slate-400">{t("tactic.model")}</p>
               <div className="overflow-hidden rounded-2xl border border-white/10">
                 <PlayerInspect
                   player={preview.player}

@@ -4,6 +4,7 @@ import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
 import { FORMATION_SLOTS } from "@/lib/formations";
 import { normalizeStadium } from "@/lib/stadium";
 import { photoPortrait } from "@/lib/player-photo";
+import { clipForEvent } from "@/lib/player-anims";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import {
   applyStadiumLights,
@@ -68,7 +69,7 @@ export function StadiumMatch({
             gk: row.player.position === "KL",
             portraitUrl: photoPortrait(row.player),
           });
-          fig.scale.setScalar(1.15);
+          fig.scale.setScalar(1.05);
           figures.current.set(row.id, fig);
           scene.add(fig);
           const slots = FORMATION_SLOTS[team.formation];
@@ -109,13 +110,24 @@ export function StadiumMatch({
         const baseX = homeSide ? slot.x : 100 - slot.x;
         const baseY = homeSide ? slot.y : 100 - slot.y;
         const involved = ev.actorId === row.player.id;
-        const pull = involved ? 0.55 : ev.team === (homeSide ? "home" : "away") ? 0.12 : 0.04;
+        const attacking = ev.team === (homeSide ? "home" : "away");
+        const clip = clipForEvent({
+          eventType: ev.eventType,
+          minute: ev.minute,
+          actorId: ev.actorId,
+          playerId: row.player.id,
+          gk: row.player.position === "KL",
+          involved,
+          attacking,
+        });
+        const pull = involved ? 0.55 : attacking ? 0.12 : 0.04;
         const x = baseX + (ev.ball.x - baseX) * pull;
         const y = baseY + (ev.ball.y - baseY) * pull;
         const w = pitchToWorld(x, y);
         fig.position.x += (w.x - fig.position.x) * 0.12;
         fig.position.z += (w.z - fig.position.z) * 0.12;
-        tickPlayerFigure(fig, clock.current, involved);
+        fig.rotation.y = homeSide ? 0 : Math.PI;
+        tickPlayerFigure(fig, clock.current, clip, involved || attacking);
       }
     };
     move(homeStarters, home, true);
@@ -124,7 +136,7 @@ export function StadiumMatch({
 
   return (
     <ThreeCanvas
-      key={`${stadium.sky}-${stadium.weather}-${stadium.crowd}-${stadium.camera}-${home.id}-${away.id}`}
+      key={`${stadium.sky}-${stadium.weather}-${stadium.crowd}-${stadium.camera}-${stadium.pitch}-${stadium.roof}-${stadium.lights}-${stadium.seats}-${home.id}-${away.id}`}
       className="aspect-[16/10] min-h-[240px] w-full overflow-hidden rounded-xl bg-[#07140c] sm:min-h-[320px]"
       build={build}
       onFrame={onFrame}

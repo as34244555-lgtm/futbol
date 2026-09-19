@@ -355,7 +355,7 @@ export function stampShare(world: GameWorld): GameWorld {
 export function makeShareText(world: GameWorld, champion: Team, season: number): string {
   const cup = world.cup?.season === season ? world.teams.find((t) => t.id === world.cup?.championId)?.name : undefined;
   return [
-    `Liga Nova · Sezon ${season} bitti`,
+    `Managers League · Sezon ${season} bitti`,
     `Şampiyon: ${champion.name} · ${champion.points}p · ${champion.won}G`,
     `Av ${champion.goals_for - champion.goals_against > 0 ? "+" : ""}${champion.goals_for - champion.goals_against}`,
     cup ? `Kupa: ${cup}` : "",
@@ -444,7 +444,7 @@ export function ensureCup(world: GameWorld): GameWorld {
   if (fixtures.length) {
     next = pushNews(next, {
       kind: "cup",
-      text: `Liga Nova Kupası ${round} finali kuraları çekildi (${fixtures.length} maç).`,
+      text: `Managers League Kupası ${round} finali kuraları çekildi (${fixtures.length} maç).`,
     });
   }
   return next;
@@ -470,7 +470,7 @@ export function crownCup(world: GameWorld): GameWorld {
   next = pushNews(next, {
     kind: "cup",
     teamId: winnerId,
-    text: `${winner?.name ?? "Takım"} Liga Nova Kupası'nı kaldırdı.${winner?.user_id ? ` Ödül +${CUP_PRIZE} ₡.` : ""}`,
+    text: `${winner?.name ?? "Takım"} Managers League Kupası'nı kaldırdı.${winner?.user_id ? ` Ödül +${CUP_PRIZE} ₡.` : ""}`,
   });
   return next;
 }

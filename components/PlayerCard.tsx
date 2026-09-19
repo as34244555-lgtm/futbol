@@ -2,11 +2,12 @@
 
 import { CardArt } from "@/components/Portrait";
 import { PlayerInspect } from "@/components/scene/PlayerInspect";
-import { cardRarity, displayOvr, EF_POS, RARITY_LABEL, RARITY_THEME } from "@/lib/card-rarity";
+import { cardRarity, displayOvr, EF_POS, RARITY_THEME, specialSkills } from "@/lib/card-rarity";
 import { deriveAttrs } from "@/lib/career";
 import { flagUrl } from "@/lib/nations";
 import { marketValue } from "@/lib/ratings";
-import { POSITION_LABEL, type KitStyle, type Player, type TeamPlayer } from "@/lib/types";
+import { type KitStyle, type Player, type TeamPlayer } from "@/lib/types";
+import { useI18n } from "@/lib/i18n";
 import { cn, formatCoins } from "@/lib/utils";
 import { Box, RotateCcw, X } from "lucide-react";
 import Image from "next/image";
@@ -49,11 +50,13 @@ export function PlayerCard({
   kitStyle?: KitStyle;
   compact?: boolean;
 }) {
+  const { t } = useI18n();
   const [flipped, setFlipped] = useState(false);
   const [inspect, setInspect] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0, px: 50, py: 40 });
   const rarity = cardRarity(player);
   const theme = RARITY_THEME[rarity];
+  const skills = specialSkills(player);
   const attrs = deriveAttrs(player);
   const hurt = (row?.injuryWeeks ?? 0) > 0;
   const growth = player.lastGrowth ?? 0;
@@ -129,22 +132,27 @@ export function PlayerCard({
                   unoptimized
                 />
                 <span className={cn("rounded px-1 py-0.5 text-[8px] font-black uppercase tracking-wider text-ink-950", theme.gem)}>
-                  {RARITY_LABEL[rarity]}
+                  {t(`rarity.${rarity}`)}
                 </span>
+                {skills.slice(0, 2).map((s) => (
+                  <span key={s} className="rounded bg-black/55 px-1 py-0.5 text-[7px] font-bold uppercase tracking-wide text-gold ring-1 ring-gold/40">
+                    {s}
+                  </span>
+                ))}
               </div>
               <div className={cn("absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t to-transparent p-2 pt-10", theme.plate)}>
                 <p className={cn("truncate font-display uppercase leading-tight tracking-wide text-white", compact ? "text-sm" : "text-base")}>
                   {player.name}
                 </p>
                 <p className="truncate text-[10px] text-white/65">
-                  {player.versatile ? "Tüm mevkiler" : POSITION_LABEL[player.position] ?? player.position} · {player.age} yaş
-                  {hurt ? ` · Sakat ${row?.injuryWeeks}h` : ""}
+                  {player.versatile ? t("pos.all") : t(`pos.${player.position}`)} · {player.age} {t("card.age")}
+                  {hurt ? ` · ${t("card.hurt")} ${row?.injuryWeeks}h` : ""}
                   {growth > 0 ? ` · +${growth}` : growth < 0 ? ` · ${growth}` : ""}
                 </p>
               </div>
               <button
                 type="button"
-                aria-label="3D model"
+                aria-label={t("card.inspect")}
                 className="absolute bottom-2 right-9 z-20 rounded-full bg-black/45 p-1 text-white/80 hover:bg-black/70"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -155,7 +163,7 @@ export function PlayerCard({
               </button>
               <button
                 type="button"
-                aria-label="Kartı çevir"
+                aria-label={t("card.flip")}
                 className="absolute bottom-2 right-2 z-20 rounded-full bg-black/45 p-1 text-white/80 hover:bg-black/70"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -172,12 +180,12 @@ export function PlayerCard({
                 <div className="min-w-0">
                   <p className="truncate font-display text-sm uppercase tracking-wide">{player.name}</p>
                   <p className="text-[10px] text-slate-400">
-                    {RARITY_LABEL[rarity]} · {pos} · {ovr}
+                    {t(`rarity.${rarity}`)} · {pos} · {ovr}
                   </p>
                 </div>
                 <button
                   type="button"
-                  aria-label="Karta dön"
+                  aria-label={t("card.back")}
                   className="rounded-full bg-white/10 p-1 text-white/80 hover:bg-white/20"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -188,24 +196,24 @@ export function PlayerCard({
                 </button>
               </div>
               <div className="space-y-1.5">
-                <AttrRow label="Tempo" value={attrs.pace} tone="bg-amber-300" />
-                <AttrRow label="Bitiricilik" value={attrs.finishing} tone="bg-rose-400" />
-                <AttrRow label="Pas" value={attrs.passing} tone="bg-violet-400" />
-                <AttrRow label="Markaj" value={attrs.marking} tone="bg-sky-400" />
+                <AttrRow label={t("card.pace")} value={attrs.pace} tone="bg-amber-300" />
+                <AttrRow label={t("card.fin")} value={attrs.finishing} tone="bg-rose-400" />
+                <AttrRow label={t("card.pass")} value={attrs.passing} tone="bg-violet-400" />
+                <AttrRow label={t("card.mark")} value={attrs.marking} tone="bg-sky-400" />
                 {player.position === "KL" ? (
-                  <AttrRow label="Kalecilik" value={attrs.handling} tone="bg-lime-400" />
+                  <AttrRow label={t("card.gk")} value={attrs.handling} tone="bg-lime-400" />
                 ) : row ? (
-                  <AttrRow label="Form" value={row.form} tone="bg-gold" />
+                  <AttrRow label={t("card.form")} value={row.form} tone="bg-gold" />
                 ) : (
-                  <AttrRow label="Kalecilik" value={attrs.handling} tone="bg-lime-400" />
+                  <AttrRow label={t("card.gk")} value={attrs.handling} tone="bg-lime-400" />
                 )}
-                {row && <AttrRow label="Enerji" value={row.energy} tone="bg-neon" />}
+                {row && <AttrRow label={t("card.energy")} value={row.energy} tone="bg-neon" />}
               </div>
               <p className="mt-auto pt-2 text-[10px] leading-snug text-slate-500">
-                Değer {formatCoins(marketValue(player, row?.form))} ₡
-                {row?.wage != null ? ` · Maaş ${formatCoins(row.wage)} ₡/h` : ""}
-                {row?.contractYears != null && row.contractYears < 90 ? ` · Sözleşme ${row.contractYears}s` : ""}
-                {player.potential && player.potential < 100 && rarity !== "legend" ? ` · Tavan ${player.potential}` : ""}
+                {t("card.value")} {formatCoins(marketValue(player, row?.form))} ₡
+                {row?.wage != null ? ` · ${t("card.wage")} ${formatCoins(row.wage)} ₡/h` : ""}
+                {row?.contractYears != null && row.contractYears < 90 ? ` · ${t("card.contract")} ${row.contractYears}s` : ""}
+                {player.potential && player.potential < 100 && rarity !== "legend" ? ` · ${t("card.cap")} ${player.potential}` : ""}
               </p>
             </div>
           </div>
@@ -238,7 +246,7 @@ export function PlayerCard({
               className="h-80 w-full"
             />
             <p className="px-4 py-3 text-xs text-slate-500">
-              {RARITY_LABEL[rarity]} kart · {pos} · {ovr} genel. Sinematik fotoğraf — Abdullah ile aynı gerçekçilik.
+              {t(`rarity.${rarity}`)} · {pos} · {ovr}. {t("card.modelHint")}
             </p>
           </div>
         </div>

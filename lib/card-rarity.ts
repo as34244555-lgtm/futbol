@@ -90,3 +90,16 @@ export function cardRarity(player: Pick<Player, "overall" | "legend">): CardRari
 export function displayOvr(overall: number): string {
   return overall >= 100 ? "99+" : String(overall);
 }
+
+/** eFootball-style special skill chips from live attributes. */
+export function specialSkills(player: Pick<Player, "pace" | "finishing" | "passing" | "marking" | "handling" | "position" | "overall" | "legend">): string[] {
+  const chips: string[] = [];
+  if (player.legend || player.overall >= 100) chips.push("Big Time");
+  else if (player.overall >= 93) chips.push("Show Time");
+  if ((player.pace ?? 0) >= 82) chips.push("Speedster");
+  if ((player.finishing ?? 0) >= 82) chips.push("Finishing");
+  if ((player.passing ?? 0) >= 82) chips.push("Through Pass");
+  if ((player.marking ?? 0) >= 82) chips.push("Interceptor");
+  if (player.position === "KL" && (player.handling ?? 0) >= 80) chips.push("GK Save");
+  return chips.slice(0, 3);
+}

@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Outfit } from "next/font/google";
-import { GameProvider } from "@/lib/game-context";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const sans = Outfit({
@@ -15,17 +15,17 @@ const display = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "Liga Nova — Futbol Menajerlik",
+  title: "Managers League — Football Manager",
   description:
-    "Telifsiz, istatistik tabanlı, 2D canlı saha simülasyonlu futbol menajerlik ve transfer oyunu.",
+    "Unlicensed, stats-driven football manager with live 3D pitch, eFootball-style cards and a shared league.",
   icons: {
-    icon: "/liga-nova-logo.png",
+    icon: "/a-studio-192.png",
     apple: "/apple-touch-icon.png",
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Liga Nova",
+    title: "Managers League",
     statusBarStyle: "black-translucent",
   },
 };
@@ -42,7 +42,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr">
       <body className={`${sans.variable} ${display.variable} font-sans`}>
-        <GameProvider>{children}</GameProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

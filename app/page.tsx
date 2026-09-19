@@ -6,51 +6,42 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
-
-const FEATURES = [
-  {
-    icon: Users,
-    title: "Kurgusal Kadro",
-    text: "Ligin efsanesi Abdullah Sarıyıldız pazarda 100.000 ₡. Binlerce telifsiz futbolcu gelişir.",
-  },
-  {
-    icon: Flag,
-    title: "Gerçek Uluslar",
-    text: "Memleket ve bayraklar kamuya açık ülke verilerinden gelir.",
-  },
-  {
-    icon: Swords,
-    title: "2D Canlı Saha",
-    text: "xG motoru: her şut hücum, savunma, kaleci, form ve yorgunluktan hesaplanır. Skor önceden yazılmaz.",
-  },
-  {
-    icon: Radio,
-    title: "Çoklu oyuncu ligi",
-    text: "18 haftalık sezonda puan lideri Liga Nova kupasını alır. Botlar ligi doldurur; iki insan varsa onlar eşleşir.",
-  },
-];
+import { useI18n } from "@/lib/i18n";
 
 export default function LandingPage() {
   const { ready, userTeam, humans, bots, backend } = useGame();
+  const { t, lang, setLang } = useI18n();
   const hasSave = ready && Boolean(userTeam);
+  const FEATURES = [
+    { icon: Users, title: t("land.feat1t"), text: t("land.feat1") },
+    { icon: Flag, title: t("land.feat2t"), text: t("land.feat2") },
+    { icon: Swords, title: t("land.feat3t"), text: t("land.feat3") },
+    { icon: Radio, title: t("land.feat4t"), text: t("land.feat4") },
+  ];
 
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-grid-fade bg-[size:28px_28px]" />
       <header className="relative z-10 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-        <BrandLogo size={64} />
-        <div className="flex gap-2">
+        <BrandLogo size={64} showWord />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant={lang === "tr" ? "gold" : "ghost"} onClick={() => setLang("tr")}>
+            TR
+          </Button>
+          <Button size="sm" variant={lang === "en" ? "gold" : "ghost"} onClick={() => setLang("en")}>
+            EN
+          </Button>
           {hasSave ? (
             <Link href="/dashboard">
-              <Button variant="ghost">Panele dön</Button>
+              <Button variant="ghost">{t("land.back")}</Button>
             </Link>
           ) : (
             <Link href="/login">
-              <Button variant="ghost">Giriş</Button>
+              <Button variant="ghost">{t("land.login")}</Button>
             </Link>
           )}
           <Link href="/play">
-            <Button>Lige katıl</Button>
+            <Button>{t("land.join")}</Button>
           </Link>
         </div>
       </header>
@@ -60,25 +51,23 @@ export default function LandingPage() {
             <BrandLogo size={112} />
           </div>
           <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">
-            Çoklu oyuncu · Vercel · {humans} insan · {bots} bot
+            {t("land.kicker")} · {humans} {t("multi.humans")} · {bots} bot
           </p>
           <h1 className="font-display text-4xl leading-[0.95] sm:text-7xl">
-            Aynı lige gir.
-            <span className="block text-neon">Rakibini yen.</span>
+            {t("land.h1a")}
+            <span className="block text-neon">{t("land.h1b")}</span>
           </h1>
           <p className="mt-6 max-w-xl text-lg text-slate-300">
-            Paylaşılan Liga Nova sunucusunda diğer menajerlerle transfer yapın. Ligin efsanesi{" "}
-            <span className="text-gold">Abdullah Sarıyıldız</span> (999, tüm mevkiler) kadronuza katılır.
-            Gerçek oyuncu azsa 18 bot menajer ligi doldurur; ikinci insan girince onunla eşleşirsiniz.
-            {backend === "memory" ? " Üretimde Supabase servis anahtarı ekleyin." : ""}
+            {t("land.body")}
+            {backend === "memory" ? (lang === "en" ? " Add a Supabase service key in production." : " Üretimde Supabase servis anahtarı ekleyin.") : ""}
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/play">
-              <Button size="lg">Menajer ol</Button>
+              <Button size="lg">{t("land.become")}</Button>
             </Link>
             <Link href="/login">
               <Button size="lg" variant="outline">
-                Giriş yap
+                {t("login.submit")}
               </Button>
             </Link>
           </div>
@@ -130,8 +119,8 @@ export default function LandingPage() {
         ))}
       </section>
       <footer className="relative z-10 mx-auto flex max-w-6xl gap-4 px-6 pb-10 text-xs text-slate-500">
-        <Link href="/gizlilik">Gizlilik</Link>
-        <Link href="/kosullar">Koşullar</Link>
+        <Link href="/gizlilik">{t("privacy")}</Link>
+        <Link href="/kosullar">{t("terms")}</Link>
       </footer>
     </div>
   );

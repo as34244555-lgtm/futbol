@@ -47,14 +47,16 @@ export function applyStadiumLights(scene: THREE.Scene, prefs: StadiumPrefs) {
   sun.shadow.camera.bottom = -60;
   scene.add(sun);
 
-  if (prefs.sky === "night") {
+  const flood = prefs.lights ?? "led";
+  if (prefs.sky === "night" && flood !== "off") {
+    const hue = flood === "warm" ? 0xffd89a : 0xe8f4ff;
     for (const [x, z] of [
       [-38, -55],
       [38, -55],
       [-38, 55],
       [38, 55],
     ] as const) {
-      const spot = new THREE.SpotLight(0xfff2c8, 38, 120, 0.55, 0.4, 1.1);
+      const spot = new THREE.SpotLight(hue, 38, 120, 0.55, 0.4, 1.1);
       spot.position.set(x, 28, z);
       spot.target.position.set(0, 0, 0);
       scene.add(spot);
@@ -66,15 +68,18 @@ export function applyStadiumLights(scene: THREE.Scene, prefs: StadiumPrefs) {
 export function createStadium(prefs: StadiumPrefs): THREE.Group {
   const root = new THREE.Group();
 
+  const pitch = prefs.pitch ?? "lush";
+  const grassHex = pitch === "dry" ? 0x8a9a3a : pitch === "worn" ? 0x3d5c2e : 0x147a36;
+  const stripeHex = pitch === "dry" ? 0x7a8a32 : pitch === "worn" ? 0x345226 : 0x116f32;
   const grass = new THREE.Mesh(
     new THREE.PlaneGeometry(PITCH_W, PITCH_L),
-    new THREE.MeshStandardMaterial({ color: 0x147a36, roughness: 0.85 }),
+    new THREE.MeshStandardMaterial({ color: grassHex, roughness: 0.85 }),
   );
   grass.rotation.x = -Math.PI / 2;
   grass.receiveShadow = true;
   root.add(grass);
 
-  const stripeMat = new THREE.MeshStandardMaterial({ color: 0x116f32, roughness: 0.85 });
+  const stripeMat = new THREE.MeshStandardMaterial({ color: stripeHex, roughness: 0.85 });
   for (let i = -5; i <= 5; i += 2) {
     const s = new THREE.Mesh(new THREE.PlaneGeometry(PITCH_W, 4.8), stripeMat);
     s.rotation.x = -Math.PI / 2;
@@ -113,7 +118,17 @@ export function createStadium(prefs: StadiumPrefs): THREE.Group {
     root.add(postL, postR, bar);
   }
 
-  const seatColors = [0xc0392b, 0x1f3a93, 0xf4d03f, 0x1e8449];
+  const seatPick = prefs.seats ?? "mixed";
+  const seatColors =
+    seatPick === "red"
+      ? [0xc0392b, 0x922b21, 0xe74c3c]
+      : seatPick === "blue"
+        ? [0x1f3a93, 0x2471a3, 0x5dade2]
+        : seatPick === "gold"
+          ? [0xf4d03f, 0xd4ac0d, 0x9a7d0a]
+          : seatPick === "green"
+            ? [0x1e8449, 0x196f3d, 0x52be80]
+            : [0xc0392b, 0x1f3a93, 0xf4d03f, 0x1e8449];
   const rows = prefs.crowd === "full" ? 8 : 4;
   const dens = prefs.crowd === "full" ? 1 : 0.4;
   const dummy = new THREE.Object3D();
@@ -145,6 +160,8 @@ export function createStadium(prefs: StadiumPrefs): THREE.Group {
   });
 
   const towerMat = new THREE.MeshStandardMaterial({ color: 0x889099, metalness: 0.6, roughness: 0.3 });
+  const floodOn = (prefs.lights ?? "led") !== "off" && prefs.sky === "night";
+  const lampHex = (prefs.lights ?? "led") === "warm" ? 0xffd89a : 0xe8f4ff;
   for (const [x, z] of [
     [-36, -52],
     [36, -52],
@@ -156,14 +173,25 @@ export function createStadium(prefs: StadiumPrefs): THREE.Group {
     const lamp = new THREE.Mesh(
       new THREE.BoxGeometry(4.2, 0.6, 1.4),
       new THREE.MeshStandardMaterial({
-        color: prefs.sky === "night" ? 0xfff4c2 : 0xdddddd,
-        emissive: prefs.sky === "night" ? 0xffe9a0 : 0x000000,
-        emissiveIntensity: prefs.sky === "night" ? 2.2 : 0,
+        color: floodOn ? lampHex : 0xdddddd,
+        emissive: floodOn ? lampHex : 0x000000,
+        emissiveIntensity: floodOn ? 2.2 : 0,
       }),
     );
     lamp.position.set(x, 26, z);
     lamp.lookAt(0, 8, 0);
     root.add(pole, lamp);
+  }
+
+  const roof = prefs.roof ?? "open";
+  if (roof !== "open") {
+    const cover = new THREE.Mesh(
+      new THREE.TorusGeometry(52, roof === "closed" ? 14 : 7, 8, 48, Math.PI),
+      new THREE.MeshStandardMaterial({ color: 0x1a222b, metalness: 0.35, roughness: 0.45, side: THREE.DoubleSide }),
+    );
+    cover.rotation.x = Math.PI / 2;
+    cover.position.y = roof === "closed" ? 22 : 18;
+    root.add(cover);
   }
 
   return root;

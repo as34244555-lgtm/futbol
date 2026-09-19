@@ -22,12 +22,24 @@ export const STADIUM_CROWD = ["low", "full"] as const;
 export type StadiumCrowd = (typeof STADIUM_CROWD)[number];
 export const STADIUM_CAMERAS = ["broadcast", "sideline", "tactical"] as const;
 export type StadiumCamera = (typeof STADIUM_CAMERAS)[number];
+export const STADIUM_PITCHES = ["lush", "worn", "dry"] as const;
+export type StadiumPitch = (typeof STADIUM_PITCHES)[number];
+export const STADIUM_ROOFS = ["open", "partial", "closed"] as const;
+export type StadiumRoof = (typeof STADIUM_ROOFS)[number];
+export const STADIUM_LIGHTS = ["led", "warm", "off"] as const;
+export type StadiumLights = (typeof STADIUM_LIGHTS)[number];
+export const STADIUM_SEATS = ["mixed", "red", "blue", "gold", "green"] as const;
+export type StadiumSeats = (typeof STADIUM_SEATS)[number];
 
 export type StadiumPrefs = {
   sky: StadiumSky;
   weather: StadiumWeather;
   crowd: StadiumCrowd;
   camera: StadiumCamera;
+  pitch?: StadiumPitch;
+  roof?: StadiumRoof;
+  lights?: StadiumLights;
+  seats?: StadiumSeats;
 };
 
 export const DEFAULT_STADIUM: StadiumPrefs = {
@@ -35,6 +47,10 @@ export const DEFAULT_STADIUM: StadiumPrefs = {
   weather: "clear",
   crowd: "full",
   camera: "broadcast",
+  pitch: "lush",
+  roof: "open",
+  lights: "led",
+  seats: "mixed",
 };
 
 export const TACTICS = ["BALANCED", "ATTACKING", "DEFENSIVE", "POSSESSION", "COUNTER"] as const;
@@ -95,7 +111,7 @@ export type Team = {
   lost: number;
   goals_for: number;
   goals_against: number;
-  /** Kazanılan Liga Nova şampiyonlukları */
+  /** Won Managers League titles */
   titles?: number;
   /** Haftalık antrenman odağı */
   training?: Training;

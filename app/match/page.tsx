@@ -109,7 +109,7 @@ export default function MatchPage() {
             <StadiumPrep
               home={userTeam?.name ?? "Ev"}
               away={opp?.name ?? "Konuk"}
-              stadium={`${(next?.home_team_id === userTeam?.id ? userTeam?.name : opp?.name) ?? "Liga Nova"} Arena`}
+              stadium={`${(next?.home_team_id === userTeam?.id ? userTeam?.name : opp?.name) ?? "Managers League"} Arena`}
             />
           ) : (
             <>

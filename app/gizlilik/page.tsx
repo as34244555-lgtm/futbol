@@ -1,17 +1,17 @@
+"use client";
+
 import Link from "next/link";
+import { useI18n } from "@/lib/i18n";
 
 export default function PrivacyPage() {
+  const { t } = useI18n();
   return (
     <main className="mx-auto max-w-2xl px-6 py-16 text-slate-300">
-      <h1 className="font-display text-4xl text-white">Gizlilik</h1>
-      <p className="mt-4 text-sm leading-relaxed">
-        Liga Nova menajer adı, şifre özeti ve kulüp kaydını lig odasında saklar. Reklam veya üçüncü taraf analitik
-        yoktur. Bildirim izni yalnızca rakip hazır olduğunda cihazınızda uyarı göstermek içindir; sunucuya push anahtarı
-        gönderilmez. Veriyi silmek için çıkış yapıp odayı bırakın veya işletmeciye yazın.
-      </p>
+      <h1 className="font-display text-4xl text-white">{t("privacy.title")}</h1>
+      <p className="mt-4 text-sm leading-relaxed">{t("privacy.body")}</p>
       <p className="mt-4 text-sm">
         <Link className="text-neon" href="/">
-          Ana sayfa
+          {t("privacy.home")}
         </Link>
       </p>
     </main>

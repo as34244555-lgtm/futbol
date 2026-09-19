@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Crest } from "@/components/Crest";
 import { KitMark } from "@/components/KitMark";
 import { useGame } from "@/lib/game-context";
+import { useI18n } from "@/lib/i18n";
 import { HUMAN_KITS } from "@/lib/world";
 import type { KitStyle } from "@/lib/types";
 import { enableNotifications } from "@/lib/notify";
@@ -15,6 +16,7 @@ const PICKS = HUMAN_KITS.slice(0, 3);
 
 export default function PlayPage() {
   const { register } = useGame();
+  const { t } = useI18n();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [career, setCareer] = useState(true);
@@ -29,10 +31,10 @@ export default function PlayPage() {
   return (
     <div className="mx-auto flex min-h-screen max-w-lg flex-col justify-center px-6 py-10">
       <p className="text-xs uppercase tracking-[0.3em] text-gold">
-        {step === 1 ? "Mod" : step === 2 ? "Kulüp" : "Forma"}
+        {step === 1 ? t("play.mod") : step === 2 ? t("play.club") : t("play.kit")}
       </p>
       <h1 className="font-display mt-2 text-5xl">
-        {step === 1 ? "Nasıl oynarsın?" : step === 2 ? "Menajer ol" : "Formanı seç"}
+        {step === 1 ? t("play.how") : step === 2 ? t("play.become") : t("play.pickKit")}
       </h1>
 
       {step === 1 && (
@@ -42,16 +44,16 @@ export default function PlayPage() {
             onClick={() => setCareer(true)}
             className={`w-full rounded-2xl border p-4 text-left ${career ? "border-neon bg-neon/10" : "border-white/10 bg-ink-800"}`}
           >
-            <p className="font-semibold">Tek kişilik kariyer</p>
-            <p className="mt-1 text-sm text-slate-400">Kendi odan, 18 bot, istediğin zaman dur. Mağaza hissi.</p>
+            <p className="font-semibold">{t("play.career")}</p>
+            <p className="mt-1 text-sm text-slate-400">{t("play.careerHint")}</p>
           </button>
           <button
             type="button"
             onClick={() => setCareer(false)}
             className={`w-full rounded-2xl border p-4 text-left ${!career ? "border-neon bg-neon/10" : "border-white/10 bg-ink-800"}`}
           >
-            <p className="font-semibold">Arkadaş ligi</p>
-            <p className="mt-1 text-sm text-slate-400">Aynı oda kodunu paylaşın. İnsan-insan maç aynı skorla izlenir.</p>
+            <p className="font-semibold">{t("play.online")}</p>
+            <p className="mt-1 text-sm text-slate-400">{t("play.onlineHint")}</p>
           </button>
           <Button size="lg" className="w-full" onClick={() => setStep(2)}>
             Devam
@@ -94,7 +96,7 @@ export default function PlayPage() {
       {step === 3 && (
         <div className="mt-8 space-y-5">
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink-800 p-4">
-            <Crest name={teamName || "Liga Nova"} primary={kit[0]} secondary={kit[1]} size={56} />
+            <Crest name={teamName || "Managers League"} primary={kit[0]} secondary={kit[1]} size={56} />
             <div>
               <p className="font-display text-2xl">{teamName || "Kulüp"}</p>
               <p className="text-sm text-slate-400">Arma isminden üretilir. Abdullah pazarda satılık — kadroda değil.</p>

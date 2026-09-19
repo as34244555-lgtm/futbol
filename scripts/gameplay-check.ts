@@ -13,6 +13,16 @@ import { cardRarity, displayOvr } from "../lib/card-rarity";
 import { normalizeStadium } from "../lib/stadium";
 import { photoPortrait } from "../lib/player-photo";
 import { makeAbdullah } from "../lib/catalog";
+import {
+  DRIBBLE_CLIPS,
+  PASS_CLIPS,
+  SAVE_CLIPS,
+  SHOT_CLIPS,
+  TACKLE_CLIPS,
+  clipForEvent,
+} from "../lib/player-anims";
+import { specialSkills } from "../lib/card-rarity";
+import { translate } from "../lib/i18n";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -70,7 +80,13 @@ assert(
   "portrait pick is stable",
 );
 assert(normalizeStadium(joined.team.stadium).camera === "broadcast", "default stadium camera");
+assert(normalizeStadium({}).pitch === "lush" && normalizeStadium({}).roof === "open", "stadium extras default");
 assert(hydrateWorld(joined.world).teams[0]?.stadium?.sky, "hydrate fills stadium");
+assert(DRIBBLE_CLIPS.length === 5 && PASS_CLIPS.length === 3 && SHOT_CLIPS.length === 2 && TACKLE_CLIPS.length === 1 && SAVE_CLIPS.length === 5, "animation set sizes");
+assert(clipForEvent({ eventType: "shot", minute: 12, playerId: "gk1", gk: true, involved: false, attacking: false }).startsWith("save_"), "gk save clip");
+assert(specialSkills(makeAbdullah()).includes("Big Time"), "legend skill chip");
+assert(translate("en", "game") === "Managers League", "en game name");
+assert(translate("tr", "game") === "Managers League", "tr game name");
 
 const sample = world0.listings.find((l) => l.status === "active")!;
 const seller = world0.teams.find((t) => t.id === sample.seller_team_id)!;

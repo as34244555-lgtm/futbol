@@ -7,6 +7,6 @@ self.addEventListener("notificationclick", (event) => {
   event.waitUntil(self.clients.openWindow("/match"));
 });
 self.addEventListener("push", (event) => {
-  const data = event.data ? event.data.json() : { title: "Liga Nova", body: "Rakip hazır." };
-  event.waitUntil(self.registration.showNotification(data.title || "Liga Nova", { body: data.body, tag: data.tag || "liga" }));
+  const data = event.data ? event.data.json() : { title: "Managers League", body: "Rival is ready." };
+  event.waitUntil(self.registration.showNotification(data.title || "Managers League", { body: data.body, tag: data.tag || "liga" }));
 });
