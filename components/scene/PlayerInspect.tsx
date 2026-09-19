@@ -2,7 +2,6 @@
 
 import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
 import { photoPortrait } from "@/lib/player-photo";
-import { clipForEvent } from "@/lib/player-anims";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import type { KitStyle, Player } from "@/lib/types";
 import { useCallback, useMemo, useRef } from "react";
@@ -24,14 +23,7 @@ export function PlayerInspect({
   const t = useRef(0);
   const figure = useRef<THREE.Group | null>(null);
   const key = `${player.id}-${kit ?? ""}-${kitStyle ?? ""}`;
-  const clip = clipForEvent({
-    eventType: player.position === "KL" ? "shot" : "pass",
-    minute: 12,
-    playerId: player.id,
-    gk: player.position === "KL",
-    involved: player.position !== "KL",
-    attacking: true,
-  });
+  const clip = player.position === "KL" ? "save_catch" : "dribble_stepover";
 
   const build = useCallback(
     (scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
@@ -59,11 +51,12 @@ export function PlayerInspect({
         gk: player.position === "KL",
         portraitUrl: photoPortrait(player),
       });
-      fig.scale.setScalar(1.35);
+      fig.rotation.y = 0.25;
+      fig.scale.setScalar(1.45);
       figure.current = fig;
       scene.add(fig);
 
-      camera.position.set(0.4, 1.55, 3.1);
+      camera.position.set(0.55, 1.25, 2.15);
       camera.lookAt(0, 1.05, 0);
       return () => {
         figure.current = null;
@@ -75,10 +68,11 @@ export function PlayerInspect({
   const onFrame = useCallback(
     (dt: number, _scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
       t.current += dt;
-      if (figure.current) tickPlayerFigure(figure.current, t.current, clip, true);
-      camera.position.x = Math.sin(t.current * 0.4) * 1.6;
-      camera.position.z = 2.6 + Math.cos(t.current * 0.4) * 0.4;
-      camera.lookAt(0, 1.05, 0);
+      if (figure.current) {
+        tickPlayerFigure(figure.current, t.current, clip, true);
+        figure.current.rotation.y = Math.PI + Math.sin(t.current * 0.5) * 0.35;
+      }
+      camera.lookAt(0, 1.0, 0);
     },
     [clip],
   );
