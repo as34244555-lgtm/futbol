@@ -23,7 +23,7 @@ export function PlayerInspect({
   const t = useRef(0);
   const figure = useRef<THREE.Group | null>(null);
   const key = `${player.id}-${kit ?? ""}-${kitStyle ?? ""}`;
-  const clip = player.position === "KL" ? "save_catch" : "dribble_stepover";
+  const clip = "idle";
 
   const build = useCallback(
     (scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
@@ -74,13 +74,13 @@ export function PlayerInspect({
         bodyUrl: photoBody(player),
         portraitUrl: player.portrait,
       });
-      fig.rotation.y = 0.12;
-      fig.scale.setScalar(1.18);
+      fig.rotation.y = 0.16;
+      fig.scale.setScalar(1.02);
       figure.current = fig;
       scene.add(fig);
 
-      camera.position.set(0.12, 1.02, 2.55);
-      camera.lookAt(0, 0.9, 0);
+      camera.position.set(0.06, 1.08, 3.15);
+      camera.lookAt(0, 0.86, 0);
       return () => {
         figure.current = null;
       };
@@ -93,9 +93,9 @@ export function PlayerInspect({
       t.current += dt;
       if (figure.current) {
         tickPlayerFigure(figure.current, t.current, clip, true);
-        figure.current.rotation.y = 0.1 + Math.sin(t.current * 0.35) * 0.55;
+        figure.current.rotation.y = 0.16 + Math.sin(t.current * 0.32) * 0.34;
       }
-      camera.lookAt(0, 0.9, 0);
+      camera.lookAt(0, 0.86, 0);
     },
     [clip],
   );

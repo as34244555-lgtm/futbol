@@ -243,7 +243,7 @@ export function PlayerCard({
               kit={kit}
               kitSecondary={kitSecondary}
               kitStyle={kitStyle}
-              className="h-80 w-full"
+              className="h-96 w-full"
             />
             <p className="px-4 py-3 text-xs text-slate-500">
               {t(`rarity.${rarity}`)} · {pos} · {ovr}. {t("card.modelHint")}

@@ -131,7 +131,7 @@ export default function TacticsPage() {
                   kit={userTeam.kit_primary}
                   kitSecondary={userTeam.kit_secondary}
                   kitStyle={userTeam.kit_style}
-                  className="h-64 w-full"
+                  className="h-80 w-full"
                 />
               </div>
             </div>
