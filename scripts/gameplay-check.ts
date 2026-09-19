@@ -11,6 +11,8 @@ import { packLeague, unpackLeague } from "../lib/server/remote-kv";
 import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from "../lib/titles";
 import { cardRarity, displayOvr } from "../lib/card-rarity";
 import { normalizeStadium } from "../lib/stadium";
+import { photoPortrait } from "../lib/player-photo";
+import { makeAbdullah } from "../lib/catalog";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -61,6 +63,12 @@ assert(displayOvr(999) === "99+", "legend overall displays as 99+");
 assert(cardRarity({ overall: 64 }) === "bronze", "low overall is bronze");
 assert(cardRarity({ overall: 82 }) === "featured", "82 is featured");
 assert(cardRarity({ overall: 93 }) === "showtime", "93 is showtime");
+assert(photoPortrait(makeAbdullah()) === "/abdullah-sariyildiz.webp", "Abdullah keeps his photo");
+assert(photoPortrait({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).startsWith("/portraits/p"), "pool players get photo busts");
+assert(
+  photoPortrait({ id: "a", nationality_code: "tr" }) === photoPortrait({ id: "a", nationality_code: "tr" }),
+  "portrait pick is stable",
+);
 assert(normalizeStadium(joined.team.stadium).camera === "broadcast", "default stadium camera");
 assert(hydrateWorld(joined.world).teams[0]?.stadium?.sky, "hydrate fills stadium");
 

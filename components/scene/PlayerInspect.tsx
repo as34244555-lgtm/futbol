@@ -1,6 +1,7 @@
 "use client";
 
 import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
+import { photoPortrait } from "@/lib/player-photo";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import type { KitStyle, Player } from "@/lib/types";
 import { useCallback, useMemo, useRef } from "react";
@@ -45,16 +46,26 @@ export function PlayerInspect({
         kitSecondary,
         kitStyle,
         gk: player.position === "KL",
+        portraitUrl: photoPortrait(player),
       });
       figure.current = fig;
       scene.add(fig);
+      const cardTex = new THREE.TextureLoader().load(photoPortrait(player));
+      cardTex.colorSpace = THREE.SRGBColorSpace;
+      const card = new THREE.Mesh(
+        new THREE.PlaneGeometry(1.1, 1.54),
+        new THREE.MeshStandardMaterial({ map: cardTex, roughness: 0.28, metalness: 0.12 }),
+      );
+      card.position.set(-1.15, 1.25, 0);
+      scene.add(card);
+      fig.position.set(0.85, 0, 0);
       camera.position.set(0.9, 1.7, 3.2);
       camera.lookAt(0, 1.1, 0);
       return () => {
         figure.current = null;
       };
     },
-    [player.id, player.position, kit, kitSecondary, kitStyle],
+    [player, kit, kitSecondary, kitStyle],
   );
 
   const onFrame = useCallback((dt: number, _scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {

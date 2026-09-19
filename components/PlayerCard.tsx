@@ -102,7 +102,14 @@ export function PlayerCard({
         >
           <div className={cn("ef-face overflow-hidden rounded-[1.05rem] bg-gradient-to-br p-[3px]", theme.frame, theme.glow)}>
             <div className="relative h-full overflow-hidden rounded-[0.92rem] bg-ink-950">
-              <CardArt id={player.id} kit={kit} portrait={player.portrait} name={player.name} />
+              <CardArt
+                id={player.id}
+                kit={kit}
+                portrait={player.portrait}
+                name={player.name}
+                nation={player.nationality_code}
+                age={player.age}
+              />
               <span
                 className={cn("ef-foil", `ef-foil-${rarity}`)}
                 style={{ backgroundPosition: `${tilt.px}% ${tilt.py}%` }}

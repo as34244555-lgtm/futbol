@@ -37,6 +37,7 @@ export type PlayerFigureOpts = {
   kitSecondary?: string;
   kitStyle?: KitStyle;
   gk?: boolean;
+  portraitUrl?: string;
 };
 
 export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
@@ -111,6 +112,19 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
   nose.scale.set(0.7, 1.1, 1.2);
 
   paintHair3d(root, f.hairStyle, hairMat);
+
+  if (opts.portraitUrl) {
+    const loader = new THREE.TextureLoader();
+    loader.load(opts.portraitUrl, (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 8;
+      const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.35, metalness: 0.02 });
+      const plane = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.44), mat);
+      plane.position.set(0, 1.64, 0.2);
+      plane.castShadow = true;
+      root.add(plane);
+    });
+  }
 
   root.userData.idle = Math.random() * Math.PI * 2;
   return root;
