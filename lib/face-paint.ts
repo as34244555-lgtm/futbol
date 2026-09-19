@@ -1,6 +1,8 @@
 import { faceSeed, shade } from "./portrait";
 
+
 function hexRgb(hex: string): [number, number, number] {
+  if (!hex) hex = "#000000";
   const n = hex.replace("#", "");
   const full = n.length === 3 ? n.split("").map((c) => c + c).join("") : n;
   const num = parseInt(full, 16);
@@ -46,61 +48,54 @@ export function paintPlayerCard(canvas: HTMLCanvasElement, id: string, kit?: str
   ctx.ellipse(180, 470, 130, 28, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  const kitGrad = ctx.createLinearGradient(40, 220, 320, 500);
-  kitGrad.addColorStop(0, shade(shirt, 36));
-  kitGrad.addColorStop(0.4, shirt);
-  kitGrad.addColorStop(1, shade(shirt, -42));
+  const kitGrad = ctx.createLinearGradient(80, 300, 280, 504);
+  kitGrad.addColorStop(0, shade(shirt, 40));
+  kitGrad.addColorStop(0.45, shirt);
+  kitGrad.addColorStop(1, shade(shirt, -48));
   ctx.fillStyle = kitGrad;
   ctx.beginPath();
-  ctx.moveTo(58, 250);
-  ctx.quadraticCurveTo(90, 210, 180, 208);
-  ctx.quadraticCurveTo(270, 210, 302, 250);
-  ctx.lineTo(330, 504);
-  ctx.lineTo(30, 504);
+  ctx.moveTo(72, 340);
+  ctx.quadraticCurveTo(70, 300, 118, 292);
+  ctx.quadraticCurveTo(180, 278, 242, 292);
+  ctx.quadraticCurveTo(290, 300, 288, 340);
+  ctx.lineTo(318, 504);
+  ctx.lineTo(42, 504);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = shade(shirt, -50);
+  ctx.fillStyle = shade(shirt, -28);
   ctx.beginPath();
-  ctx.moveTo(78, 220);
-  ctx.lineTo(38, 196);
-  ctx.lineTo(18, 236);
-  ctx.lineTo(58, 280);
-  ctx.closePath();
+  ctx.ellipse(78, 348, 36, 28, -0.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.moveTo(282, 220);
-  ctx.lineTo(322, 196);
-  ctx.lineTo(342, 236);
-  ctx.lineTo(302, 280);
+  ctx.ellipse(282, 348, 36, 28, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = shade(shirt, 22);
+  ctx.beginPath();
+  ctx.moveTo(148, 290);
+  ctx.quadraticCurveTo(180, 318, 212, 290);
+  ctx.lineTo(204, 312);
+  ctx.quadraticCurveTo(180, 300, 156, 312);
   ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = shade(shirt, 18);
-  ctx.beginPath();
-  ctx.moveTo(150, 214);
-  ctx.quadraticCurveTo(180, 248, 210, 214);
-  ctx.lineTo(200, 238);
-  ctx.quadraticCurveTo(180, 226, 160, 238);
-  ctx.closePath();
-  ctx.fill();
-
-  const neck = ctx.createLinearGradient(160, 190, 200, 230);
+  const neck = ctx.createLinearGradient(160, 250, 200, 310);
   neck.addColorStop(0, skinLit);
   neck.addColorStop(1, skinDeep);
   ctx.fillStyle = neck;
   ctx.beginPath();
-  ctx.moveTo(158, 196);
-  ctx.quadraticCurveTo(180, 230, 202, 196);
-  ctx.lineTo(196, 236);
-  ctx.quadraticCurveTo(180, 248, 164, 236);
+  ctx.moveTo(156, 268);
+  ctx.quadraticCurveTo(180, 300, 204, 268);
+  ctx.lineTo(198, 318);
+  ctx.quadraticCurveTo(180, 332, 162, 318);
   ctx.closePath();
   ctx.fill();
 
   const cx = 180;
-  const cy = 168;
-  const rx = 68 * f.faceW;
-  const ry = 86;
+  const cy = 198;
+  const rx = 82 * f.faceW;
+  const ry = 102;
 
   ctx.fillStyle = skin;
   ctx.beginPath();
@@ -198,6 +193,7 @@ export function paintPlayerCard(canvas: HTMLCanvasElement, id: string, kit?: str
 }
 
 function paintEye(ctx: CanvasRenderingContext2D, x: number, y: number, iris: string) {
+  if (!iris) iris = "#2a1a10";
   ctx.fillStyle = "#f4efe8";
   ctx.beginPath();
   ctx.ellipse(x, y, 11, 6.6, 0, 0, Math.PI * 2);

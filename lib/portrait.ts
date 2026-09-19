@@ -39,6 +39,7 @@ export function svgSafeId(id: string): string {
 }
 
 export function shade(hex: string, amt: number): string {
+  if (!hex) hex = "#000000";
   const n = hex.replace("#", "");
   const num = parseInt(n.length === 3 ? n.split("").map((c) => c + c).join("") : n, 16);
   const r = Math.max(0, Math.min(255, (num >> 16) + amt));

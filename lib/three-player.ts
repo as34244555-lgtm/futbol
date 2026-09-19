@@ -48,19 +48,19 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
 
   const skinMat = new THREE.MeshStandardMaterial({
     color: col(f.skin),
-    roughness: 0.45,
-    metalness: 0.02,
+    roughness: 0.38,
+    metalness: 0.04,
   });
-  const hairMat = new THREE.MeshStandardMaterial({ color: col(f.hair), roughness: 0.7 });
-  const bootMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.35, metalness: 0.2 });
-  const shortMat = new THREE.MeshStandardMaterial({ color: col(shade(kit, -30)), roughness: 0.55 });
-  const sockMat = new THREE.MeshStandardMaterial({ color: col(sec), roughness: 0.6 });
+  const hairMat = new THREE.MeshStandardMaterial({ color: col(f.hair), roughness: 0.62, metalness: 0.02 });
+  const bootMat = new THREE.MeshStandardMaterial({ color: 0x0d0d0d, roughness: 0.28, metalness: 0.35 });
+  const shortMat = new THREE.MeshStandardMaterial({ color: col(shade(kit, -30)), roughness: 0.5 });
+  const sockMat = new THREE.MeshStandardMaterial({ color: col(sec), roughness: 0.55 });
   const shirtTex = kitTexture(kit, sec, opts.kitStyle ?? "solid");
   const shirtMat = new THREE.MeshStandardMaterial({
     map: shirtTex,
     color: 0xffffff,
-    roughness: 0.55,
-    metalness: 0.04,
+    roughness: 0.48,
+    metalness: 0.06,
   });
 
   const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x: number, y: number, z: number) => {
@@ -72,39 +72,43 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
     return m;
   };
 
-  add(new THREE.CapsuleGeometry(0.11, 0.42, 4, 8), shortMat, -0.12, 0.48, 0);
-  add(new THREE.CapsuleGeometry(0.11, 0.42, 4, 8), shortMat, 0.12, 0.48, 0);
-  add(new THREE.CapsuleGeometry(0.09, 0.4, 4, 8), sockMat, -0.12, 0.18, 0);
-  add(new THREE.CapsuleGeometry(0.09, 0.4, 4, 8), sockMat, 0.12, 0.18, 0);
-  const bootL = add(new THREE.BoxGeometry(0.16, 0.09, 0.28), bootMat, -0.12, 0.05, 0.04);
-  const bootR = add(new THREE.BoxGeometry(0.16, 0.09, 0.28), bootMat, 0.12, 0.05, 0.04);
-  bootL.rotation.y = 0.08;
-  bootR.rotation.y = -0.08;
+  add(new THREE.CapsuleGeometry(0.1, 0.38, 5, 10), shortMat, -0.11, 0.52, 0);
+  add(new THREE.CapsuleGeometry(0.1, 0.38, 5, 10), shortMat, 0.11, 0.52, 0);
+  add(new THREE.CapsuleGeometry(0.08, 0.36, 5, 10), sockMat, -0.11, 0.2, 0);
+  add(new THREE.CapsuleGeometry(0.08, 0.36, 5, 10), sockMat, 0.11, 0.2, 0);
+  add(new THREE.BoxGeometry(0.15, 0.08, 0.3), bootMat, -0.11, 0.045, 0.05);
+  add(new THREE.BoxGeometry(0.15, 0.08, 0.3), bootMat, 0.11, 0.045, 0.05);
 
-  const torso = add(new THREE.CapsuleGeometry(0.28, 0.42, 6, 10), shirtMat, 0, 1.12, 0);
-  torso.scale.set(1, 1, 0.72);
-  add(new THREE.CapsuleGeometry(0.08, 0.38, 4, 8), shirtMat, -0.38, 1.18, 0);
-  add(new THREE.CapsuleGeometry(0.08, 0.38, 4, 8), shirtMat, 0.38, 1.18, 0);
-  add(new THREE.CapsuleGeometry(0.07, 0.32, 4, 8), skinMat, -0.4, 0.86, 0);
-  add(new THREE.CapsuleGeometry(0.07, 0.32, 4, 8), skinMat, 0.4, 0.86, 0);
+  const hips = add(new THREE.SphereGeometry(0.18, 12, 10), shortMat, 0, 0.78, 0);
+  hips.scale.set(1.15, 0.7, 0.85);
+  const chest = add(new THREE.CapsuleGeometry(0.22, 0.32, 6, 12), shirtMat, 0, 1.16, 0);
+  chest.scale.set(1.2, 1, 0.68);
+  add(new THREE.SphereGeometry(0.13, 10, 8), shirtMat, -0.26, 1.34, 0);
+  add(new THREE.SphereGeometry(0.13, 10, 8), shirtMat, 0.26, 1.34, 0);
+  add(new THREE.CapsuleGeometry(0.07, 0.3, 5, 8), shirtMat, -0.36, 1.12, 0);
+  add(new THREE.CapsuleGeometry(0.07, 0.3, 5, 8), shirtMat, 0.36, 1.12, 0);
+  add(new THREE.CapsuleGeometry(0.065, 0.28, 5, 8), skinMat, -0.38, 0.84, 0);
+  add(new THREE.CapsuleGeometry(0.065, 0.28, 5, 8), skinMat, 0.38, 0.84, 0);
   if (opts.gk) {
     const glove = new THREE.MeshStandardMaterial({ color: col(sec), roughness: 0.4 });
-    add(new THREE.SphereGeometry(0.09, 10, 8), glove, -0.42, 0.66, 0.04);
-    add(new THREE.SphereGeometry(0.09, 10, 8), glove, 0.42, 0.66, 0.04);
+    add(new THREE.SphereGeometry(0.085, 10, 8), glove, -0.4, 0.66, 0.04);
+    add(new THREE.SphereGeometry(0.085, 10, 8), glove, 0.4, 0.66, 0.04);
   }
 
-  add(new THREE.CylinderGeometry(0.09, 0.11, 0.14, 10), skinMat, 0, 1.42, 0);
-  const head = add(new THREE.SphereGeometry(0.2, 18, 14), skinMat, 0, 1.62, 0);
-  head.scale.set(f.faceW, 1.05, 0.92);
+  add(new THREE.CylinderGeometry(0.08, 0.1, 0.12, 10), skinMat, 0, 1.44, 0);
+  const head = add(new THREE.SphereGeometry(0.19, 20, 16), skinMat, 0, 1.64, 0);
+  head.scale.set(f.faceW, 1.08, 0.9);
 
-  const eyeMat = new THREE.MeshStandardMaterial({ color: 0xf4efe8, roughness: 0.3 });
-  const irisMat = new THREE.MeshStandardMaterial({ color: col(f.eye), roughness: 0.25 });
+  const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xf6f1ea, roughness: 0.22 });
+  const irisMat = new THREE.MeshStandardMaterial({ color: col(f.eye), roughness: 0.18 });
   const pupilMat = new THREE.MeshStandardMaterial({ color: 0x111111 });
   for (const side of [-1, 1]) {
-    add(new THREE.SphereGeometry(0.035, 8, 8), eyeMat, side * 0.07, 1.64, 0.155);
-    add(new THREE.SphereGeometry(0.018, 8, 8), irisMat, side * 0.07, 1.64, 0.18);
-    add(new THREE.SphereGeometry(0.01, 6, 6), pupilMat, side * 0.07, 1.64, 0.192);
+    add(new THREE.SphereGeometry(0.032, 10, 8), eyeWhite, side * 0.065, 1.66, 0.15);
+    add(new THREE.SphereGeometry(0.016, 10, 8), irisMat, side * 0.065, 1.66, 0.175);
+    add(new THREE.SphereGeometry(0.008, 8, 8), pupilMat, side * 0.065, 1.66, 0.188);
   }
+  const nose = add(new THREE.SphereGeometry(0.03, 8, 8), skinMat, 0, 1.6, 0.16);
+  nose.scale.set(0.7, 1.1, 1.2);
 
   paintHair3d(root, f.hairStyle, hairMat);
 
