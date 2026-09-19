@@ -3,7 +3,7 @@
 import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
 import { FORMATION_SLOTS } from "@/lib/formations";
 import { normalizeStadium } from "@/lib/stadium";
-import { photoPortrait } from "@/lib/player-photo";
+import { photoBody } from "@/lib/player-photo";
 import { clipForEvent } from "@/lib/player-anims";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import {
@@ -67,9 +67,9 @@ export function StadiumMatch({
             kitSecondary: team.kit_secondary,
             kitStyle: team.kit_style,
             gk: row.player.position === "KL",
-            portraitUrl: photoPortrait(row.player),
+            bodyUrl: photoBody(row.player),
           });
-          fig.scale.setScalar(1.05);
+          fig.scale.setScalar(1.22);
           figures.current.set(row.id, fig);
           scene.add(fig);
           const slots = FORMATION_SLOTS[team.formation];

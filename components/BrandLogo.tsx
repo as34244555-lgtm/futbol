@@ -17,7 +17,7 @@ export function BrandLogo({
         alt="A Studio"
         width={size}
         height={size}
-        className="rounded-xl bg-white object-contain p-0.5 shadow-glow"
+        className="rounded-xl bg-black object-contain p-0.5 shadow-glow"
         priority
       />
       {showWord && <span className="font-display tracking-wide text-neon">MANAGERS LEAGUE</span>}

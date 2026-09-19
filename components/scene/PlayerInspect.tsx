@@ -1,7 +1,7 @@
 "use client";
 
 import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
-import { photoPortrait } from "@/lib/player-photo";
+import { photoBody } from "@/lib/player-photo";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import type { KitStyle, Player } from "@/lib/types";
 import { useCallback, useMemo, useRef } from "react";
@@ -49,14 +49,14 @@ export function PlayerInspect({
         kitSecondary,
         kitStyle,
         gk: player.position === "KL",
-        portraitUrl: photoPortrait(player),
+        bodyUrl: photoBody(player),
       });
-      fig.rotation.y = 0.25;
-      fig.scale.setScalar(1.12);
+      fig.rotation.y = 0.2;
+      fig.scale.setScalar(1.05);
       figure.current = fig;
       scene.add(fig);
 
-      camera.position.set(1.15, 1.55, 3.35);
+      camera.position.set(0.9, 1.35, 2.85);
       camera.lookAt(0, 0.95, 0);
       return () => {
         figure.current = null;
@@ -70,7 +70,7 @@ export function PlayerInspect({
       t.current += dt;
       if (figure.current) {
         tickPlayerFigure(figure.current, t.current, clip, true);
-        figure.current.rotation.y = 0.35 + Math.sin(t.current * 0.45) * 0.25;
+        figure.current.rotation.y = 0.2 + Math.sin(t.current * 0.45) * 0.35;
       }
       camera.lookAt(0, 0.95, 0);
     },

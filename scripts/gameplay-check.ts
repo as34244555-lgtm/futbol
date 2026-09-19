@@ -11,7 +11,7 @@ import { packLeague, unpackLeague } from "../lib/server/remote-kv";
 import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from "../lib/titles";
 import { cardRarity, displayOvr } from "../lib/card-rarity";
 import { normalizeStadium } from "../lib/stadium";
-import { photoPortrait } from "../lib/player-photo";
+import { photoPortrait, photoBody } from "../lib/player-photo";
 import { makeAbdullah } from "../lib/catalog";
 import {
   DRIBBLE_CLIPS,
@@ -74,6 +74,8 @@ assert(cardRarity({ overall: 64 }) === "bronze", "low overall is bronze");
 assert(cardRarity({ overall: 82 }) === "featured", "82 is featured");
 assert(cardRarity({ overall: 93 }) === "showtime", "93 is showtime");
 assert(photoPortrait(makeAbdullah()) === "/abdullah-sariyildiz.webp", "Abdullah keeps his photo");
+assert(photoBody(makeAbdullah()).includes("/bodies/abdullah.webp"), "Abdullah 3D body is photoreal full body");
+assert(photoBody({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).includes("/bodies/b"), "pool players get full-body photos");
 assert(photoPortrait({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).startsWith("/portraits/p"), "pool players get photo busts");
 assert(
   photoPortrait({ id: "a", nationality_code: "tr" }) === photoPortrait({ id: "a", nationality_code: "tr" }),

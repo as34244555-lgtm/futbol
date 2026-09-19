@@ -45,3 +45,16 @@ export function photoPortrait(player: {
   const i = pool[hash32(player.id) % pool.length]!;
   return `/portraits/p${String(i).padStart(2, "0")}.webp?v=${PHOTO_VER}`;
 }
+
+/** Full-body photoreal figure used on the pitch and in 3D inspect. */
+export function photoBody(player: {
+  id: string;
+  portrait?: string;
+  nationality_code?: string;
+  age?: number;
+}): string {
+  if (player.portrait?.includes("abdullah")) return `/bodies/abdullah.webp?v=${PHOTO_VER}`;
+  const bust = photoPortrait({ ...player, portrait: undefined });
+  const m = bust.match(/p(\d{2})/);
+  return `/bodies/b${m?.[1] ?? "00"}.webp?v=${PHOTO_VER}`;
+}
