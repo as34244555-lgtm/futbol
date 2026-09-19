@@ -122,7 +122,7 @@ export default function TacticsPage() {
           />
           {preview && (
             <div>
-              <p className="mb-2 text-sm text-slate-400">3D oyuncu modeli</p>
+              <p className="mb-2 text-sm text-slate-400">Sinematik fotoğraf kartı</p>
               <div className="overflow-hidden rounded-2xl border border-white/10">
                 <PlayerInspect
                   player={preview.player}

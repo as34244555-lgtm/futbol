@@ -238,7 +238,7 @@ export function PlayerCard({
               className="h-80 w-full"
             />
             <p className="px-4 py-3 text-xs text-slate-500">
-              {RARITY_LABEL[rarity]} kart · {pos} · {ovr} genel. Model oyuncunun tohumundan çizilir.
+              {RARITY_LABEL[rarity]} kart · {pos} · {ovr} genel. Sinematik fotoğraf — Abdullah ile aynı gerçekçilik.
             </p>
           </div>
         </div>
