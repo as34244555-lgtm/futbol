@@ -27,21 +27,43 @@ export function PlayerInspect({
 
   const build = useCallback(
     (scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
-      scene.background = new THREE.Color(0x05080d);
-      scene.add(new THREE.HemisphereLight(0xffe8c4, 0x0a1a12, 0.55));
-      const keyLight = new THREE.DirectionalLight(0xffe2a8, 1.45);
-      keyLight.position.set(2.2, 3.6, 2.4);
+      scene.background = new THREE.Color(0x050608);
+      scene.fog = new THREE.Fog(0x050608, 6, 16);
+      scene.add(new THREE.HemisphereLight(0xffe8d2, 0x0b1220, 0.55));
+
+      const keyLight = new THREE.DirectionalLight(0xfff1d6, 2.05);
+      keyLight.position.set(2.4, 4.2, 3.1);
       keyLight.castShadow = true;
+      keyLight.shadow.mapSize.set(1024, 1024);
       scene.add(keyLight);
-      scene.add(new THREE.DirectionalLight(0x3dff9a, 0.4).translateX(-2.8).translateY(1.2).translateZ(-1));
+
+      const rim = new THREE.DirectionalLight(0x8ecbff, 1.15);
+      rim.position.set(-2.6, 2.2, -2.4);
+      scene.add(rim);
+
+      const fill = new THREE.DirectionalLight(0x6a7c99, 0.45);
+      fill.position.set(-1.4, 1.6, 3.4);
+      scene.add(fill);
 
       const floor = new THREE.Mesh(
-        new THREE.CircleGeometry(2.4, 48),
-        new THREE.MeshStandardMaterial({ color: 0x0b1210, roughness: 0.85, metalness: 0.08 }),
+        new THREE.CircleGeometry(2.6, 64),
+        new THREE.MeshStandardMaterial({
+          color: 0x0a0d12,
+          roughness: 0.28,
+          metalness: 0.55,
+        }),
       );
       floor.rotation.x = -Math.PI / 2;
       floor.receiveShadow = true;
       scene.add(floor);
+
+      const ring = new THREE.Mesh(
+        new THREE.RingGeometry(0.55, 0.62, 48),
+        new THREE.MeshBasicMaterial({ color: 0x3dff9a, transparent: true, opacity: 0.35, side: THREE.DoubleSide }),
+      );
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = 0.015;
+      scene.add(ring);
 
       const fig = createPlayerFigure({
         id: player.id,
@@ -50,14 +72,15 @@ export function PlayerInspect({
         kitStyle,
         gk: player.position === "KL",
         bodyUrl: photoBody(player),
+        portraitUrl: player.portrait,
       });
-      fig.rotation.y = 0.2;
-      fig.scale.setScalar(1.05);
+      fig.rotation.y = 0.18;
+      fig.scale.setScalar(1.08);
       figure.current = fig;
       scene.add(fig);
 
-      camera.position.set(0.9, 1.35, 2.85);
-      camera.lookAt(0, 0.95, 0);
+      camera.position.set(0.35, 1.22, 3.15);
+      camera.lookAt(0, 0.92, 0);
       return () => {
         figure.current = null;
       };
@@ -70,9 +93,9 @@ export function PlayerInspect({
       t.current += dt;
       if (figure.current) {
         tickPlayerFigure(figure.current, t.current, clip, true);
-        figure.current.rotation.y = 0.2 + Math.sin(t.current * 0.45) * 0.35;
+        figure.current.rotation.y = 0.12 + Math.sin(t.current * 0.38) * 0.72;
       }
-      camera.lookAt(0, 0.95, 0);
+      camera.lookAt(0, 0.92, 0);
     },
     [clip],
   );

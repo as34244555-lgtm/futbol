@@ -76,6 +76,7 @@ assert(cardRarity({ overall: 93 }) === "showtime", "93 is showtime");
 assert(photoPortrait(makeAbdullah()) === "/abdullah-sariyildiz.webp", "Abdullah keeps his photo");
 assert(photoBody(makeAbdullah()).includes("/bodies/abdullah.webp"), "Abdullah 3D body is photoreal full body");
 assert(photoBody({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).includes("/bodies/b"), "pool players get full-body photos");
+assert(photoBody(makeAbdullah()).includes("v=ef3d"), "3D body cache-busts to eFootball set");
 assert(photoPortrait({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).startsWith("/portraits/p"), "pool players get photo busts");
 assert(
   photoPortrait({ id: "a", nationality_code: "tr" }) === photoPortrait({ id: "a", nationality_code: "tr" }),
