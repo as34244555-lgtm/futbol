@@ -52,7 +52,6 @@ export function OpeningSplash({ children }: { children: React.ReactNode }) {
             transition={{ duration: 0.65 }}
             aria-label={`${t("studio")} ${t("studioPresents")} ${t("game")}`}
           >
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(55,90,220,0.22),transparent_52%)]" />
             <motion.div
               className="relative z-10 flex flex-col items-center px-6 text-center"
               initial={{ opacity: 0, scale: 0.88, y: 16 }}
