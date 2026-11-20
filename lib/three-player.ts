@@ -54,7 +54,12 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
   shadow.position.y = 0.01;
   root.add(shadow);
 
-  const glb = clonePlayerGlb(opts.modelSlot);
+  const glb = clonePlayerGlb(opts.modelSlot, {
+    kit: opts.kit,
+    kitSecondary: opts.kitSecondary,
+    kitStyle: opts.kitStyle,
+    gk: opts.gk,
+  });
   glb.name = "glbBody";
   root.add(glb);
 
@@ -64,9 +69,6 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
 
   root.userData.idle = Math.random() * Math.PI * 2;
   root.userData.clip = "idle" as AnimClip;
-  void opts.kit;
-  void opts.kitSecondary;
-  void opts.kitStyle;
   void opts.bodyUrl;
   void opts.portraitUrl;
   return root;

@@ -43,12 +43,12 @@ export const STANDARD_SPECS: RosterSpec[] = [
 
 /** Named cards outside the 24. Goalkeepers live here, because the 24 are all outfield. */
 export const SPECIAL_SPECS: RosterSpec[] = [
-  { name: "Emre Dursun", nationality: "Türkiye", nationality_code: "tr", position: "KL", age: 31, attack: 34, defense: 97, tier: "special", portrait: "/portraits/keeper.svg" },
-  { name: "Nils Berger", nationality: "Almanya", nationality_code: "de", position: "KL", age: 27, attack: 30, defense: 94, tier: "special", portrait: "/portraits/keeper-b.svg" },
-  { name: "Baran Yıldız", nationality: "Türkiye", nationality_code: "tr", position: "FV", age: 25, attack: 99, defense: 68, tier: "special", portrait: "/portraits/special.svg" },
-  { name: "Leandro Costa", nationality: "Brezilya", nationality_code: "br", position: "KANAT", age: 23, attack: 99, defense: 72, tier: "special", portrait: "/portraits/special.svg" },
-  { name: "Harun Bektaş", nationality: "Türkiye", nationality_code: "tr", position: "STP", age: 29, attack: 72, defense: 99, tier: "special", portrait: "/portraits/special.svg" },
-  { name: "Idris Ndiaye", nationality: "Senegal", nationality_code: "sn", position: "MOS", age: 26, attack: 92, defense: 90, tier: "special", portrait: "/portraits/special.svg" },
-  { name: "Piero Conti", nationality: "İtalya", nationality_code: "it", position: "SĞB", age: 28, attack: 84, defense: 92, tier: "special", portrait: "/portraits/special.svg" },
-  { name: "Yusuf Acar", nationality: "Türkiye", nationality_code: "tr", position: "KANAT", age: 22, attack: 97, defense: 60, tier: "special", portrait: "/portraits/special.svg" },
+  { name: "Emre Dursun", nationality: "Türkiye", nationality_code: "tr", position: "KL", age: 31, attack: 34, defense: 97, tier: "special", portrait: "/portraits/special/emre-dursun.jpg" },
+  { name: "Nils Berger", nationality: "Almanya", nationality_code: "de", position: "KL", age: 27, attack: 30, defense: 94, tier: "special", portrait: "/portraits/special/nils-berger.jpg" },
+  { name: "Baran Yıldız", nationality: "Türkiye", nationality_code: "tr", position: "FV", age: 25, attack: 99, defense: 68, tier: "special", portrait: "/portraits/special/baran-yildiz.jpg" },
+  { name: "Leandro Costa", nationality: "Brezilya", nationality_code: "br", position: "KANAT", age: 23, attack: 99, defense: 72, tier: "special", portrait: "/portraits/special/leandro-costa.jpg" },
+  { name: "Harun Bektaş", nationality: "Türkiye", nationality_code: "tr", position: "STP", age: 29, attack: 72, defense: 99, tier: "special", portrait: "/portraits/special/harun-bektas.jpg" },
+  { name: "Idris Ndiaye", nationality: "Senegal", nationality_code: "sn", position: "MOS", age: 26, attack: 92, defense: 90, tier: "special", portrait: "/portraits/special/idris-ndiaye.jpg" },
+  { name: "Piero Conti", nationality: "İtalya", nationality_code: "it", position: "SĞB", age: 28, attack: 84, defense: 92, tier: "special", portrait: "/portraits/special/piero-conti.jpg" },
+  { name: "Yusuf Acar", nationality: "Türkiye", nationality_code: "tr", position: "KANAT", age: 22, attack: 97, defense: 60, tier: "special", portrait: "/portraits/special/yusuf-acar.jpg" },
 ];

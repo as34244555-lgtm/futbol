@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { applyKitTint, type KitTint } from "./kit-tint";
 
 export const PLAYER_GLB_URL = "/models/player.glb";
 
@@ -101,13 +102,14 @@ export function loadPlayerGlb(): Promise<THREE.Group> {
 }
 
 /** Shared-geometry clone. Optional slot uses /models/pXX.glb when that file exists. */
-export function clonePlayerGlb(slot?: number): THREE.Group {
+export function clonePlayerGlb(slot?: number, tint?: KitTint): THREE.Group {
   const holder = new THREE.Group();
   holder.name = "playerGlb";
   holder.userData.glb = true;
   const mount = (tpl: THREE.Group) => {
     const clips = tpl.userData.clips as THREE.AnimationClip[] | undefined;
     const copy = clips?.length ? cloneSkeleton(tpl) : tpl.clone(true);
+    if (tint?.kit) applyKitTint(copy, tint);
     holder.add(copy);
     if (clips?.length) {
       holder.userData.mixer = new THREE.AnimationMixer(copy);
