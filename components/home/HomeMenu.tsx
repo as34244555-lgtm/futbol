@@ -53,93 +53,114 @@ export function HomeMenu() {
   }, [slides.length]);
 
   const actions = [
-    { href: "/match", label: t("menu.match"), color: "bg-[#2f7bff]", icon: <BallIcon />, alert: false },
-    { href: "/match", label: t("menu.shoot"), color: "bg-[#ff8a1e]", icon: <GoalIcon />, alert: !next },
-    { href: "/tactics", label: t("menu.plan"), color: "bg-[#6fbf3a]", icon: <PlanIcon />, alert: !userTeam?.training },
+    { href: "/match", label: t("menu.match"), color: "bg-[#1f6dff]", icon: <BallIcon />, alert: false },
+    { href: "/match", label: t("menu.shoot"), color: "bg-[#ff7a12]", icon: <GoalIcon />, alert: !next },
+    { href: "/tactics", label: t("menu.plan"), color: "bg-[#5eae2e]", icon: <PlanIcon />, alert: !userTeam?.training },
     { href: "/squad", label: t("menu.team"), color: "bg-[#e23b4a]", icon: <ShieldIcon />, alert: false },
     { href: "/transfer", label: t("menu.contract"), color: "bg-[#9b4dff]", icon: <SignIcon />, alert: false },
   ];
 
+  const current = slides[slide];
+
   return (
-    <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col bg-black px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.45rem,env(safe-area-inset-top))] text-white">
-      <div className="flex items-center gap-3 px-1">
-        <span className="flex items-center gap-1 text-sm font-semibold text-[#f5c542]">
-          <GoldBallIcon />
-          {formatCoins(userTeam?.points ?? 0)}
-        </span>
-        <span className="flex items-center gap-1 text-sm font-semibold text-white">
-          <Image src="/a-studio-icon.png" alt="Abdullah Studio" width={22} height={22} className="h-5 w-5 rounded-sm object-contain" />
-          {formatCoins(userTeam?.coins ?? 0)}
-        </span>
-        <div className="ml-auto flex items-center gap-3">
-          <button type="button" aria-label={t("settings")} onClick={() => setSettings(true)} className="text-[#3b82f6]">
-            <Info className="h-6 w-6" />
-          </button>
-          <Link href="/inbox" className="relative text-[#8eb4ff]">
-            <Mail className="h-6 w-6" />
-            {news > 0 && <Badge n={news} />}
-          </Link>
-          <button type="button" className="relative text-[#49a2ff]" onClick={() => setSettings(true)} aria-label={t("settings")}>
-            <Bell className="h-6 w-6" />
-          </button>
-        </div>
-      </div>
-
-      <div className="mt-3 flex gap-1 overflow-x-auto rounded-full bg-[#2a2a2a] p-1 text-sm">
-        {TABS.map((tab) => {
-          const active = tab.href === "/dashboard";
-          return (
-            <Link
-              key={tab.href}
-              href={tab.href}
-              className={`shrink-0 rounded-full px-3 py-1.5 ${active ? "bg-[#d9d9d9] font-semibold text-black" : "text-white/80"}`}
-            >
-              {t(tab.key)}
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="mt-5 flex min-h-[15rem] flex-1 items-stretch gap-2">
-        <div className="my-8 w-2 shrink-0 rounded-r-xl bg-[#2c2c2c]" />
-        <Link
-          href={slides[slide]?.href ?? "/match"}
-          className="flex flex-1 items-center justify-center rounded-[1.6rem] bg-[#4a4a4a] px-6 text-center"
-        >
-          <span>
-            <span className="block font-display text-3xl leading-tight sm:text-4xl">{slides[slide]?.title}</span>
-            <span className="mt-2 block text-sm text-white/70">{slides[slide]?.text}</span>
+    <div className="relative min-h-[100dvh] w-full overflow-hidden text-white">
+      <StadiumBackdrop />
+      <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.45rem,env(safe-area-inset-top))]">
+        <div className="flex items-center gap-3 px-1">
+          <span className="flex items-center gap-1 text-sm font-semibold text-[#f5c542] drop-shadow">
+            <GoldBallIcon />
+            {formatCoins(userTeam?.points ?? 0)}
           </span>
-        </Link>
-        <div className="my-8 w-2 shrink-0 rounded-l-xl bg-[#2c2c2c]" />
-      </div>
-      <div className="mt-3 flex justify-center gap-1.5">
+          <span className="flex items-center gap-1 text-sm font-semibold text-white drop-shadow">
+            <Image src="/a-studio-icon.png" alt="Abdullah Studio" width={22} height={22} className="h-5 w-5 rounded-sm object-contain" />
+            {formatCoins(userTeam?.coins ?? 0)}
+          </span>
+          <div className="ml-auto flex items-center gap-3">
+            <button type="button" aria-label={t("settings")} onClick={() => setSettings(true)} className="text-[#7eb6ff] drop-shadow">
+              <Info className="h-6 w-6" />
+            </button>
+            <Link href="/inbox" className="relative text-[#8eb4ff] drop-shadow">
+              <Mail className="h-6 w-6" />
+              {news > 0 && <Badge n={news} />}
+            </Link>
+            <button type="button" className="relative text-[#49a2ff] drop-shadow" onClick={() => setSettings(true)} aria-label={t("settings")}>
+              <Bell className="h-6 w-6" />
+            </button>
+          </div>
+        </div>
+
+        <nav className="mt-3 grid w-full grid-cols-4 gap-1 rounded-2xl bg-black/55 p-1 text-[12px] ring-1 ring-white/15 backdrop-blur-md sm:text-sm">
+          {TABS.map((tab) => {
+            const active = tab.href === "/dashboard";
+            return (
+              <Link
+                key={tab.href}
+                href={tab.href}
+                className={`flex min-h-9 items-center justify-center rounded-xl px-1 py-2 text-center leading-none tracking-wide ${
+                  active
+                    ? "bg-[#f3f4f6] font-semibold text-black shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
+                    : "text-white/90 hover:bg-white/10"
+                }`}
+              >
+                {t(tab.key)}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="mt-3 flex min-h-0 flex-1 items-stretch gap-2">
+          <div className="my-5 w-2.5 shrink-0 rounded-r-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-sm" />
+          <Link
+            href={current?.href ?? "/match"}
+            className="relative flex flex-1 items-center justify-center overflow-hidden rounded-[1.6rem] border border-white/30 bg-black/10 px-6 text-center shadow-[0_22px_50px_rgba(0,0,0,0.4)]"
+          >
+            <span
+              className="pointer-events-none absolute inset-0"
+              style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.05) 70%)" }}
+            />
+            {current?.id === "ad" && (
+              <span className="absolute left-4 top-4 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-bold tracking-[0.18em] text-white/90 ring-1 ring-white/25">
+                AD
+              </span>
+            )}
+            <span className="relative inline-block max-w-[92%] rounded-2xl bg-black/55 px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+              <span className="block font-display text-3xl leading-tight sm:text-5xl">{current?.title}</span>
+              <span className="mt-2 block text-sm text-white/85">{current?.text}</span>
+            </span>
+          </Link>
+          <div className="my-5 w-2.5 shrink-0 rounded-l-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-sm" />
+        </div>
+        <div className="mt-2 flex justify-center gap-1.5">
           {slides.map((item, i) => (
             <button
               key={item.id}
               type="button"
               aria-label={item.title}
               onClick={() => setSlide(i)}
-              className={`h-1.5 rounded-full ${i === slide ? "w-5 bg-white" : "w-1.5 bg-white/35"}`}
+              className={`h-1.5 rounded-full ${i === slide ? "w-5 bg-white" : "w-1.5 bg-white/40"}`}
             />
           ))}
-      </div>
+        </div>
 
-      <p className="mb-2 mt-6 px-1 text-sm text-white/80">{t("menu.play")}</p>
-      <div className="grid grid-cols-5 gap-2">
-        {actions.map((action) => (
-          <Link key={action.label} href={action.href} className="flex flex-col items-center gap-1 text-center">
-            <span className={`relative flex h-[4.2rem] w-full items-center justify-center rounded-2xl ${action.color} shadow-md`}>
-              {action.icon}
-              {action.alert && (
-                <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff2d2d] text-xs font-bold">
-                  !
-                </span>
-              )}
-            </span>
-            <span className="text-[11px] leading-tight">{action.label}</span>
-          </Link>
-        ))}
+        <p className="mb-2 mt-3 px-1 text-sm font-medium text-white/90 drop-shadow">{t("menu.play")}</p>
+        <div className="grid grid-cols-5 gap-2">
+          {actions.map((action) => (
+            <Link key={action.label} href={action.href} className="flex flex-col items-center gap-1 text-center">
+              <span
+                className={`relative flex h-[4.35rem] w-full items-center justify-center overflow-hidden rounded-[1.15rem] ${action.color} shadow-[0_12px_18px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.5)]`}
+              >
+                <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent" />
+                <span className="relative">{action.icon}</span>
+                {action.alert && (
+                  <span className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-[#ff2d2d] text-xs font-bold ring-2 ring-black/40">
+                    !
+                  </span>
+                )}
+              </span>
+              <span className="text-[11px] font-medium leading-tight drop-shadow">{action.label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
 
       {settings && (
@@ -172,6 +193,88 @@ export function HomeMenu() {
   );
 }
 
+const SEAT_COLORS = ["#c43446", "#1d4e9c", "#d4a017", "#0f6b45", "#1d4e9c", "#c43446", "#d4a017", "#7a2ea8"];
+
+function pitchPoint(u: number, v: number) {
+  const left = 260 + (-80 - 260) * v;
+  const right = 1340 + (1680 - 1340) * v;
+  const x = left + (right - left) * u;
+  const y = 430 + (760 - 430) * v;
+  return `${x.toFixed(1)},${y.toFixed(1)}`;
+}
+
+function pitchBox(u0: number, u1: number, v0: number, v1: number) {
+  return `M${pitchPoint(u0, v0)} L${pitchPoint(u1, v0)} L${pitchPoint(u1, v1)} L${pitchPoint(u0, v1)} Z`;
+}
+
+function StadiumBackdrop() {
+  const stripes = Array.from({ length: 12 }, (_, i) => {
+    const farL = 260 + (1080 * i) / 12;
+    const farR = 260 + (1080 * (i + 1)) / 12;
+    const nearL = -80 + (1760 * i) / 12;
+    const nearR = -80 + (1760 * (i + 1)) / 12;
+    return `M${farL} 430 L${farR} 430 L${nearR} 760 L${nearL} 760 Z`;
+  });
+  return (
+    <div className="pointer-events-none absolute inset-0 overflow-hidden bg-[#07111c]" aria-hidden>
+      <style>{`@keyframes mlFlood { 0%,100% { opacity: .7 } 50% { opacity: 1 } }`}</style>
+      <svg className="absolute inset-0 h-full w-full" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id="bgSky" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#1d4d86" />
+            <stop offset="40%" stopColor="#102844" />
+            <stop offset="100%" stopColor="#07111c" />
+          </linearGradient>
+          <linearGradient id="bgBeam" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#fff6d8" stopOpacity="0.75" />
+            <stop offset="100%" stopColor="#fff6d8" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="bgShade" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="68%" stopColor="#000" stopOpacity="0" />
+            <stop offset="100%" stopColor="#000" stopOpacity="0.55" />
+          </linearGradient>
+        </defs>
+        <rect width="1600" height="900" fill="url(#bgSky)" />
+        <g style={{ animation: "mlFlood 5s ease-in-out infinite" }}>
+          <polygon points="30,30 210,30 560,470 -80,470" fill="url(#bgBeam)" />
+          <polygon points="1390,30 1570,30 1680,470 1040,470" fill="url(#bgBeam)" />
+        </g>
+        <path d="M0 108 Q800 18 1600 108 V168 Q800 82 0 168 Z" fill="#0c1828" />
+        <rect x="64" y="70" width="160" height="16" rx="3" fill="#f7f9ff" />
+        <rect x="1376" y="70" width="160" height="16" rx="3" fill="#f7f9ff" />
+        <path d="M0 160 H1600 L1500 430 H100 Z" fill="#10192b" />
+        {SEAT_COLORS.map((color, i) =>
+          Array.from({ length: 6 }, (_, row) => (
+            <rect
+              key={`${i}-${row}`}
+              x={48 + i * 192}
+              y={184 + row * 36}
+              width="168"
+              height="22"
+              rx="4"
+              fill={color}
+              opacity={0.72}
+            />
+          )),
+        )}
+        {stripes.map((d, i) => (
+          <path key={d} d={d} fill={i % 2 ? "#117a38" : "#1cb454"} />
+        ))}
+        <path d="M260 430 H1340 L1680 760 H-80 Z" fill="none" stroke="#fff" strokeWidth="5" />
+        <line x1="800" y1="430" x2="800" y2="760" stroke="#fff" strokeWidth="4" />
+        <ellipse cx="800" cy="620" rx="78" ry="28" fill="none" stroke="#fff" strokeWidth="4" />
+        <circle cx="800" cy="620" r="5" fill="#fff" />
+        <path d={pitchBox(0, 0.16, 0.22, 0.78)} fill="none" stroke="#fff" strokeWidth="4" />
+        <path d={pitchBox(0.84, 1, 0.22, 0.78)} fill="none" stroke="#fff" strokeWidth="4" />
+        <path d={pitchBox(0, 0.07, 0.36, 0.64)} fill="none" stroke="#fff" strokeWidth="3" />
+        <path d={pitchBox(0.93, 1, 0.36, 0.64)} fill="none" stroke="#fff" strokeWidth="3" />
+        <rect width="1600" height="900" fill="url(#bgShade)" />
+      </svg>
+      <div className="absolute inset-0" style={{ background: "radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.35) 100%)" }} />
+    </div>
+  );
+}
+
 function Badge({ n }: { n: number }) {
   return (
     <span className="absolute -right-2 -top-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff2d2d] px-1 text-[10px] font-bold">
@@ -195,25 +298,63 @@ function GoldBallIcon() {
     </svg>
   );
 }
+
 function BallIcon() {
   return (
-    <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden>
-      <circle cx="24" cy="24" r="14" fill="white" />
-      <path d="M24 13.5l3.6 2.6 1.4 4.2-2.2 3.8h-5.6l-2.2-3.8 1.4-4.2L24 13.5z" fill="#111827" />
-      <path d="M24 13.5V10M20.4 20.3l-4.2-1.4M27.6 20.3l4.2-1.4M21.8 24.1l-2.4 5.2M26.2 24.1l2.4 5.2" stroke="#111827" strokeWidth="1.5" fill="none" />
+    <svg viewBox="0 0 64 64" className="h-11 w-11" aria-hidden>
+      <defs>
+        <radialGradient id="matchBall" cx="32%" cy="28%" r="70%">
+          <stop offset="0%" stopColor="#ffffff" />
+          <stop offset="70%" stopColor="#f3f5f8" />
+          <stop offset="100%" stopColor="#c5ceda" />
+        </radialGradient>
+        <clipPath id="ballClip">
+          <circle cx="32" cy="32" r="20" />
+        </clipPath>
+      </defs>
+      <ellipse cx="32" cy="55" rx="12" ry="2.4" fill="#041018" opacity="0.28" />
+      <g clipPath="url(#ballClip)">
+        <circle cx="32" cy="32" r="20" fill="url(#matchBall)" />
+        <g fill="#1a1c22">
+          <polygon points="32.0,24.8 38.8,29.8 36.2,37.8 27.8,37.8 25.2,29.8" />
+          <polygon points="32.0,9.1 38.1,13.5 35.8,20.7 28.2,20.7 25.9,13.5" />
+          <polygon points="53.8,24.9 51.5,32.1 43.9,32.1 41.6,24.9 47.7,20.5" />
+          <polygon points="45.5,50.5 37.9,50.5 35.6,43.4 41.7,38.9 47.8,43.4" />
+          <polygon points="18.5,50.5 16.2,43.4 22.3,38.9 28.4,43.4 26.1,50.5" />
+          <polygon points="10.2,24.9 16.3,20.5 22.4,24.9 20.1,32.1 12.5,32.1" />
+        </g>
+      </g>
+      <circle cx="32" cy="32" r="20" fill="none" stroke="#d5dbe6" strokeWidth="1.2" />
+      <ellipse cx="25" cy="24" rx="6" ry="2.6" fill="#fff" opacity="0.55" transform="rotate(-28 25 24)" />
     </svg>
   );
 }
+
 function GoalIcon() {
   return (
-    <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden>
-      <path d="M6 18h36v16H6z" fill="none" stroke="white" strokeWidth="2.2" />
-      <path d="M6 14h36M12 18v16M18 18v16M24 18v16M30 18v16M36 18v16" stroke="white" strokeWidth="1.2" />
-      <circle cx="34" cy="32" r="5" fill="white" />
-      <path d="M34 28.5l1.4 1 .5 1.6-.9 1.5h-2l-.9-1.5.5-1.6 1.4-1z" fill="#ff8a1e" />
+    <svg viewBox="0 0 64 64" className="h-11 w-11" aria-hidden>
+      <path d="M46 16h12l-2 30H44z" fill="rgba(255,255,255,0.28)" />
+      <path d="M46 16h12M58 16v30M44 46h12" stroke="#fff" strokeWidth="2.2" fill="none" strokeLinejoin="round" />
+      <g stroke="rgba(255,255,255,0.7)" strokeWidth="0.8">
+        <path d="M48 20h8M47 26h9M46.5 32h10M46 38h11" />
+        <path d="M50 16l-2 30M54 16v30" />
+      </g>
+      <rect x="8" y="16" width="38" height="30" rx="1.5" fill="rgba(255,255,255,0.12)" stroke="#fff" strokeWidth="3.2" />
+      <g stroke="rgba(255,255,255,0.9)" strokeWidth="0.9">
+        {Array.from({ length: 6 }, (_, i) => (
+          <line key={`n${i}`} x1={14 + i * 5.4} y1={16} x2={14 + i * 5.4} y2={46} />
+        ))}
+        {Array.from({ length: 4 }, (_, i) => (
+          <line key={`m${i}`} x1={8} y1={22 + i * 6} x2={46} y2={22 + i * 6} />
+        ))}
+      </g>
+      <path d="M8 16h38" stroke="#fff" strokeWidth="3.6" strokeLinecap="round" />
+      <circle cx="30" cy="36" r="6.2" fill="#fff" />
+      <polygon points="30,32.2 32.2,33.8 31.4,36.2 28.6,36.2 27.8,33.8" fill="#1a1c22" />
     </svg>
   );
 }
+
 function PlanIcon() {
   return (
     <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden>
