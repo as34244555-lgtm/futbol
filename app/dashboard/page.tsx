@@ -58,7 +58,7 @@ export default function DashboardPage() {
   return (
     <GameShell flush>
       <div className="relative min-h-[calc(100dvh-4.6rem)] overflow-hidden">
-        <PlayerStage className="absolute inset-0 h-full w-full" />
+        <PlayerStage className="absolute inset-0 h-full w-full" modelSlot={1} />
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#05070c] via-transparent to-black/45" />
 
         <div className="relative z-10 flex min-h-[calc(100dvh-4.6rem)] flex-col px-4 pb-6 pt-20 sm:px-8">
@@ -68,17 +68,17 @@ export default function DashboardPage() {
             </div>
           )}
 
-          <div className="pointer-events-auto mt-2 flex max-w-xs flex-col gap-2">
-            <ModeTile href="/match" kicker={t("home.quickKicker")} title={t("home.quick")} ready={xiReady} />
-            <ModeTile href="/league" kicker={t("home.leagueKicker")} title={t("nav.league")} />
-            <ModeTile href="/squad" kicker="XI" title={t("nav.team")} />
-            <ModeTile href="/transfer" kicker={t("home.shopKicker")} title={t("nav.shop")} />
+          <div className="pointer-events-auto mt-2 flex w-[min(100%,280px)] flex-col gap-2">
+            <ModeTile href="/match" kicker={t("home.quickKicker")} title={t("home.quick")} tone="pitch" ready={xiReady} />
+            <ModeTile href="/league" kicker={t("home.leagueKicker")} title={t("nav.league")} tone="gold" />
+            <ModeTile href="/squad" kicker="XI" title={t("nav.team")} tone="blue" />
+            <ModeTile href="/transfer" kicker={t("home.shopKicker")} title={t("nav.shop")} tone="violet" />
           </div>
 
           <div className="mt-auto flex flex-wrap items-end justify-between gap-4">
             <div className="flex items-end gap-3">
               {featured && (
-                <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#e7c56a] font-display text-xl text-[#e7c56a]">
+                <span className="ef-hex flex h-16 w-14 items-center justify-center bg-[#e7c56a] font-display text-xl text-black">
                   {featured.player.overall}
                 </span>
               )}
@@ -129,19 +129,26 @@ function ModeTile({
   kicker,
   title,
   ready,
+  tone,
 }: {
   href: string;
   kicker: string;
   title: string;
   ready?: boolean;
+  tone: "pitch" | "gold" | "blue" | "violet";
 }) {
+  const wash =
+    tone === "pitch"
+      ? "ef-banner"
+      : tone === "gold"
+        ? "bg-gradient-to-r from-[#1a1408] to-[#3a2a0c]"
+        : tone === "blue"
+          ? "bg-gradient-to-r from-[#0c1524] to-[#12304a]"
+          : "bg-gradient-to-r from-[#140c22] to-[#2a1848]";
   return (
-    <Link
-      href={href}
-      className="ef-card px-4 py-3 backdrop-blur hover:bg-white/5"
-    >
-      <p className="text-[10px] uppercase tracking-[0.28em] text-[#d4af37]">{kicker}</p>
-      <p className="font-display text-xl">{title}</p>
+    <Link href={href} className={`ef-card relative h-[4.4rem] overflow-hidden px-4 py-2 ${wash}`}>
+      <p className="text-[10px] uppercase tracking-[0.28em] text-[#e7c56a]">{kicker}</p>
+      <p className="font-display text-2xl leading-none">{title}</p>
       {ready === false && <p className="text-xs text-rose-300">XI</p>}
     </Link>
   );

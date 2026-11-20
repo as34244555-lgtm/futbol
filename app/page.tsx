@@ -14,7 +14,7 @@ export default function LandingPage() {
 
   return (
     <div className="relative min-h-[100dvh] overflow-hidden bg-[#05070c]">
-      <PlayerStage className="absolute inset-0 h-full w-full" />
+      <PlayerStage className="absolute inset-0 h-full w-full" modelSlot={1} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black via-black/55 to-transparent" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent" />
 

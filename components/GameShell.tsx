@@ -89,8 +89,14 @@ export function GameShell({ children, flush = false }: { children: React.ReactNo
                   active ? "text-[#e7c56a]" : "text-slate-500",
                 )}
               >
-                {active && <span className="absolute top-0 h-0 w-0 border-x-[7px] border-t-[7px] border-x-transparent border-t-[#e7c56a]" />}
-                <Icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_8px_rgba(231,197,106,0.85)]")} />
+                <span
+                  className={cn(
+                    "flex h-9 w-9 items-center justify-center rounded-2xl",
+                    active && "bg-[#e7c56a] text-black shadow-[0_0_18px_rgba(231,197,106,0.45)]",
+                  )}
+                >
+                  <Icon className={cn("h-5 w-5", active ? "text-black" : "text-slate-400")} />
+                </span>
                 {item.label}
               </Link>
             );

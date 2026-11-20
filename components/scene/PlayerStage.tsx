@@ -5,8 +5,8 @@ import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import { useCallback, useMemo, useRef } from "react";
 import * as THREE from "three";
 
-/** eFootball home-screen 3D player stage. */
-export function PlayerStage({ className = "h-full w-full" }: { className?: string }) {
+/** Home-screen 3D player. Slot 1 is the second Drive model when that file exists. */
+export function PlayerStage({ className = "h-full w-full", modelSlot = 1 }: { className?: string; modelSlot?: number }) {
   const t = useRef(0);
   const figure = useRef<THREE.Group | null>(null);
 
@@ -39,7 +39,7 @@ export function PlayerStage({ className = "h-full w-full" }: { className?: strin
     ring.position.y = 0.02;
     scene.add(ring);
 
-    const fig = createPlayerFigure({ id: "home-hero", kit: "#111827" });
+    const fig = createPlayerFigure({ id: "home-hero", kit: "#111827", modelSlot });
     fig.rotation.y = 0.18;
     figure.current = fig;
     scene.add(fig);
@@ -49,7 +49,7 @@ export function PlayerStage({ className = "h-full w-full" }: { className?: strin
     return () => {
       figure.current = null;
     };
-  }, []);
+  }, [modelSlot]);
 
   const onFrame = useCallback((_dt: number, _scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
     t.current += _dt;

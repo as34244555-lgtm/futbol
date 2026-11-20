@@ -49,7 +49,17 @@ export function LiveMatch({
   const syncing = useRef(false);
   const syncAcc = useRef(0);
   const peer = useRef(false);
-  const [hud, setHud] = useState({ minute: 0, score: [0, 0] as [number, number], peer: false, full: false });
+  const [hud, setHud] = useState({
+    minute: 0,
+    score: [0, 0] as [number, number],
+    peer: false,
+    full: false,
+    energy: 1,
+    dots: [] as { x: number; y: number; mine: boolean }[],
+    ball: { x: 50, y: 50 },
+  });
+  const energy = useRef(1);
+  const hudAcc = useRef(0);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const joy = useRef({ id: -1, ox: 0, oy: 0 });
 
@@ -59,6 +69,8 @@ export function LiveMatch({
       applyStadiumLights(scene, prefs);
       scene.add(createStadium(prefs));
       cam.current = camera;
+      camera.fov = 50;
+      camera.updateProjectionMatrix();
       cameraFor(prefs, camera);
 
       const toPitch = (rows: Roster[], team: Team, side: Side) => {
@@ -113,6 +125,9 @@ export function LiveMatch({
     (dt: number) => {
       const state = stateRef.current;
       if (!state || ended.current) return;
+      if (stick.current.sprint && energy.current > 0) energy.current = Math.max(0, energy.current - dt * 0.28);
+      else energy.current = Math.min(1, energy.current + dt * 0.14);
+      if (energy.current <= 0) stick.current.sprint = false;
       const out = tickPitch(state, dt, control, stick.current, remote.current);
       for (const p of state.players) {
         const fig = figures.current.get(p.id);
@@ -132,9 +147,9 @@ export function LiveMatch({
       const atk = control === "home" ? 1 : -1;
       const camera = cam.current;
       if (camera) {
-        const desired = new THREE.Vector3(focus.x, 8.4, focus.z - atk * 16);
-        camera.position.lerp(desired, 1 - Math.pow(0.001, dt));
-        camera.lookAt(focus.x, 0.6, focus.z + atk * 6);
+        const desired = new THREE.Vector3(focus.x * 0.28, 7.2, focus.z - atk * 13);
+        camera.position.lerp(desired, Math.min(1, dt * 3.2));
+        camera.lookAt(focus.x * 0.45, 0.7, focus.z + atk * 12);
       }
       syncAcc.current += dt;
       if (syncAcc.current > 0.22 && !syncing.current) {
@@ -173,8 +188,23 @@ export function LiveMatch({
             syncing.current = false;
           });
       }
-      if (Math.floor(state.minute) !== hud.minute || state.score[0] !== hud.score[0] || state.score[1] !== hud.score[1] || peer.current !== hud.peer) {
-        setHud({ minute: Math.floor(state.minute), score: [state.score[0], state.score[1]], peer: peer.current, full: false });
+      hudAcc.current += dt;
+      if (
+        hudAcc.current > 0.2 ||
+        Math.floor(state.minute) !== hud.minute ||
+        state.score[0] !== hud.score[0] ||
+        state.score[1] !== hud.score[1]
+      ) {
+        hudAcc.current = 0;
+        setHud({
+          minute: Math.floor(state.minute),
+          score: [state.score[0], state.score[1]],
+          peer: peer.current,
+          full: false,
+          energy: energy.current,
+          ball: { x: state.ball.x, y: state.ball.y },
+          dots: state.players.map((p) => ({ x: p.x, y: p.y, mine: p.side === control })),
+        });
       }
       if (out.done && !ended.current) {
         ended.current = true;
@@ -224,49 +254,74 @@ export function LiveMatch({
   return (
     <div className="fixed inset-0 z-50 bg-black">
       <ThreeCanvas className="h-full w-full" build={build} onFrame={onFrame} />
-      <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center px-3">
-        <div className="ef-card flex items-center gap-4 px-4 py-2 text-white">
-          <span className="max-w-[28vw] truncate text-xs uppercase tracking-wider">{home.name}</span>
-          <span className="font-display text-3xl leading-none">
-            {hud.score[0]} <span className="text-lg text-[#e7c56a]">{hud.minute}&apos;</span> {hud.score[1]}
-          </span>
-          <span className="max-w-[28vw] truncate text-xs uppercase tracking-wider">{away.name}</span>
+      <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center px-16">
+        <div className="flex items-center gap-3 rounded-full border border-white/15 bg-black/70 px-3 py-1.5 shadow-2xl">
+          <CrestDot color={home.kit_primary} name={home.name} />
+          <span className="font-display text-3xl leading-none">{hud.score[0]}</span>
+          <span className="min-w-10 text-center text-sm font-semibold text-[#e7c56a]">{hud.minute}&apos;</span>
+          <span className="font-display text-3xl leading-none">{hud.score[1]}</span>
+          <CrestDot color={away.kit_primary} name={away.name} />
         </div>
       </div>
       <button
         type="button"
-        className="absolute left-3 top-3 rounded-full border border-white/20 bg-black/50 px-3 py-1 text-xs text-white"
+        className="absolute left-3 top-3 rounded-full border border-white/20 bg-black/55 px-3 py-1 text-xs text-white"
         onClick={onExit}
       >
         Çık
       </button>
-      <p className="pointer-events-none absolute right-3 top-3 text-[10px] uppercase tracking-[0.2em] text-[#e7c56a]">
-        {hud.full ? "Maç bitti" : hud.peer ? "Rakip bağlı" : "Konumlar yazılıyor"}
+      <p className="pointer-events-none absolute right-3 top-4 text-[10px] uppercase tracking-[0.18em] text-[#e7c56a]">
+        {hud.full ? "Maç bitti" : hud.peer ? "Rakip bağlı" : "Canlı"}
       </p>
 
-      <div
-        className="absolute bottom-8 left-4 h-32 w-32 touch-none rounded-full border border-[#e7c56a]/40 bg-black/35"
-        onPointerDown={onJoyDown}
-        onPointerMove={onJoyMove}
-        onPointerUp={onJoyUp}
-        onPointerCancel={onJoyUp}
-      >
-        <span
-          className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7c56a]/80"
-          style={{ transform: `translate(calc(-50% + ${knob.x * 36}px), calc(-50% + ${-knob.y * 36}px))` }}
+      <svg viewBox="0 0 68 105" className="pointer-events-none absolute bottom-24 left-1/2 h-28 w-16 -translate-x-1/2 rounded border border-white/20 bg-black/45">
+        <rect x="1" y="1" width="66" height="103" fill="none" stroke="white" strokeOpacity="0.35" />
+        <line x1="1" y1="52.5" x2="67" y2="52.5" stroke="white" strokeOpacity="0.35" />
+        {hud.dots.map((d, i) => (
+          <circle
+            key={i}
+            cx={(d.y / 100) * 68}
+            cy={((control === "home" ? 100 - d.x : d.x) / 100) * 105}
+            r={d.mine ? 1.7 : 1.4}
+            fill={d.mine ? "#3dff8a" : "#ff5a6a"}
+          />
+        ))}
+        <circle
+          cx={(hud.ball.y / 100) * 68}
+          cy={((control === "home" ? 100 - hud.ball.x : hud.ball.x) / 100) * 105}
+          r="1.5"
+          fill="white"
         />
+      </svg>
+
+      <div className="absolute bottom-8 left-4 w-36">
+        <div className="mb-1 h-1.5 overflow-hidden rounded-full bg-white/15">
+          <div className="h-full bg-[#3dff8a]" style={{ width: `${Math.round(hud.energy * 100)}%` }} />
+        </div>
+        <div
+          className="relative h-36 w-36 touch-none rounded-full border-2 border-white/25 bg-black/30"
+          onPointerDown={onJoyDown}
+          onPointerMove={onJoyMove}
+          onPointerUp={onJoyUp}
+          onPointerCancel={onJoyUp}
+        >
+          <span
+            className="absolute left-1/2 top-1/2 h-14 w-14 rounded-full bg-white/80"
+            style={{ transform: `translate(calc(-50% + ${knob.x * 40}px), calc(-50% + ${-knob.y * 40}px))` }}
+          />
+        </div>
       </div>
 
-      <div className="absolute bottom-6 right-4 grid grid-cols-2 gap-2">
-        <Pad label="ARA" onClick={() => tap("through")} />
-        <Pad label="ŞUT" gold onClick={() => tap("shoot")} />
-        <Pad label="PAS" onClick={() => tap("pass")} />
-        <Pad label="MÜDAHAL" onClick={() => tap("tackle")} />
+      <div className="absolute bottom-8 right-4 h-52 w-52">
+        <Pad className="absolute right-2 top-0 h-14 w-14 bg-emerald-400 text-black" label="ARA" onClick={() => tap("through")} />
+        <Pad className="absolute left-2 top-10 h-14 w-14 bg-white/15 text-white" label="MÜD" onClick={() => tap("tackle")} />
+        <Pad className="absolute bottom-10 left-0 h-[4.5rem] w-[4.5rem] bg-sky-500 text-white" label="PAS" onClick={() => tap("pass")} />
+        <Pad className="absolute bottom-0 right-0 h-20 w-20 bg-orange-500 text-black" label="ŞUT" onClick={() => tap("shoot")} />
         <button
           type="button"
-          className="col-span-2 rounded-full border border-white/20 bg-white/10 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-white"
+          className="absolute bottom-0 left-16 rounded-full border border-white/30 bg-black/50 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white"
           onPointerDown={() => {
-            stick.current.sprint = true;
+            if (energy.current > 0) stick.current.sprint = true;
           }}
           onPointerUp={() => {
             stick.current.sprint = false;
@@ -282,7 +337,16 @@ export function LiveMatch({
   );
 }
 
-function Pad({ label, onClick, gold }: { label: string; onClick: () => void; gold?: boolean }) {
+function CrestDot({ color, name }: { color: string; name: string }) {
+  return (
+    <span className="flex items-center gap-1">
+      <span className="h-6 w-6 rounded-full border border-white/40" style={{ background: color }} />
+      <span className="max-w-[18vw] truncate text-[10px] uppercase tracking-wider">{name}</span>
+    </span>
+  );
+}
+
+function Pad({ label, onClick, className }: { label: string; onClick: () => void; className: string }) {
   return (
     <button
       type="button"
@@ -290,9 +354,7 @@ function Pad({ label, onClick, gold }: { label: string; onClick: () => void; gol
         e.preventDefault();
         onClick();
       }}
-      className={`h-16 w-16 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
-        gold ? "border-[#e7c56a] bg-[#e7c56a] text-black" : "border-white/30 bg-black/50 text-white"
-      }`}
+      className={`flex items-center justify-center rounded-full border border-white/20 text-[10px] font-bold uppercase tracking-wider shadow-lg ${className}`}
     >
       {label}
     </button>
