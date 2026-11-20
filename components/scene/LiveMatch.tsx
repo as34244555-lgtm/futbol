@@ -64,8 +64,9 @@ export function LiveMatch({
   const joy = useRef({ id: -1, ox: 0, oy: 0 });
 
   const build = useCallback(
-    (scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
-      const prefs = normalizeStadium({ ...(home.stadium ?? {}), camera: "broadcast", sky: home.stadium?.sky ?? "night" });
+    (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => {
+      renderer.toneMappingExposure = 1.35;
+      const prefs = normalizeStadium({ ...(home.stadium ?? {}), camera: "broadcast", sky: "day", weather: "clear" });
       applyStadiumLights(scene, prefs);
       scene.add(createStadium(prefs));
       cam.current = camera;

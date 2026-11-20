@@ -10,12 +10,13 @@ export function PlayerStage({ className = "h-full w-full", modelSlot = 1 }: { cl
   const t = useRef(0);
   const figure = useRef<THREE.Group | null>(null);
 
-  const build = useCallback((scene: THREE.Scene, camera: THREE.PerspectiveCamera) => {
-    scene.background = new THREE.Color(0x05070c);
-    scene.fog = new THREE.Fog(0x05070c, 8, 18);
-    scene.add(new THREE.HemisphereLight(0xe8f0ff, 0x10141c, 0.55));
+    const build = useCallback((scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => {
+    renderer.toneMappingExposure = 1.2;
+    scene.background = new THREE.Color(0x1a3148);
+    scene.fog = new THREE.Fog(0x1a3148, 14, 28);
+    scene.add(new THREE.HemisphereLight(0xf3f8ff, 0x6d8f6a, 1.05));
 
-    const key = new THREE.DirectionalLight(0xfff4e5, 2.2);
+    const key = new THREE.DirectionalLight(0xfff6e8, 3.1);
     key.position.set(2.6, 4.4, 3.2);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
@@ -25,7 +26,7 @@ export function PlayerStage({ className = "h-full w-full", modelSlot = 1 }: { cl
 
     const floor = new THREE.Mesh(
       new THREE.CircleGeometry(4.2, 72),
-      new THREE.MeshStandardMaterial({ color: 0x07090e, roughness: 0.22, metalness: 0.62 }),
+      new THREE.MeshStandardMaterial({ color: 0x243044, roughness: 0.35, metalness: 0.25 }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
