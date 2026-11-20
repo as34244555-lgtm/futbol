@@ -12,7 +12,15 @@ import { formatCoins } from "@/lib/utils";
 import { weekInSeason, SEASON_WEEKS } from "@/lib/titles";
 import { cn } from "@/lib/utils";
 
-export function GameShell({ children, flush = false }: { children: React.ReactNode; flush?: boolean }) {
+export function GameShell({
+  children,
+  flush = false,
+  bare = false,
+}: {
+  children: React.ReactNode;
+  flush?: boolean;
+  bare?: boolean;
+}) {
   const { ready, userTeam, world, logout } = useGame();
   const { t, lang, setLang } = useI18n();
   const router = useRouter();
@@ -41,6 +49,7 @@ export function GameShell({ children, flush = false }: { children: React.ReactNo
 
   return (
     <div className="relative min-h-[100dvh] bg-[#05070c] text-slate-100">
+      {!bare && (
       <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex items-center gap-3 bg-gradient-to-b from-black/80 via-black/35 to-transparent px-3 pb-8 pt-[max(0.6rem,env(safe-area-inset-top))] sm:px-5">
         <Link href="/dashboard" className="pointer-events-auto">
           <BrandLogo size={36} showWord />
@@ -63,16 +72,22 @@ export function GameShell({ children, flush = false }: { children: React.ReactNo
           </button>
         </div>
       </header>
+      )}
 
       <main
         className={cn(
           "min-h-[100dvh]",
-          flush ? "pb-[calc(4.6rem+env(safe-area-inset-bottom))]" : "px-3 pb-[calc(5.2rem+env(safe-area-inset-bottom))] pt-16 sm:px-5 lg:px-8",
+          bare
+            ? ""
+            : flush
+              ? "pb-[calc(4.6rem+env(safe-area-inset-bottom))]"
+              : "px-3 pb-[calc(5.2rem+env(safe-area-inset-bottom))] pt-16 sm:px-5 lg:px-8",
         )}
       >
         {children}
       </main>
 
+      {!bare && (
       <nav className="ef-nav fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5">
           {NAV.map((item) => {
@@ -103,6 +118,7 @@ export function GameShell({ children, flush = false }: { children: React.ReactNo
           })}
         </div>
       </nav>
+      )}
 
       {settings && (
         <div
