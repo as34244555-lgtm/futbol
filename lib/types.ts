@@ -107,6 +107,8 @@ export type Team = {
   kit_style?: KitStyle;
   /** Seçilen ülke bayrağı. */
   nation?: string;
+  /** Son ödüllü reklam zamanı. */
+  rewardedAt?: string;
   played: number;
   won: number;
   drawn: number;

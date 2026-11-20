@@ -24,7 +24,8 @@ type Body =
   | { type: "makeOffer"; listingId: string; price: number }
   | { type: "respondOffer"; offerId: string; accept: boolean }
   | { type: "setClub"; kit_primary?: string; kit_secondary?: string; kit_style?: string; stadium?: StadiumPrefs }
-  | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" };
+  | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" }
+  | { type: "claimRewarded" };
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -78,6 +79,8 @@ export async function POST(req: Request) {
               stadium: body.stadium,
             }),
           );
+        case "claimRewarded":
+          return NextResponse.json(await actions.claimRewarded(session));
         case "importPlayers":
           return NextResponse.json({ error: "Kapalı" }, { status: 404 });
         default:

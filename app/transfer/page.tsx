@@ -101,16 +101,24 @@ export default function TransferPage() {
       {mine.length > 0 && (
         <>
           <h2 className="font-display mb-3 text-2xl">Sizin ilanlarınız</h2>
-          <div className="mb-8 space-y-2">
+          <div className="mb-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {mine.map((r) => (
-              <div key={r.listing.id} className="flex items-center justify-between rounded-2xl border border-white/10 bg-ink-800 px-4 py-3">
-                <span>
-                  {r.player!.name} · {formatCoins(r.listing.price)} ₡
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => void cancelListing(r.listing.id)}>
-                  Geri çek
-                </Button>
-              </div>
+              <PlayerCard
+                key={r.listing.id}
+                player={r.player!}
+                kit={userTeam?.kit_primary}
+                kitSecondary={userTeam?.kit_secondary}
+                kitStyle={userTeam?.kit_style}
+                compact
+                footer={
+                  <div className="mt-2 space-y-2">
+                    <p className="text-sm font-semibold text-gold">{formatCoins(r.listing.price)} ₡</p>
+                    <Button size="sm" variant="ghost" onClick={() => void cancelListing(r.listing.id)}>
+                      Geri çek
+                    </Button>
+                  </div>
+                }
+              />
             ))}
           </div>
         </>

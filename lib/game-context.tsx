@@ -86,6 +86,7 @@ type GameContextValue = {
   makeOffer: (listingId: string, price: number) => Promise<string | null>;
   respondOffer: (offerId: string, accept: boolean) => Promise<string | null>;
   importPlayers: (players: Player[], mode: "merge" | "replace") => Promise<void>;
+  claimRewarded: () => Promise<string | null>;
   watching: boolean;
   setWatching: (v: boolean) => void;
 };
@@ -341,6 +342,15 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [apply]);
 
+  const claimRewarded = useCallback(async () => {
+    try {
+      apply(await postAction({ type: "claimRewarded" }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Ödül alınamadı";
+    }
+  }, [apply]);
+
   const importPlayers = useCallback(async (players: Player[], mode: "merge" | "replace") => {
     apply(await postAction({ type: "importPlayers", players, mode }));
   }, [apply]);
@@ -376,6 +386,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       makeOffer,
       respondOffer,
       importPlayers,
+      claimRewarded,
       watching,
       setWatching,
     }),
@@ -402,6 +413,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       makeOffer,
       respondOffer,
       importPlayers,
+      claimRewarded,
       watching,
     ],
   );

@@ -19,10 +19,13 @@ const TABS = [
 ] as const;
 
 export function HomeMenu() {
-  const { world, userTeam, logout } = useGame();
+  const { world, userTeam, logout, claimRewarded } = useGame();
   const { t, lang, setLang } = useI18n();
   const [settings, setSettings] = useState(false);
   const [slide, setSlide] = useState(0);
+  const [adOpen, setAdOpen] = useState(false);
+  const [adLeft, setAdLeft] = useState(0);
+  const [adMsg, setAdMsg] = useState<string | null>(null);
   const news = world.news?.length ?? 0;
   const next = world.matches.find(
     (m) =>
@@ -52,6 +55,12 @@ export function HomeMenu() {
     const timer = window.setInterval(() => setSlide((n) => (n + 1) % slides.length), 4200);
     return () => window.clearInterval(timer);
   }, [slides.length]);
+
+  useEffect(() => {
+    if (!adOpen || adLeft <= 0) return;
+    const timer = window.setTimeout(() => setAdLeft((n) => n - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [adOpen, adLeft]);
 
   const actions = [
     { href: "/match", label: t("menu.match"), color: "bg-[#1f6dff]", icon: <BallIcon />, alert: false },
@@ -114,24 +123,31 @@ export function HomeMenu() {
 
         <div className="mt-3 flex min-h-0 flex-1 items-stretch gap-2">
           <div className="my-5 w-2.5 shrink-0 rounded-r-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-sm" />
-          <Link
-            href={current?.href ?? "/match"}
-            className="relative flex flex-1 items-center justify-center overflow-hidden rounded-[1.6rem] border border-white/30 bg-black/10 px-6 text-center shadow-[0_22px_50px_rgba(0,0,0,0.4)]"
-          >
-            <span
-              className="pointer-events-none absolute inset-0"
-              style={{ background: "radial-gradient(ellipse at center, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.05) 70%)" }}
-            />
-            {current?.id === "ad" && (
-              <span className="absolute left-4 top-4 rounded-md bg-black/55 px-2 py-0.5 text-[10px] font-bold tracking-[0.18em] text-white/90 ring-1 ring-white/25">
-                AD
+          {current?.id === "ad" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setAdMsg(null);
+                setAdLeft(8);
+                setAdOpen(true);
+              }}
+              className="relative z-20 flex flex-1 cursor-pointer flex-col items-center justify-center rounded-[1.6rem] border border-[#f5c542]/50 bg-gradient-to-br from-[#3a2a08] via-[#1a1206] to-[#0c0c0c] px-6 text-center shadow-[0_22px_50px_rgba(0,0,0,0.45)]"
+            >
+              <span className="rounded-md bg-[#f5c542] px-2 py-0.5 text-[10px] font-black tracking-[0.2em] text-black">REKLAM</span>
+              <span className="mt-3 block font-display text-4xl text-white sm:text-6xl">{current.title}</span>
+              <span className="mt-2 block text-base text-[#f5c542]">{current.text}</span>
+            </button>
+          ) : (
+            <Link
+              href={current?.href ?? "/match"}
+              className="relative z-20 flex flex-1 items-center justify-center overflow-hidden rounded-[1.6rem] border border-white/30 bg-black/35 px-6 text-center shadow-[0_22px_50px_rgba(0,0,0,0.4)]"
+            >
+              <span className="relative inline-block max-w-[92%] rounded-2xl bg-black/55 px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
+                <span className="block font-display text-3xl leading-tight sm:text-5xl">{current?.title}</span>
+                <span className="mt-2 block text-sm text-white/85">{current?.text}</span>
               </span>
-            )}
-            <span className="relative inline-block max-w-[92%] rounded-2xl bg-black/55 px-5 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.35)]">
-              <span className="block font-display text-3xl leading-tight sm:text-5xl">{current?.title}</span>
-              <span className="mt-2 block text-sm text-white/85">{current?.text}</span>
-            </span>
-          </Link>
+            </Link>
+          )}
           <div className="my-5 w-2.5 shrink-0 rounded-l-2xl bg-white/10 ring-1 ring-white/15 backdrop-blur-sm" />
         </div>
         <div className="mt-2 flex justify-center gap-1.5">
@@ -166,6 +182,35 @@ export function HomeMenu() {
           ))}
         </div>
       </div>
+
+      {adOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/80 p-4">
+          <div className="w-full max-w-md rounded-3xl border border-[#f5c542]/40 bg-[#120e08] p-6 text-center">
+            <p className="text-xs font-bold tracking-[0.22em] text-[#f5c542]">ÖDÜLLÜ REKLAM</p>
+            <p className="font-display mt-3 text-5xl">500 Coin</p>
+            <p className="mt-2 text-sm text-white/70">İzleme bitince para, stüdyo logosunun yanına eklenir.</p>
+            {adLeft > 0 ? (
+              <p className="mt-6 font-display text-6xl text-[#f5c542]">{adLeft}</p>
+            ) : (
+              <button
+                type="button"
+                className="mt-6 w-full rounded-2xl bg-[#f5c542] px-4 py-4 text-lg font-bold text-black"
+                onClick={async () => {
+                  const err = await claimRewarded();
+                  setAdMsg(err ?? "500 coin eklendi.");
+                  if (!err) setAdOpen(false);
+                }}
+              >
+                Ödülü al
+              </button>
+            )}
+            {adMsg && <p className="mt-3 text-sm text-rose-300">{adMsg}</p>}
+            <button type="button" className="mt-4 text-sm text-white/60" onClick={() => setAdOpen(false)}>
+              Kapat
+            </button>
+          </div>
+        </div>
+      )}
 
       {settings && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center" onClick={() => setSettings(false)}>

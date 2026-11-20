@@ -67,6 +67,8 @@ export function photoBody(player: {
   age?: number;
 }): string {
   if (player.portrait?.includes("abdullah")) return `/bodies/abdullah.webp?v=${PHOTO_VER}`;
+  const special = player.portrait?.match(/\/portraits\/special\/([^/?]+)/);
+  if (special) return `/bodies/special/${special[1].replace(/\.(jpg|png|webp)$/i, "")}-body.jpg`;
   const bust = photoPortrait({ ...player, portrait: undefined });
   const m = bust.match(/p(\d{2})/);
   return `/bodies/b${m?.[1] ?? "00"}.webp?v=${PHOTO_VER}`;

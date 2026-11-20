@@ -503,6 +503,28 @@ export async function playLiveMatch(session: SessionHint, homeScore: number, awa
   });
 }
 
+const REWARD_COINS = 500;
+const REWARD_WAIT_MS = 3 * 60 * 1000;
+
+export async function claimRewarded(session: SessionHint) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const last = team.rewardedAt ? Date.parse(team.rewardedAt) : 0;
+    if (Number.isFinite(last) && Date.now() - last < REWARD_WAIT_MS) {
+      throw new ActionError("Ödül birazdan yenilenir.");
+    }
+    const world = {
+      ...doc.world,
+      teams: doc.world.teams.map((t) =>
+        t.id === team.id ? { ...t, coins: t.coins + REWARD_COINS, rewardedAt: new Date().toISOString() } : t,
+      ),
+    };
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
+}
+
 export async function setTraining(session: SessionHint, training: Training) {
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);
