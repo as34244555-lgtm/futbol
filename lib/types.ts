@@ -136,6 +136,8 @@ export type Player = {
   versatile?: boolean;
   /** Efsane kart — 999 gibi özel genel puan. */
   legend?: boolean;
+  /** Standart 24'lük kadro veya özel kart. */
+  tier?: "standard" | "special";
   portrait?: string;
   pace?: number;
   finishing?: number;

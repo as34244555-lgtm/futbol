@@ -55,7 +55,22 @@ export default function SquadPage() {
           </p>
           {msg && <p className="mb-3 text-sm text-gold">{msg}</p>}
           <div className="grid max-h-[720px] grid-cols-2 gap-3 overflow-y-auto pr-1">
-            {roster.map((r) => (
+            {!roster.some((r) => r.player.position === "KL") && (
+              <p className="col-span-2 rounded-xl bg-amber-400/10 px-3 py-2 text-sm text-amber-100">
+                Kadroda kaleci yok. 24 standart oyuncu saha oyuncusu. Özel kaleciler pazarda.
+              </p>
+            )}
+            {[
+              { title: "Özel oyuncular", rows: roster.filter((r) => r.player.tier === "special" || r.player.legend) },
+              { title: "Standart oyuncular", rows: roster.filter((r) => r.player.tier === "standard") },
+              { title: "Diğer", rows: roster.filter((r) => r.player.tier !== "standard" && r.player.tier !== "special" && !r.player.legend) },
+            ].flatMap((group) =>
+              group.rows.length
+                ? [
+                    <p key={group.title} className="col-span-2 pt-2 text-xs font-semibold uppercase tracking-[0.2em] text-white/70">
+                      {group.title}
+                    </p>,
+                    ...group.rows.map((r) => (
               <div key={r.id} className="space-y-2">
                 <PlayerCard
                   player={r.player}
@@ -102,7 +117,10 @@ export default function SquadPage() {
                   </div>
                 )}
               </div>
-            ))}
+                    )),
+                  ]
+                : [],
+            )}
           </div>
         </div>
       </div>

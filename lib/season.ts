@@ -17,6 +17,7 @@ import {
   applyMatchResult,
   autoSelectStarters,
   ensureBotWorld,
+  ensureRoster,
   ensureHumanMatchmaking,
   generateWeekFixtures,
   rosterOf,
@@ -159,7 +160,7 @@ function closeWeekIfReady(world: GameWorld): GameWorld {
 }
 
 export function prepareWeek(world: GameWorld): GameWorld {
-  let next = hydrateWorld(crownSeason(ensureBotWorld(world)));
+  let next = hydrateWorld(crownSeason(ensureBotWorld(ensureRoster(world))));
   next = ensureCup(next);
   const leaguePending = next.matches.filter((m) => m.week === next.week && m.kind !== "cup");
   if (leaguePending.length === 0) {

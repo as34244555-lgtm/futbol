@@ -12,7 +12,7 @@ import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from 
 import { cardRarity, displayOvr } from "../lib/card-rarity";
 import { normalizeStadium } from "../lib/stadium";
 import { photoPortrait, photoBody } from "../lib/player-photo";
-import { makeAbdullah } from "../lib/catalog";
+import { makeAbdullah, rosterPlayers } from "../lib/catalog";
 import {
   DRIBBLE_CLIPS,
   PASS_CLIPS,
@@ -70,6 +70,16 @@ assert(
   ),
   "Abdullah must be listed for 100000",
 );
+const roster = rosterPlayers();
+const standards = roster.filter((p) => p.tier === "standard");
+const keepers = roster.filter((p) => p.position === "KL");
+assert(standards.length === 24, `expected 24 standard players, got ${standards.length}`);
+assert(standards.every((p) => p.position !== "KL"), "the 24 standard players are outfield");
+assert(new Set(standards.map((p) => p.portrait)).size === 24, "each standard player has their own portrait");
+assert(keepers.length >= 2, "special goalkeepers exist outside the 24");
+assert(cardRarity(standards[0]!) === "bronze", "standard card stays the plain frame");
+assert(cardRarity(keepers[0]!) !== "bronze", "goalkeeper card is special");
+assert(world0.players.some((p) => p.position === "KL"), "catalog includes a goalkeeper");
 assert(cardRarity(abdullah!) === "legend", "Abdullah card must be Big Time");
 assert(displayOvr(999) === "99+", "legend overall displays as 99+");
 assert(cardRarity({ overall: 64 }) === "bronze", "low overall is bronze");
@@ -188,7 +198,7 @@ for (let i = 0; i < 12; i++) {
 assert(strongGoals > weakGoals, `stronger XI should score more (${strongGoals} vs ${weakGoals})`);
 assert(positionFit("FV", "KL") < 0.6, "striker in goal is a bad fit");
 assert(positionFit("MOS", "FV") > positionFit("KL", "FV"), "adjacent roles beat opposite roles");
-const star = joined.world.players.find((p) => p.name === "Erlung Haland")!;
+const star = joined.world.players.find((p) => p.name === "Kerem Aslan")!;
 assert(marketValue(star, 95) > marketValue(star, 40), "hot form raises market value");
 
 const dense = densifyTimeline(
@@ -267,7 +277,7 @@ assert(teamWageBill(wet, joined.team.id) > 0, "human squad should have a weekly 
 assert(weeklyWage(star) > 0, "normal player has a wage");
 assert(deriveAttrs(star).finishing >= 80, "striker finishing should be high");
 const aged = ageSquads(wet);
-const agedStar = aged.players.find((p) => p.name === "Erlung Haland")!;
+const agedStar = aged.players.find((p) => p.name === "Kerem Aslan")!;
 assert(agedStar.age === star.age + 1, "players age one year at season end");
 const withYouth = intakeYouth(wet);
 assert(

@@ -13,6 +13,15 @@ import { Box, RotateCcw, X } from "lucide-react";
 import Image from "next/image";
 import { useState, type PointerEvent, type ReactNode } from "react";
 
+function starCount(overall: number): number {
+  if (overall >= 100) return 5;
+  if (overall >= 90) return 5;
+  if (overall >= 84) return 4;
+  if (overall >= 76) return 3;
+  if (overall >= 68) return 2;
+  return 1;
+}
+
 function AttrRow({ label, value, tone }: { label: string; value: number; tone: string }) {
   return (
     <div>
@@ -143,6 +152,10 @@ export function PlayerCard({
               <div className={cn("absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t to-transparent p-2 pt-10", theme.plate)}>
                 <p className={cn("truncate font-display uppercase leading-tight tracking-wide text-white", compact ? "text-sm" : "text-base")}>
                   {player.name}
+                </p>
+                <p className="text-[11px] tracking-[0.18em] text-[#f5c542]" aria-hidden>
+                  {"★".repeat(starCount(player.overall))}
+                  <span className="text-white/25">{"★".repeat(5 - starCount(player.overall))}</span>
                 </p>
                 <p className="truncate text-[10px] text-white/65">
                   {player.versatile ? t("pos.all") : t(`pos.${player.position}`)} · {player.age} {t("card.age")}

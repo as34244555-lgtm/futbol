@@ -3,6 +3,7 @@ import {
   AI_CLUBS,
   generateCatalog,
   generateExtraPlayers,
+  rosterPlayers,
   isLegend,
   makeAbdullah,
   playsPosition,
@@ -234,7 +235,57 @@ export function createFreshWorld(): GameWorld {
     season: 1,
     titles: [],
   };
-  return hydrateWorld(ensureBotWorld(world));
+  return hydrateWorld(ensureBotWorld(ensureRoster(world)));
+}
+
+/** Adds the 24 standard players and the special cards, including goalkeepers, if a saved world predates them. */
+export function ensureRoster(world: GameWorld): GameWorld {
+  const wanted = rosterPlayers();
+  const byWanted = new Map(wanted.map((p) => [p.id, p]));
+  const players = world.players.map((p) => {
+    const fresh = byWanted.get(p.id);
+    if (!fresh) return p;
+    if (p.tier === fresh.tier && p.portrait === fresh.portrait && p.name === fresh.name && p.position === fresh.position) return p;
+    return {
+      ...p,
+      tier: fresh.tier,
+      portrait: fresh.portrait,
+      name: fresh.name,
+      nationality: fresh.nationality,
+      nationality_code: fresh.nationality_code,
+      position: fresh.position,
+    };
+  });
+  const have = new Set(players.map((p) => p.id));
+  const missing = wanted.filter((p) => !have.has(p.id));
+  if (!missing.length) return { ...world, players };
+  const teamPlayers = [...world.teamPlayers];
+  const listings = [...world.listings];
+  for (const player of missing) {
+    players.push(player);
+    const row: TeamPlayer = {
+      id: rowId(SYSTEM_TEAM_ID, player.id),
+      team_id: SYSTEM_TEAM_ID,
+      player_id: player.id,
+      energy: 100,
+      form: 84,
+      is_starter: false,
+      squad_position: null,
+      acquired_at: new Date().toISOString(),
+      wage: 0,
+      contractYears: 3,
+    };
+    teamPlayers.push(row);
+    listings.push({
+      id: listingId(SYSTEM_TEAM_ID, player.id),
+      team_player_id: row.id,
+      seller_team_id: SYSTEM_TEAM_ID,
+      price: Math.max(400, player.base_value),
+      status: "active",
+      created_at: new Date().toISOString(),
+    });
+  }
+  return { ...world, players, teamPlayers, listings };
 }
 
 export const HUMAN_KITS: Array<[string, string, KitStyle]> = [

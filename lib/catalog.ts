@@ -1,6 +1,7 @@
 import { catalogId, hash32, pick, seededRandom } from "./utils";
 import { NATIONS } from "./nations";
 import { normalizePosition } from "./positions";
+import { SPECIAL_SPECS, STANDARD_SPECS, type RosterSpec } from "./roster";
 import type { Player, Position } from "./types";
 
 export const ABDULLAH_ID = "00000000-0000-4000-8000-aaa999000001";
@@ -52,20 +53,32 @@ export function simOverall(p: { overall: number }): number {
   return Math.min(99, p.overall);
 }
 
-const STAR_PLAYERS: Array<Omit<Player, "id" | "overall" | "base_value"> & { overall?: number }> = [
-  { name: "Erlung Haland", nationality: "Almanya", nationality_code: "de", position: "FV", age: 24, attack: 94, defense: 48 },
-  { name: "Lucas Silva", nationality: "Brezilya", nationality_code: "br", position: "MOS", age: 27, attack: 88, defense: 76 },
-  { name: "Miko Vartan", nationality: "Türkiye", nationality_code: "tr", position: "MOS", age: 23, attack: 86, defense: 71 },
-  { name: "Nelo Prest", nationality: "Fransa", nationality_code: "fr", position: "FV", age: 26, attack: 91, defense: 42 },
-  { name: "Sabri Koçhan", nationality: "Türkiye", nationality_code: "tr", position: "STP", age: 29, attack: 62, defense: 90 },
-  { name: "Yuto Hanari", nationality: "Japonya", nationality_code: "jp", position: "KANAT", age: 22, attack: 84, defense: 73 },
-  { name: "Kaan Altuner", nationality: "Türkiye", nationality_code: "tr", position: "KL", age: 31, attack: 28, defense: 89 },
-  { name: "Rafa Moreira", nationality: "Portekiz", nationality_code: "pt", position: "FV", age: 25, attack: 89, defense: 51 },
-  { name: "Luka Peric", nationality: "Hırvatistan", nationality_code: "hr", position: "MOS", age: 28, attack: 82, defense: 84 },
-  { name: "Iker Navarro", nationality: "İspanya", nationality_code: "es", position: "STP", age: 27, attack: 58, defense: 88 },
-  { name: "Efe Solak", nationality: "Türkiye", nationality_code: "tr", position: "SLB", age: 24, attack: 71, defense: 82 },
-  { name: "Nico Brandt", nationality: "Almanya", nationality_code: "de", position: "SĞB", age: 26, attack: 74, defense: 80 },
-];
+function specToPlayer(spec: RosterSpec, id: string): Player {
+  const position = normalizePosition(spec.position);
+  const overall = computeOverall(position, spec.attack, spec.defense);
+  return {
+    id,
+    name: spec.name,
+    nationality: spec.nationality,
+    nationality_code: spec.nationality_code,
+    position,
+    age: spec.age,
+    attack: spec.attack,
+    defense: spec.defense,
+    overall,
+    base_value: computeBaseValue(overall, spec.age, position),
+    potential: rollPotential(overall, spec.age, id),
+    tier: spec.tier,
+    portrait: spec.portrait,
+  };
+}
+
+/** Fixed 24 standard outfield players plus the special cards, including goalkeepers. */
+export function rosterPlayers(): Player[] {
+  const standards = STANDARD_SPECS.map((spec) => specToPlayer(spec, catalogId(9000 + (spec.slot ?? 0))));
+  const specials = SPECIAL_SPECS.map((spec, i) => specToPlayer(spec, catalogId(9100 + i)));
+  return [...standards, ...specials];
+}
 
 export function computeOverall(position: Position, attack: number, defense: number): number {
   const pos = normalizePosition(position);
@@ -174,29 +187,10 @@ export function generateCatalog(count = 420): Player[] {
   const rand = seededRandom(20260828);
   const players: Player[] = [];
 
-  players.push(makeAbdullah());
+  players.push(makeAbdullah(), ...rosterPlayers());
 
-  STAR_PLAYERS.forEach((p, i) => {
-    const position = normalizePosition(p.position);
-    const overall = p.overall ?? computeOverall(position, p.attack, p.defense);
-    const id = catalogId(i + 1);
-    players.push({
-      id,
-      name: p.name,
-      nationality: p.nationality,
-      nationality_code: p.nationality_code,
-      position,
-      age: p.age,
-      attack: p.attack,
-      defense: p.defense,
-      overall,
-      base_value: computeBaseValue(overall, p.age, position),
-      potential: rollPotential(overall, p.age, id),
-    });
-  });
-
-  for (let i = STAR_PLAYERS.length; i < count; i++) {
-    const position = POS_CYCLE[(i - STAR_PLAYERS.length) % POS_CYCLE.length]!;
+  for (let i = 40; i < count; i++) {
+    const position = POS_CYCLE[i % POS_CYCLE.length]!;
     players.push(generatePlayerAt(i, catalogId(i + 1), rand, position));
   }
 

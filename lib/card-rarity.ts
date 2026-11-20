@@ -77,8 +77,15 @@ export const RARITY_THEME: Record<
   },
 };
 
-export function cardRarity(player: Pick<Player, "overall" | "legend">): CardRarity {
+export function cardRarity(player: Pick<Player, "overall" | "legend" | "tier">): CardRarity {
   if (player.legend || player.overall >= 100) return "legend";
+  if (player.tier === "standard") return "bronze";
+  if (player.tier === "special") {
+    if (player.overall >= 93) return "showtime";
+    if (player.overall >= 88) return "epic";
+    if (player.overall >= 84) return "featured";
+    return "gold";
+  }
   if (player.overall >= 93) return "showtime";
   if (player.overall >= 87) return "epic";
   if (player.overall >= 82) return "featured";
