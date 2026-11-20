@@ -18,8 +18,13 @@ export function verifyPassword(password: string, stored: string): boolean {
   return timingSafeEqual(prev, next);
 }
 
+let runtimeSecret: string | undefined;
+
 export function sessionSecret(): string {
-  return process.env.AUTH_SECRET || process.env.SESSION_SECRET || "liga-nova-dev-secret-change-me";
+  const configured = process.env.AUTH_SECRET || process.env.SESSION_SECRET;
+  if (configured) return configured;
+  if (!runtimeSecret) runtimeSecret = randomBytes(32).toString("hex");
+  return runtimeSecret;
 }
 
 export type SessionPayload = { sub: string; name: string; teamId: string; teamName?: string; roomCode?: string };
