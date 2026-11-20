@@ -105,6 +105,8 @@ export type Team = {
   kit_primary: string;
   kit_secondary: string;
   kit_style?: KitStyle;
+  /** Seçilen ülke bayrağı. */
+  nation?: string;
   played: number;
   won: number;
   drawn: number;

@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import { OpeningSplash } from "@/components/OpeningSplash";
 import { RegisterPwa } from "@/components/RegisterPwa";
 import { enableNotifications, notifyReady } from "@/lib/notify";
 import type {
@@ -56,7 +55,7 @@ type GameContextValue = {
     password: string,
     teamName: string,
     roomCode?: string,
-    extra?: { career?: boolean; kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle },
+    extra?: { career?: boolean; kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle; nation?: string },
   ) => Promise<string | null>;
   login: (username: string, password: string, roomCode?: string) => Promise<string | null>;
   logout: () => Promise<void>;
@@ -191,7 +190,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       password: string,
       teamName: string,
       roomCode?: string,
-      extra?: { career?: boolean; kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle },
+      extra?: { career?: boolean; kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle; nation?: string },
     ) => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
@@ -410,7 +409,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   return (
     <GameContext.Provider value={value}>
       <RegisterPwa />
-      <OpeningSplash>{children}</OpeningSplash>
+      {children}
     </GameContext.Provider>
   );
 }

@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 import { useI18n } from "@/lib/i18n";
+import { flagUrl } from "@/lib/nations";
 import { weekInSeason, SEASON_WEEKS } from "@/lib/titles";
 import { formatCoins } from "@/lib/utils";
 import { Bell, Info, LogOut, Mail } from "lucide-react";
@@ -67,6 +68,9 @@ export function HomeMenu() {
       <StadiumBackdrop />
       <div className="relative z-10 mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.45rem,env(safe-area-inset-top))]">
         <div className="flex items-center gap-3 px-1">
+          {userTeam?.nation && (
+            <img src={flagUrl(userTeam.nation, 80)} alt="" className="h-4 w-7 rounded-sm object-cover ring-1 ring-white/30" />
+          )}
           <span className="flex items-center gap-1 text-sm font-semibold text-[#f5c542] drop-shadow">
             <GoldBallIcon />
             {formatCoins(userTeam?.points ?? 0)}

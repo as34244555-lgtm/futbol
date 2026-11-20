@@ -19,6 +19,7 @@ export async function POST(req: Request) {
       kit_primary?: string;
       kit_secondary?: string;
       kit_style?: string;
+      nation?: string;
     };
     const career = Boolean(body.career) && !normalizeRoom(body.roomCode);
     const room = career
@@ -30,6 +31,7 @@ export async function POST(req: Request) {
         kit_primary: body.kit_primary,
         kit_secondary: body.kit_secondary,
         kit_style: style,
+        nation: body.nation,
       }),
     );
     await setSessionCookie({

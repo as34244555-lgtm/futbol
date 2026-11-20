@@ -308,6 +308,7 @@ export type ClubIdentity = {
   kit_primary?: string;
   kit_secondary?: string;
   kit_style?: KitStyle;
+  nation?: string;
 };
 
 export function createUserTeam(
@@ -323,6 +324,7 @@ export function createUserTeam(
   const kit_secondary = identity?.kit_secondary ?? fallback[1];
   const kit_style = identity?.kit_style ?? fallback[2];
   const userTeam = emptyTeam(humanTeamId(userId), teamName, userId, kit_primary, kit_secondary, 15_000, 10, kit_style);
+  if (identity?.nation) userTeam.nation = identity.nation;
   const agencyPlayers = world.teamPlayers.filter((tp) => tp.team_id === SYSTEM_TEAM_ID);
   const byId = new Map(world.players.map((p) => [p.id, p]));
   let agencyCatalog = agencyPlayers

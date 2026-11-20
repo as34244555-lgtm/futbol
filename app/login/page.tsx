@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/Button";
+import { savedPassword } from "@/components/JoinScreen";
 import { useGame } from "@/lib/game-context";
 import { useI18n } from "@/lib/i18n";
 
@@ -13,8 +14,6 @@ export default function LoginPage() {
   const { t } = useI18n();
   const router = useRouter();
   const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [roomCode, setRoomCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -30,7 +29,13 @@ export default function LoginPage() {
           e.preventDefault();
           setBusy(true);
           setError(null);
-          const err = await login(username, password, roomCode);
+          const password = savedPassword(username);
+          if (!password) {
+            setBusy(false);
+            setError(t("login.missing"));
+            return;
+          }
+          const err = await login(username, password);
           setBusy(false);
           if (err) setError(err);
           else router.push("/dashboard");
@@ -45,29 +50,6 @@ export default function LoginPage() {
             autoComplete="username"
             name="username"
             required
-          />
-        </label>
-        <label className="block text-sm">
-          {t("login.pass")}
-          <input
-            type="password"
-            className="mt-1 w-full rounded-xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-neon focus:ring-2"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-            name="password"
-            required
-          />
-        </label>
-        <label className="block text-sm">
-          {t("login.room")}
-          <input
-            className="mt-1 w-full rounded-xl border border-white/10 bg-ink-800 px-4 py-3 outline-none ring-neon focus:ring-2"
-            value={roomCode}
-            onChange={(e) => setRoomCode(e.target.value)}
-            placeholder={t("login.roomPh")}
-            autoComplete="off"
-            name="room"
           />
         </label>
         {error && <p className="text-sm text-rose-300">{error}</p>}
