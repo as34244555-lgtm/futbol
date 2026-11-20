@@ -53,21 +53,19 @@ export function OpeningSplash({ children }: { children: React.ReactNode }) {
             aria-label={`${t("studio")} ${t("studioPresents")} ${t("game")}`}
           >
             <motion.div
-              className="relative z-10 flex flex-col items-center px-6 text-center"
-              initial={{ opacity: 0, scale: 0.88, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.7, ease: "easeOut" }}
+              className="relative z-10 flex items-center justify-center px-10"
+              initial={{ opacity: 0, scale: 0.92 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
             >
               <Image
                 src="/a-studio-logo.png"
-                alt={t("studio")}
-                width={720}
-                height={392}
+                alt="Abdullah Studio"
+                width={900}
+                height={490}
                 priority
-                className="h-auto w-[min(88vw,520px)] object-contain drop-shadow-[0_0_28px_rgba(80,120,255,0.35)]"
+                className="h-auto w-[min(70vw,640px)] object-contain"
               />
-              <p className="mt-5 text-[11px] uppercase tracking-[0.48em] text-white/55">{t("studioPresents")}</p>
-              <p className="mt-2 font-display text-4xl tracking-[0.14em] text-white sm:text-5xl">{t("game")}</p>
             </motion.div>
           </motion.div>
         )}

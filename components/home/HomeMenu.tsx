@@ -6,6 +6,7 @@ import { useI18n } from "@/lib/i18n";
 import { weekInSeason, SEASON_WEEKS } from "@/lib/titles";
 import { formatCoins } from "@/lib/utils";
 import { Bell, Info, LogOut, Mail } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -60,14 +61,14 @@ export function HomeMenu() {
   ];
 
   return (
-    <div className="mx-auto flex min-h-[100dvh] w-full max-w-lg flex-col bg-black px-3 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[max(0.6rem,env(safe-area-inset-top))] text-white">
+    <div className="mx-auto flex min-h-[100dvh] w-full max-w-[1100px] flex-col bg-black px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.45rem,env(safe-area-inset-top))] text-white">
       <div className="flex items-center gap-3 px-1">
         <span className="flex items-center gap-1 text-sm font-semibold text-[#f5c542]">
-          <CoinIcon />
+          <GoldBallIcon />
           {formatCoins(userTeam?.points ?? 0)}
         </span>
-        <span className="flex items-center gap-1 text-sm font-semibold text-[#7eb6ff]">
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#3b82f6] text-[10px] font-bold text-white">A</span>
+        <span className="flex items-center gap-1 text-sm font-semibold text-white">
+          <Image src="/a-studio-icon.png" alt="Abdullah Studio" width={22} height={22} className="h-5 w-5 rounded-sm object-contain" />
           {formatCoins(userTeam?.coins ?? 0)}
         </span>
         <div className="ml-auto flex items-center gap-3">
@@ -179,38 +180,48 @@ function Badge({ n }: { n: number }) {
   );
 }
 
-function CoinIcon() {
+function GoldBallIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden>
-      <circle cx="12" cy="12" r="9" fill="#f5c542" />
-      <path d="M9 8h6M9 12h6M9 16h4" stroke="#7a5a10" strokeWidth="1.6" />
+      <defs>
+        <radialGradient id="goldball" cx="35%" cy="35%" r="70%">
+          <stop offset="0%" stopColor="#fff4c2" />
+          <stop offset="45%" stopColor="#f5c542" />
+          <stop offset="100%" stopColor="#a56b12" />
+        </radialGradient>
+      </defs>
+      <circle cx="12" cy="12" r="9" fill="url(#goldball)" />
+      <path d="M12 4.5l2.2 3.2h-4.4L12 4.5zM12 19.5l-2.2-3.2h4.4L12 19.5zM5 12l2.6-1.8v3.6L5 12zm14 0l-2.6 1.8v-3.6L19 12z" fill="#7a4e08" />
     </svg>
   );
 }
 function BallIcon() {
   return (
-    <svg viewBox="0 0 48 48" className="h-9 w-9" aria-hidden>
-      <circle cx="24" cy="24" r="16" fill="none" stroke="white" strokeWidth="2.4" />
-      <path d="M24 10l5 8h-10l5-8zm0 28l-5-8h10l-5 8zM10 24l8-5v10l-8-5zm28 0l-8 5V19l8 5z" fill="white" />
+    <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden>
+      <circle cx="24" cy="24" r="14" fill="white" />
+      <path d="M24 13.5l3.6 2.6 1.4 4.2-2.2 3.8h-5.6l-2.2-3.8 1.4-4.2L24 13.5z" fill="#111827" />
+      <path d="M24 13.5V10M20.4 20.3l-4.2-1.4M27.6 20.3l4.2-1.4M21.8 24.1l-2.4 5.2M26.2 24.1l2.4 5.2" stroke="#111827" strokeWidth="1.5" fill="none" />
     </svg>
   );
 }
 function GoalIcon() {
   return (
-    <svg viewBox="0 0 48 48" className="h-9 w-9" aria-hidden>
-      <path d="M8 16h32v18H8z" fill="none" stroke="white" strokeWidth="2.4" />
-      <path d="M8 16v-4h32v4M14 16v18M22 16v18M30 16v18M38 16v18" stroke="white" strokeWidth="1.4" />
-      <circle cx="30" cy="30" r="4" fill="white" />
+    <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden>
+      <path d="M6 18h36v16H6z" fill="none" stroke="white" strokeWidth="2.2" />
+      <path d="M6 14h36M12 18v16M18 18v16M24 18v16M30 18v16M36 18v16" stroke="white" strokeWidth="1.2" />
+      <circle cx="34" cy="32" r="5" fill="white" />
+      <path d="M34 28.5l1.4 1 .5 1.6-.9 1.5h-2l-.9-1.5.5-1.6 1.4-1z" fill="#ff8a1e" />
     </svg>
   );
 }
 function PlanIcon() {
   return (
-    <svg viewBox="0 0 48 48" className="h-9 w-9" aria-hidden>
-      <rect x="8" y="12" width="32" height="24" rx="3" fill="none" stroke="white" strokeWidth="2.4" />
-      <circle cx="18" cy="24" r="3" fill="white" />
-      <circle cx="30" cy="20" r="3" fill="white" />
-      <circle cx="30" cy="28" r="3" fill="white" />
+    <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden>
+      <rect x="6" y="10" width="36" height="28" rx="2" fill="#157a38" stroke="white" strokeWidth="1.6" />
+      <path d="M24 10v28M6 24h36" stroke="white" strokeWidth="1.2" />
+      <circle cx="24" cy="24" r="5" fill="none" stroke="white" strokeWidth="1.2" />
+      <rect x="6" y="16" width="7" height="16" fill="none" stroke="white" strokeWidth="1" />
+      <rect x="35" y="16" width="7" height="16" fill="none" stroke="white" strokeWidth="1" />
     </svg>
   );
 }
