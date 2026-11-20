@@ -23,6 +23,8 @@ import {
 } from "../lib/player-anims";
 import { specialSkills } from "../lib/card-rarity";
 import { translate } from "../lib/i18n";
+import { createPitch, tickPitch, type Stick } from "../lib/pitch-sim";
+import { pushLive } from "../lib/server/live-store";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -301,14 +303,60 @@ assert(
   "injured player should not start",
 );
 
-console.log(
-  JSON.stringify({
-    listings: ids0.length,
-    botResults: botDone.length,
-    sampleScore: `${botDone[0]?.home_score}-${botDone[0]?.away_score}`,
-    timelineMin: minEvents,
-    avgGoals: Number(avgGoals.toFixed(2)),
-    weekMatches: week1.length,
-    ok: true,
-  }),
-);
+const idle: Stick = { x: 0, y: 0, sprint: false, pass: false, through: false, shoot: false, tackle: false };
+const shot = createPitch([
+  { id: "a", side: "home", gk: false, slotX: 50, slotY: 50, x: 50, y: 50, pace: 70, finish: 80 },
+  { id: "b", side: "away", gk: false, slotX: 40, slotY: 20, x: 40, y: 20, pace: 60, finish: 60 },
+]);
+shot.ball = { x: 99, y: 50, vx: 40, vy: 0, holder: null, touch: "home" };
+const scored = tickPitch(shot, 0.05, "home", idle, null);
+assert(scored.goal === "home" && shot.score[0] === 1, "live shot counts as a goal");
+
+const sprint = createPitch([
+  { id: "a", side: "home", gk: false, slotX: 30, slotY: 50, x: 30, y: 50, pace: 80, finish: 70 },
+  { id: "b", side: "away", gk: true, slotX: 90, slotY: 50, x: 90, y: 50, pace: 50, finish: 40 },
+]);
+const run = { ...idle, y: 1, sprint: true };
+for (let i = 0; i < 30; i++) tickPitch(sprint, 0.05, "home", run, null);
+assert(sprint.players.every((p) => p.x >= 2 && p.x <= 98 && p.y >= 3 && p.y <= 97), "players stay on the pitch");
+
+void (async () => {
+  const live = await pushLive({
+    room: "TESTLIVE",
+    matchId: "m1",
+    side: "home",
+    teamId: "t1",
+    players: [{ id: "p", x: 12, y: 40 }],
+    ball: { x: 12, y: 40, vx: 0, vy: 0, holder: "p", touch: "home" },
+    ownsBall: true,
+    score: [1, 0],
+  });
+  const both = await pushLive({
+    room: "TESTLIVE",
+    matchId: "m1",
+    side: "away",
+    teamId: "t2",
+    players: Array.from({ length: 11 }, (_, i) => ({ id: `q${i}`, x: 80, y: 30 + i })),
+    ownsBall: false,
+    score: [0, 0],
+  });
+  assert(both.home?.players[0]?.x === 12, "home positions stay on the site");
+  assert(both.away?.players.length === 11, "away posts eleven positions");
+  assert(both.score[0] === 1, "ball owner keeps the score");
+  assert(live.home?.teamId === "t1", "home team owns the side");
+
+  console.log(
+    JSON.stringify({
+      listings: ids0.length,
+      botResults: botDone.length,
+      sampleScore: `${botDone[0]?.home_score}-${botDone[0]?.away_score}`,
+      timelineMin: minEvents,
+      avgGoals: Number(avgGoals.toFixed(2)),
+      weekMatches: week1.length,
+      ok: true,
+    }),
+  );
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

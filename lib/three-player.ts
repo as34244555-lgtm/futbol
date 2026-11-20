@@ -11,6 +11,7 @@ export type PlayerFigureOpts = {
   gk?: boolean;
   portraitUrl?: string;
   bodyUrl?: string;
+  modelSlot?: number;
 };
 
 const BONE_NAMES = [
@@ -53,7 +54,7 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
   shadow.position.y = 0.01;
   root.add(shadow);
 
-  const glb = clonePlayerGlb();
+  const glb = clonePlayerGlb(opts.modelSlot);
   glb.name = "glbBody";
   root.add(glb);
 

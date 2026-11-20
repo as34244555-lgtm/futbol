@@ -163,3 +163,12 @@ create table if not exists public.league_state (
 
 alter table public.league_state enable row level security;
 -- Yazma yalnızca service role (Vercel API). Anon okuyamaz.
+
+-- Canlı maç: iki tarafın 11 oyuncu konumu (sunucusuz çoklu oyun).
+create table if not exists public.live_pitch (
+  id text primary key,
+  payload jsonb not null,
+  updated_at timestamptz default now()
+);
+
+alter table public.live_pitch enable row level security;

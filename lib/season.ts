@@ -266,3 +266,100 @@ export function playUserMatch(
   next = closeWeekIfReady(next);
   return { world: next, result: "Bu hafta fikstürünüz yok (bay). Lig haftası güncellendi." };
 }
+
+function applyKnownScore(
+  world: GameWorld,
+  fx: { id: string; home_team_id: string | null; away_team_id: string | null; week: number },
+  homeScore: number,
+  awayScore: number,
+) {
+  const home = world.teams.find((t) => t.id === fx.home_team_id);
+  const away = world.teams.find((t) => t.id === fx.away_team_id);
+  if (!home || !away) return null;
+  let acc = ensureEleven(world, home);
+  acc = ensureEleven(acc, away);
+  const hs = Math.max(0, Math.min(20, Math.round(homeScore)));
+  const as = Math.max(0, Math.min(20, Math.round(awayScore)));
+  const playedAt = new Date().toISOString();
+  const sim: MatchSimulationResult = {
+    match: {
+      id: fx.id,
+      home_team_id: home.id,
+      away_team_id: away.id,
+      home_score: hs,
+      away_score: as,
+      status: "completed",
+      played_at: playedAt,
+      week: fx.week,
+    },
+    logs: [
+      {
+        id: `live-${fx.id}`,
+        match_id: fx.id,
+        minute: 90,
+        event_type: "fulltime",
+        description: `Canlı maç ${home.name} ${hs}-${as} ${away.name}`,
+      },
+    ],
+    timeline: [],
+  };
+  const cup = acc.matches.find((m) => m.id === fx.id)?.kind === "cup";
+  acc = applyMatchResult(acc, home.id, away.id, hs, as, { cup });
+  acc = {
+    ...acc,
+    matchLogs: [...acc.matchLogs, ...sim.logs],
+    matches: acc.matches.map((m) =>
+      m.id === fx.id
+        ? {
+            ...m,
+            home_score: hs,
+            away_score: as,
+            status: "completed" as const,
+            played_at: playedAt,
+          }
+        : m,
+    ),
+  };
+  return { world: acc, sim };
+}
+
+/** Records a score played on the pitch instead of rolling the xG sim. */
+export function playLiveScore(
+  world: GameWorld,
+  userTeamId: string,
+  homeScore: number,
+  awayScore: number,
+  lastSim?: Record<string, MatchSimulationResult>,
+): { world: GameWorld; result: MatchSimulationResult | string } {
+  let next = prepareWeek(world);
+  const unclaimed = [...next.matches]
+    .reverse()
+    .find(
+      (m) => m.status === "completed" && involvesTeam(m, userTeamId) && !(m.claimed_by ?? []).includes(userTeamId),
+    );
+  if (unclaimed) {
+    const claimed = closeWeekIfReady(claimMatch(next, unclaimed.id, userTeamId));
+    return {
+      world: claimed,
+      result: withTitle(next, claimed, viewFromDone(unclaimed, pickStoredSim(lastSim, unclaimed))),
+    };
+  }
+  const pending = next.matches
+    .filter((m) => m.week === next.week && m.status === "pending" && involvesTeam(m, userTeamId))
+    .sort((a, b) => Number(a.kind === "cup") - Number(b.kind === "cup"))[0];
+  if (pending) {
+    const played = applyKnownScore(next, pending, homeScore, awayScore);
+    if (!played) return { world: next, result: "Maç kaydedilemedi." };
+    const claimed = claimMatch(played.world, pending.id, userTeamId);
+    const closed = closeWeekIfReady(claimed);
+    return { world: closed, result: withTitle(next, closed, played.sim) };
+  }
+  const done = next.matches.find((m) => m.week === next.week && m.status === "completed" && involvesTeam(m, userTeamId));
+  if (done) {
+    const closed = closeWeekIfReady(next);
+    if (closed.week !== next.week) return playLiveScore(closed, userTeamId, homeScore, awayScore, lastSim);
+    return { world: next, result: alreadyPlayedMessage(next, done, userTeamId) };
+  }
+  next = closeWeekIfReady(next);
+  return { world: next, result: "Bu hafta fikstürünüz yok (bay). Lig haftası güncellendi." };
+}

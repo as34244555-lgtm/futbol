@@ -1,6 +1,6 @@
 import { hashPassword, verifyPassword, type SessionPayload } from "./auth";
 import { currentRoom, mutateLeague, persistenceMode, readLeague } from "./store";
-import { playUserMatch, prepareWeek } from "@/lib/season";
+import { playLiveScore, playUserMatch, prepareWeek } from "@/lib/season";
 import { isInjured, pushNews, weeklyWage } from "@/lib/career";
 import type {
   Formation,
@@ -464,6 +464,40 @@ export async function playMatch(session: SessionHint) {
         error: typeof out.result === "string" ? out.result : null,
         coinsDelta: (after?.coins ?? coinsBefore) - coinsBefore,
         pointsDelta,
+      },
+    };
+  });
+}
+
+export async function playLiveMatch(session: SessionHint, homeScore: number, awayScore: number) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const coinsBefore = team.coins;
+    const pointsBefore = team.points;
+    const out = playLiveScore(doc.world, team.id, homeScore, awayScore, doc.lastSim);
+    const lastSim = { ...doc.lastSim };
+    if (typeof out.result !== "string") {
+      const sim = { ...out.result, logs: [] };
+      lastSim[team.id] = sim;
+      lastSim[out.result.match.id] = sim;
+    }
+    const next: LeagueDocument = {
+      ...doc,
+      world: out.world,
+      lastSim,
+      lastSeen: { ...doc.lastSeen, [session.sub]: new Date().toISOString() },
+    };
+    const after = next.world.teams.find((t) => t.id === team.id);
+    const match = typeof out.result === "string" ? null : out.result;
+    return {
+      doc: next,
+      result: {
+        snap: snapshot(next, session.sub),
+        match,
+        error: typeof out.result === "string" ? out.result : null,
+        coinsDelta: (after?.coins ?? coinsBefore) - coinsBefore,
+        pointsDelta: (after?.points ?? pointsBefore) - pointsBefore,
       },
     };
   });

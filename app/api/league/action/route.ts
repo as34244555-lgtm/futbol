@@ -18,6 +18,7 @@ type Body =
   | { type: "buyListing"; listingId: string; teamPlayerId?: string; playerId?: string; sellerTeamId?: string; price?: number }
   | { type: "ensureFixtures" }
   | { type: "playMatch" }
+  | { type: "playLive"; homeScore: number; awayScore: number }
   | { type: "setTraining"; training: Training }
   | { type: "setReady" }
   | { type: "makeOffer"; listingId: string; price: number }
@@ -58,6 +59,8 @@ export async function POST(req: Request) {
           return NextResponse.json(await actions.ensureFixtures(session));
         case "playMatch":
           return NextResponse.json(await actions.playMatch(session));
+        case "playLive":
+          return NextResponse.json(await actions.playLiveMatch(session, body.homeScore, body.awayScore));
         case "setTraining":
           return NextResponse.json(await actions.setTraining(session, body.training));
         case "setReady":

@@ -71,22 +71,29 @@ export default function DashboardPage() {
           <div className="pointer-events-auto mt-2 flex max-w-xs flex-col gap-2">
             <ModeTile href="/match" kicker={t("home.quickKicker")} title={t("home.quick")} ready={xiReady} />
             <ModeTile href="/league" kicker={t("home.leagueKicker")} title={t("nav.league")} />
+            <ModeTile href="/squad" kicker="XI" title={t("nav.team")} />
             <ModeTile href="/transfer" kicker={t("home.shopKicker")} title={t("nav.shop")} />
           </div>
 
           <div className="mt-auto flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-[#d4af37]">{t("home.featured")}</p>
-              <h1 className="font-display text-4xl leading-none sm:text-6xl">
-                {featured?.player.name ?? userTeam?.name}
-              </h1>
-              <p className="mt-2 text-sm text-slate-300">
-                {userTeam?.name}
-                {grade ? ` · ${grade.attack}/${grade.defense}` : ""}
-                {featured ? ` · OVR ${featured.player.overall}` : ""}
-              </p>
+            <div className="flex items-end gap-3">
+              {featured && (
+                <span className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-[#e7c56a] font-display text-xl text-[#e7c56a]">
+                  {featured.player.overall}
+                </span>
+              )}
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.4em] text-[#e7c56a]">{t("home.featured")}</p>
+                <h1 className="font-display text-4xl leading-none sm:text-6xl">
+                  {featured?.player.name ?? userTeam?.name}
+                </h1>
+                <p className="mt-2 text-sm text-slate-300">
+                  {userTeam?.name}
+                  {grade ? ` · ${grade.attack}/${grade.defense}` : ""}
+                </p>
+              </div>
             </div>
-            <div className="pointer-events-auto min-w-[220px] rounded-2xl border border-white/10 bg-black/45 p-4 backdrop-blur">
+            <div className="ef-card pointer-events-auto min-w-[220px] p-4 backdrop-blur">
               <p className="text-[10px] uppercase tracking-[0.3em] text-slate-400">{t("home.next")}</p>
               {opponent ? (
                 <>
@@ -131,7 +138,7 @@ function ModeTile({
   return (
     <Link
       href={href}
-      className="rounded-xl border border-white/10 bg-black/40 px-4 py-3 backdrop-blur hover:border-[#d4af37]/50"
+      className="ef-card px-4 py-3 backdrop-blur hover:bg-white/5"
     >
       <p className="text-[10px] uppercase tracking-[0.28em] text-[#d4af37]">{kicker}</p>
       <p className="font-display text-xl">{title}</p>

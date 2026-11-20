@@ -81,6 +81,7 @@ type GameContextValue = {
   }) => Promise<string | null>;
   ensureWeekFixtures: () => Promise<void>;
   playWeek: () => Promise<MatchSimulationResult | string>;
+  reportLive: (homeScore: number, awayScore: number) => Promise<MatchSimulationResult | string>;
   setTraining: (training: Training) => Promise<void>;
   markReady: () => Promise<void>;
   makeOffer: (listingId: string, price: number) => Promise<string | null>;
@@ -298,6 +299,23 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     };
   }, [apply]);
 
+  const reportLive = useCallback(async (homeScore: number, awayScore: number): Promise<MatchSimulationResult | string> => {
+    const json = await postAction<{
+      snap: LeagueSnap;
+      match: MatchSimulationResult | null;
+      error: string | null;
+      coinsDelta?: number;
+      pointsDelta?: number;
+    }>({ type: "playLive", homeScore, awayScore });
+    apply(json.snap);
+    if (json.error || !json.match) return json.error || "Maç kaydı yok";
+    return {
+      ...(json.match as MatchSimulationResult),
+      coinsDelta: json.coinsDelta ?? 0,
+      pointsDelta: json.pointsDelta ?? 0,
+    };
+  }, [apply]);
+
   const setTraining = useCallback(async (training: Training) => {
     apply(await postAction({ type: "setTraining", training }));
   }, [apply]);
@@ -353,6 +371,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       buyListing,
       ensureWeekFixtures,
       playWeek,
+      reportLive,
       setTraining,
       markReady,
       makeOffer,
@@ -378,6 +397,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       buyListing,
       ensureWeekFixtures,
       playWeek,
+      reportLive,
       setTraining,
       markReady,
       makeOffer,

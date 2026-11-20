@@ -50,6 +50,18 @@ function decode(raw: string): LeagueDocument {
   return JSON.parse(json) as LeagueDocument;
 }
 
+export async function kvGetRaw(key: string): Promise<string | null> {
+  if (!kvConfigured()) return null;
+  const result = await redis(["GET", key]);
+  if (result == null || result === "") return null;
+  return typeof result === "string" ? result : null;
+}
+
+export async function kvSetRaw(key: string, value: string): Promise<void> {
+  if (!kvConfigured()) return;
+  await redis(["SET", key, value]);
+}
+
 export async function readKv(room: string): Promise<LeagueDocument | null> {
   const result = await redis(["GET", keyFor(room)]);
   if (result == null || result === "") return null;

@@ -46,6 +46,19 @@ export function photoPortrait(player: {
   return `/portraits/p${String(i).padStart(2, "0")}.webp?v=${PHOTO_VER}`;
 }
 
+/** 0–23 slot for an optional /models/pXX.glb. Falls back to the shared model. */
+export function modelSlotOf(player: {
+  id: string;
+  portrait?: string;
+  nationality_code?: string;
+  age?: number;
+}): number {
+  const body = photoBody(player);
+  const m = body.match(/b(\d{2})/);
+  if (m) return Number(m[1]);
+  return hash32(player.id) % PHOTO_COUNT;
+}
+
 /** Full-body photoreal figure used on the pitch and in 3D inspect. */
 export function photoBody(player: {
   id: string;

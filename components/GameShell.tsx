@@ -73,7 +73,7 @@ export function GameShell({ children, flush = false }: { children: React.ReactNo
         {children}
       </main>
 
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-[#d4af37]/25 bg-[#070a12]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md">
+      <nav className="ef-nav fixed inset-x-0 bottom-0 z-40 pb-[env(safe-area-inset-bottom)]">
         <div className="grid grid-cols-5">
           {NAV.map((item) => {
             const Icon = item.icon;
@@ -85,14 +85,12 @@ export function GameShell({ children, flush = false }: { children: React.ReactNo
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "relative flex min-h-16 flex-col items-center justify-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                  active ? "text-white" : "text-slate-500",
+                  "relative flex min-h-[4.4rem] flex-col items-center justify-center gap-1 text-[9px] font-semibold uppercase tracking-[0.18em]",
+                  active ? "text-[#e7c56a]" : "text-slate-500",
                 )}
               >
-                {active && (
-                  <span className="absolute inset-x-6 top-0 h-0.5 rounded-full bg-gradient-to-r from-transparent via-[#d4af37] to-transparent" />
-                )}
-                <Icon className={cn("h-5 w-5", active ? "text-[#d4af37]" : "text-slate-500")} />
+                {active && <span className="absolute top-0 h-0 w-0 border-x-[7px] border-t-[7px] border-x-transparent border-t-[#e7c56a]" />}
+                <Icon className={cn("h-5 w-5", active && "drop-shadow-[0_0_8px_rgba(231,197,106,0.85)]")} />
                 {item.label}
               </Link>
             );

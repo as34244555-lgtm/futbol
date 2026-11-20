@@ -3,6 +3,7 @@
 import { ChampionOverlay } from "@/components/ChampionBanner";
 import { GameShell } from "@/components/GameShell";
 import { MatchSimulation } from "@/components/MatchSimulation";
+import { LiveMatch } from "@/components/scene/LiveMatch";
 import { StadiumPrep } from "@/components/StadiumPrep";
 import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
@@ -15,12 +16,13 @@ import { rosterOf } from "@/lib/world";
 import { useEffect, useMemo, useState } from "react";
 
 export default function MatchPage() {
-  const { world, userTeam, lastSim, playWeek, ensureWeekFixtures, setWatching, markReady } = useGame();
+  const { world, userTeam, lastSim, playWeek, reportLive, ensureWeekFixtures, setWatching, markReady } = useGame();
   const [sim, setSim] = useState<MatchSimulationResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [prep, setPrep] = useState(false);
   const [title, setTitle] = useState<SeasonTitle | null>(null);
+  const [live, setLive] = useState(false);
 
   const unclaimedMatch = userTeam
     ? [...world.matches]
@@ -94,8 +96,38 @@ export default function MatchPage() {
     return Boolean(h && a && !h.user_id && !a.user_id);
   });
 
+  const liveHome = home ?? (next?.home_team_id === userTeam?.id ? userTeam : opp);
+  const liveAway = away ?? (next?.home_team_id === userTeam?.id ? opp : userTeam);
+  const liveHomeRoster = liveHome ? rosterOf(world, liveHome.id).filter((r) => r.is_starter) : [];
+  const liveAwayRoster = liveAway ? rosterOf(world, liveAway.id).filter((r) => r.is_starter) : [];
+
   return (
     <GameShell>
+      {live && next && liveHome && liveAway && userTeam && (
+        <LiveMatch
+          matchId={next.id}
+          home={liveHome}
+          away={liveAway}
+          homeStarters={liveHomeRoster}
+          awayStarters={liveAwayRoster}
+          control={next.home_team_id === userTeam.id ? "home" : "away"}
+          onExit={() => setLive(false)}
+          onFullTime={(homeScore, awayScore) => {
+            void (async () => {
+              const res = await reportLive(homeScore, awayScore);
+              setLive(false);
+              if (typeof res === "string") setError(res);
+              else {
+                setSim(res);
+                if (res.title) {
+                  setTitle(res.title);
+                  playFanfare();
+                }
+              }
+            })();
+          }}
+        />
+      )}
       <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Canlı saha · {formatSeasonWeek(world.week)}</p>
       <h1 className="font-display mb-2 text-4xl sm:text-5xl">Maç günü</h1>
       <p className="mb-6 max-w-2xl text-sm text-slate-400 sm:text-base">
@@ -104,7 +136,7 @@ export default function MatchPage() {
       </p>
 
       {!active && (
-        <div className="mb-8 rounded-3xl border border-white/10 bg-ink-800/70 p-4 sm:p-6">
+        <div className="ef-card mb-8 p-4 sm:p-6">
           {prep ? (
             <StadiumPrep
               home={userTeam?.name ?? "Ev"}
@@ -149,6 +181,16 @@ export default function MatchPage() {
             </p>
           )}
           <div className="mt-6 flex flex-wrap gap-3">
+            <Button
+              variant="gold"
+              disabled={!next || alreadyPlayed || waitingToWatch || liveHomeRoster.length < 8 || liveAwayRoster.length < 8}
+              onClick={() => {
+                void unlockAudio();
+                setLive(true);
+              }}
+            >
+              Sahaya çık
+            </Button>
             <Button variant="ghost" onClick={() => void ensureWeekFixtures()}>
               Fikstürü oluştur
             </Button>
@@ -185,7 +227,7 @@ export default function MatchPage() {
                 }
               }}
             >
-              {busy ? "Hazırlanıyor…" : waitingToWatch ? "Maçı izle" : alreadyPlayed ? "Hafta bitti" : "Maçı başlat"}
+              {busy ? "Hazırlanıyor…" : waitingToWatch ? "Maçı izle" : alreadyPlayed ? "Hafta bitti" : "Hızlı sonuç"}
             </Button>
             {lastSim && (
               <Button variant="outline" onClick={() => setSim(lastSim)}>
@@ -193,6 +235,10 @@ export default function MatchPage() {
               </Button>
             )}
           </div>
+          <p className="mt-3 max-w-xl text-xs text-slate-500">
+            Sahada sol çubukla koş, sağdaki tuşlarla pas, ara pas, şut ve müdahale yap. 11 oyuncunun konumu
+            arka planda siteye yazılır; rakip aynı maçı açınca senin konumunu çeker, sen de onunkini.
+          </p>
           {error && <p className="mt-4 text-sm text-rose-300">{error}</p>}
             </>
           )}
