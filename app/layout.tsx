@@ -15,9 +15,9 @@ const display = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "ePITCH — Football",
+  title: "Abdullah Studio — Football",
   description:
-    "Unlicensed football game with a live 3D pitch, eFootball-style hub and shared league.",
+    "Abdullah Studio football game with a live 3D pitch and a shared league.",
   icons: {
     icon: "/a-studio-192.png",
     apple: "/apple-touch-icon.png",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "ePITCH",
+    title: "Abdullah Studio",
     statusBarStyle: "black-translucent",
   },
 };

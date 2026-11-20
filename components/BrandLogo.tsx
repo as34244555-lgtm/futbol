@@ -14,13 +14,18 @@ export function BrandLogo({
     <span className={cn("inline-flex items-center gap-2", className)}>
       <Image
         src="/a-studio-icon.png"
-        alt="A Studio"
+        alt="Abdullah Studio"
         width={size}
         height={size}
         className="rounded-xl bg-black object-contain p-0.5 shadow-glow"
         priority
       />
-      {showWord && <span className="font-display tracking-[0.18em] text-white">ePITCH</span>}
+      {showWord && (
+        <span className="font-display text-sm leading-none tracking-[0.16em] text-white">
+          ABDULLAH
+          <span className="mt-0.5 block text-[10px] tracking-[0.32em] text-[#e7c56a]">STUDIO</span>
+        </span>
+      )}
     </span>
   );
 }

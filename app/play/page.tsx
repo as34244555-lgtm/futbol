@@ -96,7 +96,7 @@ export default function PlayPage() {
       {step === 3 && (
         <div className="mt-8 space-y-5">
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink-800 p-4">
-            <Crest name={teamName || "ePITCH"} primary={kit[0]} secondary={kit[1]} size={56} />
+            <Crest name={teamName || "Abdullah Studio"} primary={kit[0]} secondary={kit[1]} size={56} />
             <div>
               <p className="font-display text-2xl">{teamName || "Kulüp"}</p>
               <p className="text-sm text-slate-400">Arma isminden üretilir. Abdullah pazarda satılık — kadroda değil.</p>
