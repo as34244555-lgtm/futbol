@@ -1,127 +1,61 @@
 "use client";
 
-import { motion } from "framer-motion";
-import { Flag, Radio, Swords, Users } from "lucide-react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/Button";
+import { PlayerStage } from "@/components/scene/PlayerStage";
 import { useGame } from "@/lib/game-context";
 import { useI18n } from "@/lib/i18n";
 
 export default function LandingPage() {
-  const { ready, userTeam, humans, bots, backend } = useGame();
+  const { ready, userTeam } = useGame();
   const { t, lang, setLang } = useI18n();
   const hasSave = ready && Boolean(userTeam);
-  const FEATURES = [
-    { icon: Users, title: t("land.feat1t"), text: t("land.feat1") },
-    { icon: Flag, title: t("land.feat2t"), text: t("land.feat2") },
-    { icon: Swords, title: t("land.feat3t"), text: t("land.feat3") },
-    { icon: Radio, title: t("land.feat4t"), text: t("land.feat4") },
-  ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      <div className="pointer-events-none absolute inset-0 bg-grid-fade bg-[size:28px_28px]" />
-      <header className="relative z-10 mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5 sm:px-6">
-        <BrandLogo size={64} showWord />
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="relative min-h-[100dvh] overflow-hidden bg-[#05070c]">
+      <PlayerStage className="absolute inset-0 h-full w-full" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black via-black/55 to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-black to-transparent" />
+
+      <header className="relative z-10 flex items-center justify-between px-5 py-5 sm:px-8">
+        <BrandLogo size={48} showWord />
+        <div className="flex gap-2">
           <Button size="sm" variant={lang === "tr" ? "gold" : "ghost"} onClick={() => setLang("tr")}>
             TR
           </Button>
           <Button size="sm" variant={lang === "en" ? "gold" : "ghost"} onClick={() => setLang("en")}>
             EN
           </Button>
-          {hasSave ? (
-            <Link href="/dashboard">
-              <Button variant="ghost">{t("land.back")}</Button>
-            </Link>
-          ) : (
-            <Link href="/login">
-              <Button variant="ghost">{t("land.login")}</Button>
-            </Link>
-          )}
-          <Link href="/play">
-            <Button>{t("land.join")}</Button>
-          </Link>
         </div>
       </header>
-      <main className="relative z-10 mx-auto grid max-w-6xl items-center gap-12 px-4 pb-24 pt-6 sm:px-6 lg:grid-cols-2">
-        <div>
-          <div className="mb-6">
-            <BrandLogo size={112} />
-          </div>
-          <p className="mb-3 text-xs uppercase tracking-[0.35em] text-gold">
-            {t("land.kicker")} · {humans} {t("multi.humans")} · {bots} bot
-          </p>
-          <h1 className="font-display text-4xl leading-[0.95] sm:text-7xl">
-            {t("land.h1a")}
-            <span className="block text-neon">{t("land.h1b")}</span>
-          </h1>
-          <p className="mt-6 max-w-xl text-lg text-slate-300">
-            {t("land.body")}
-            {backend === "memory" ? (lang === "en" ? " Add a Supabase service key in production." : " Üretimde Supabase servis anahtarı ekleyin.") : ""}
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="/play">
-              <Button size="lg">{t("land.become")}</Button>
-            </Link>
+
+      <main className="relative z-10 flex min-h-[calc(100dvh-6rem)] flex-col justify-end px-5 pb-16 sm:max-w-xl sm:px-8 sm:pb-20">
+        <p className="text-[11px] uppercase tracking-[0.42em] text-[#d4af37]">{t("land.kicker")}</p>
+        <h1 className="font-display mt-3 text-5xl leading-[0.9] sm:text-7xl">
+          {t("land.h1a")}
+          <span className="mt-1 block text-white/90">{t("land.h1b")}</span>
+        </h1>
+        <p className="mt-5 max-w-md text-slate-300">{t("land.body")}</p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href={hasSave ? "/dashboard" : "/play"}>
+            <Button size="lg" variant="gold">
+              {hasSave ? t("land.back") : t("land.join")}
+            </Button>
+          </Link>
+          {!hasSave && (
             <Link href="/login">
               <Button size="lg" variant="outline">
-                {t("login.submit")}
+                {t("land.login")}
               </Button>
             </Link>
-          </div>
+          )}
         </div>
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative overflow-hidden rounded-[2rem] border border-white/10 bg-ink-800 p-4 shadow-glow"
-        >
-          <div className="pitch-stripes relative aspect-[105/68] overflow-hidden rounded-2xl">
-            <div className="absolute inset-2 rounded-lg border border-white/40" />
-            <div className="absolute left-1/2 top-2 h-[calc(100%-16px)] w-px bg-white/40" />
-            <div className="absolute left-1/2 top-1/2 h-16 w-16 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
-            {[
-              [12, 50],
-              [28, 22],
-              [28, 50],
-              [28, 78],
-              [48, 35],
-              [48, 65],
-              [62, 50],
-              [78, 22],
-              [82, 50],
-              [78, 78],
-              [22, 50],
-            ].map(([x, y], i) => (
-              <span
-                key={i}
-                className="absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-neon shadow-glow"
-                style={{ left: `${x}%`, top: `${y}%` }}
-              />
-            ))}
-            <span className="absolute left-[62%] top-[42%] h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white" />
-          </div>
-          <div className="mt-4 flex items-center justify-between px-2 text-sm">
-            <span>Bosphorus FC</span>
-            <span className="font-display text-3xl">2 — 1</span>
-            <span>Anatolia United</span>
-          </div>
-        </motion.div>
+        <div className="mt-8 flex gap-4 text-xs text-slate-500">
+          <Link href="/gizlilik">{t("privacy")}</Link>
+          <Link href="/kosullar">{t("terms")}</Link>
+        </div>
       </main>
-      <section className="relative z-10 mx-auto grid max-w-6xl gap-4 px-6 pb-24 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map((f) => (
-          <div key={f.title} className="rounded-2xl border border-white/10 bg-ink-800/70 p-5">
-            <f.icon className="mb-3 h-5 w-5 text-neon" />
-            <h3 className="font-semibold">{f.title}</h3>
-            <p className="mt-2 text-sm text-slate-400">{f.text}</p>
-          </div>
-        ))}
-      </section>
-      <footer className="relative z-10 mx-auto flex max-w-6xl gap-4 px-6 pb-10 text-xs text-slate-500">
-        <Link href="/gizlilik">{t("privacy")}</Link>
-        <Link href="/kosullar">{t("terms")}</Link>
-      </footer>
     </div>
   );
 }

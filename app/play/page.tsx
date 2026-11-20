@@ -70,7 +70,7 @@ export default function PlayPage() {
             setStep(3);
           }}
         >
-          <Field label="Menajer adı" value={username} onChange={setUsername} placeholder="ör. Deniz" />
+          <Field label={t("login.user")} value={username} onChange={setUsername} placeholder="ör. Deniz" />
           <Field label="Şifre" value={password} onChange={setPassword} placeholder="en az 4 karakter" type="password" />
           <Field label="Takım adı" value={teamName} onChange={setTeamName} placeholder="ör. Pera FC" />
           {!career && (
@@ -96,7 +96,7 @@ export default function PlayPage() {
       {step === 3 && (
         <div className="mt-8 space-y-5">
           <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-ink-800 p-4">
-            <Crest name={teamName || "Managers League"} primary={kit[0]} secondary={kit[1]} size={56} />
+            <Crest name={teamName || "ePITCH"} primary={kit[0]} secondary={kit[1]} size={56} />
             <div>
               <p className="font-display text-2xl">{teamName || "Kulüp"}</p>
               <p className="text-sm text-slate-400">Arma isminden üretilir. Abdullah pazarda satılık — kadroda değil.</p>
@@ -139,7 +139,7 @@ export default function PlayPage() {
                 else router.push("/dashboard");
               }}
             >
-              {busy ? "Kuruluyor…" : "Lige katıl"}
+              {busy ? "Kuruluyor…" : t("land.join")}
             </Button>
           </div>
         </div>

@@ -20,7 +20,7 @@ export function BrandLogo({
         className="rounded-xl bg-black object-contain p-0.5 shadow-glow"
         priority
       />
-      {showWord && <span className="font-display tracking-wide text-neon">MANAGERS LEAGUE</span>}
+      {showWord && <span className="font-display tracking-[0.18em] text-white">ePITCH</span>}
     </span>
   );
 }

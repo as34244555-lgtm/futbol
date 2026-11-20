@@ -111,7 +111,7 @@ export type Team = {
   lost: number;
   goals_for: number;
   goals_against: number;
-  /** Won Managers League titles */
+  /** Won ePITCH titles */
   titles?: number;
   /** Haftalık antrenman odağı */
   training?: Training;

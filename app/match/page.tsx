@@ -109,7 +109,7 @@ export default function MatchPage() {
             <StadiumPrep
               home={userTeam?.name ?? "Ev"}
               away={opp?.name ?? "Konuk"}
-              stadium={`${(next?.home_team_id === userTeam?.id ? userTeam?.name : opp?.name) ?? "Managers League"} Arena`}
+              stadium={`${(next?.home_team_id === userTeam?.id ? userTeam?.name : opp?.name) ?? "ePITCH"} Arena`}
             />
           ) : (
             <>
@@ -120,8 +120,8 @@ export default function MatchPage() {
           {opp && (
             <p className="mt-1 text-sm text-slate-400">
               {opp.user_id
-                ? `İnsan menajer · ${opp.readyWeek === world.week ? "rakip hazır" : "rakip bekleniyor"}`
-                : `Bot menajer · ${botManagerName(opp.name)}`}
+                ? `Rakip oyuncu · ${opp.readyWeek === world.week ? "rakip hazır" : "rakip bekleniyor"}`
+                : `Bot · ${botManagerName(opp.name)}`}
             </p>
           )}
           {preview && (

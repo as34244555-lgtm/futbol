@@ -15,9 +15,9 @@ const display = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "Managers League — Football Manager",
+  title: "ePITCH — Football",
   description:
-    "Unlicensed, stats-driven football manager with live 3D pitch, eFootball-style cards and a shared league.",
+    "Unlicensed football game with a live 3D pitch, eFootball-style hub and shared league.",
   icons: {
     icon: "/a-studio-192.png",
     apple: "/apple-touch-icon.png",
@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Managers League",
+    title: "ePITCH",
     statusBarStyle: "black-translucent",
   },
 };

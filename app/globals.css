@@ -17,7 +17,7 @@ body {
   background-image:
     radial-gradient(1200px 500px at 10% -10%, rgba(61, 255, 138, 0.08), transparent 50%),
     radial-gradient(900px 400px at 90% 0%, rgba(240, 193, 75, 0.06), transparent 45%),
-    linear-gradient(#05070a, #05070a);
+    linear-gradient(#05070c, #05070c);
   padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left);
 }
 
