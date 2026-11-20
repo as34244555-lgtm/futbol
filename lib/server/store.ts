@@ -123,16 +123,13 @@ function withBots(doc: LeagueDocument): { doc: LeagueDocument; changed: boolean 
   return { doc: { ...doc, world }, changed: true };
 }
 
-async function loadRaw(): Promise<LeagueDocument> {
-  const mode = persistenceMode();
-  const room = currentRoom();
-  if (mode === "supabase" && room === "NOVA") return readSupabase();
-  if (mode === "kv") {
-    const remote = await readKv(room);
-    if (remote) return remote;
-    return emptyDoc();
-  }
-  if (mode === "file") return readFileDoc(room);
+function remoteDown(error: unknown): boolean {
+  const cause = error instanceof Error ? error.cause : undefined;
+  const text = `${error instanceof Error ? error.message : String(error)} ${cause instanceof Error ? cause.message : ""}`;
+  return /fetch failed|ECONN|ENOTFOUND|ETIMEDOUT|UND_ERR|network|socket|other side closed|aborted/i.test(text);
+}
+
+async function loadMemory(room: string): Promise<LeagueDocument> {
   const docs = memDocs();
   if (docs[room]) return structuredClone(docs[room]);
   const fromTmp = await readTmp(room);
@@ -145,11 +142,44 @@ async function loadRaw(): Promise<LeagueDocument> {
   return structuredClone(doc);
 }
 
+async function saveMemory(room: string, doc: LeagueDocument, expectedVersion: number): Promise<LeagueDocument> {
+  const next = { ...doc, version: expectedVersion + 1 };
+  memDocs()[room] = next;
+  await writeTmp(room, next);
+  return next;
+}
+
+async function loadRaw(): Promise<LeagueDocument> {
+  const mode = persistenceMode();
+  const room = currentRoom();
+  try {
+    if (mode === "supabase" && room === "NOVA") return await readSupabase();
+    if (mode === "kv") {
+      const remote = await readKv(room);
+      if (remote) return remote;
+      return emptyDoc();
+    }
+  } catch (error) {
+    if (!remoteDown(error)) throw error;
+    console.error("Lig deposu okunamadı, geçici bellek kullanılıyor.", error);
+    return loadMemory(room);
+  }
+  if (mode === "file") return readFileDoc(room);
+  return loadMemory(room);
+}
+
 async function save(doc: LeagueDocument, expectedVersion: number): Promise<LeagueDocument> {
   const mode = persistenceMode();
   const room = currentRoom();
-  if (mode === "supabase" && room === "NOVA") return writeSupabase(doc, expectedVersion);
-  if (mode === "kv") return writeKv(room, doc, expectedVersion);
+  try {
+    if (mode === "supabase" && room === "NOVA") return await writeSupabase(doc, expectedVersion);
+    if (mode === "kv") return await writeKv(room, doc, expectedVersion);
+  } catch (error) {
+    if (error instanceof Error && error.message === "VERSION_CONFLICT") throw error;
+    if (!remoteDown(error)) throw error;
+    console.error("Lig deposu yazılamadı, geçici bellek kullanılıyor.", error);
+    return saveMemory(room, doc, expectedVersion);
+  }
   const next = { ...doc, version: expectedVersion + 1 };
   if (mode === "file") await writeFileDoc(room, next);
   memDocs()[room] = next;

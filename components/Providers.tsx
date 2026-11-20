@@ -14,6 +14,7 @@ function GlbPreload() {
 
 function LandscapeGate() {
   const [portrait, setPortrait] = useState(false);
+  const [hidden, setHidden] = useState(false);
   useEffect(() => {
     const check = () => setPortrait(window.innerHeight > window.innerWidth + 40);
     check();
@@ -29,11 +30,16 @@ function LandscapeGate() {
       window.removeEventListener("orientationchange", check);
     };
   }, []);
-  if (!portrait) return null;
+  if (!portrait || hidden) return null;
   return (
-    <div className="fixed inset-0 z-[90] flex flex-col items-center justify-center gap-3 bg-black px-8 text-center text-white">
-      <p className="font-display text-4xl">Yatay oyna</p>
-      <p className="text-sm text-white/70">Telefonu yan çevir.</p>
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex justify-center px-3 pb-[max(0.8rem,env(safe-area-inset-bottom))]">
+      <button
+        type="button"
+        className="pointer-events-auto rounded-full bg-black/75 px-4 py-2 text-sm text-white shadow-lg ring-1 ring-white/20"
+        onClick={() => setHidden(true)}
+      >
+        Yatay daha rahat · kapat
+      </button>
     </div>
   );
 }
