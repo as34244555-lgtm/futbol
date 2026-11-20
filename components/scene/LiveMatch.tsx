@@ -4,7 +4,8 @@ import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
 import { FORMATION_SLOTS } from "@/lib/formations";
 import { modelSlotOf } from "@/lib/player-photo";
 import { createPitch, tickPitch, type PitchBall, type PitchState, type RemotePitch, type Side, type Stick } from "@/lib/pitch-sim";
-import { createPlayerFigure } from "@/lib/three-player";
+import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
+import type { AnimClip } from "@/lib/player-anims";
 import { applyStadiumLights, cameraFor, createStadium, pitchToWorld } from "@/lib/three-stadium";
 import { normalizeStadium } from "@/lib/stadium";
 import type { Player, Team, TeamPlayer } from "@/lib/types";
@@ -62,6 +63,7 @@ export function LiveMatch({
   const hudAcc = useRef(0);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const joy = useRef({ id: -1, ox: 0, oy: 0 });
+  const clock = useRef(0);
 
   const build = useCallback(
     (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => {
@@ -129,6 +131,13 @@ export function LiveMatch({
       if (stick.current.sprint && energy.current > 0) energy.current = Math.max(0, energy.current - dt * 0.28);
       else energy.current = Math.min(1, energy.current + dt * 0.14);
       if (energy.current <= 0) stick.current.sprint = false;
+      clock.current += dt;
+      const moving = Math.hypot(stick.current.x, stick.current.y) > 0.12;
+      const gesture: AnimClip = stick.current.shoot
+        ? "shot_drive"
+        : stick.current.pass || stick.current.through
+          ? "pass_ground"
+          : "idle";
       const out = tickPitch(state, dt, control, stick.current, remote.current);
       for (const p of state.players) {
         const fig = figures.current.get(p.id);
@@ -139,6 +148,13 @@ export function LiveMatch({
         fig.position.y = 0;
         const atk = p.side === "home" ? 1 : -1;
         fig.rotation.y = atk > 0 ? 0 : Math.PI;
+        const clip: AnimClip =
+          state.ball.holder === p.id && gesture !== "idle"
+            ? gesture
+            : p.side === control && moving
+              ? "run"
+              : "idle";
+        tickPlayerFigure(fig, clock.current, clip, true);
       }
       if (ballMesh.current) {
         const w = pitchToWorld(state.ball.x, state.ball.y);

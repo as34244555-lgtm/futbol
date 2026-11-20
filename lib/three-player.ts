@@ -83,7 +83,61 @@ export function applyPose(root: THREE.Group, clip: AnimClip, t: number) {
   }
 }
 
+const MOCAP: Record<string, string> = {
+  idle: "idle",
+  run: "walk",
+  dribble_stepover: "walk",
+  dribble_cut: "walk",
+  dribble_elastico: "walk",
+  dribble_sprint: "walk",
+  dribble_feint: "walk",
+  pass_ground: "pass",
+  pass_through: "pass",
+  pass_cross: "kick",
+  shot_drive: "kick",
+  shot_chip: "kick",
+  tackle_slide: "kick",
+  save_dive_l: "kick",
+  save_dive_r: "kick",
+  save_high: "kick",
+  save_low: "kick",
+  save_catch: "pass",
+};
+
+function driveMocap(group: THREE.Group, clip: AnimClip, t: number) {
+  const holder = group.getObjectByName("playerGlb");
+  const mixer = holder?.userData.mixer as THREE.AnimationMixer | undefined;
+  const clips = holder?.userData.clips as THREE.AnimationClip[] | undefined;
+  if (!holder || !mixer || !clips?.length) return false;
+  let want = MOCAP[clip] ?? "idle";
+  if (want === "kick" || want === "pass") holder.userData.lock = { name: want, until: t + 0.85 };
+  const lock = holder.userData.lock as { name: string; until: number } | undefined;
+  if (lock && t < lock.until) want = lock.name;
+  if (holder.userData.current !== want) {
+    const found = THREE.AnimationClip.findByName(clips, want) ?? THREE.AnimationClip.findByName(clips, "idle");
+    if (found) {
+      const next = mixer.clipAction(found);
+      const once = want === "kick" || want === "pass";
+      next.reset();
+      next.setLoop(once ? THREE.LoopOnce : THREE.LoopRepeat, Infinity);
+      next.clampWhenFinished = once;
+      next.fadeIn(0.18).play();
+      const prev = holder.userData.prev as THREE.AnimationAction | undefined;
+      prev?.fadeOut(0.18);
+      holder.userData.prev = next;
+      holder.userData.current = want;
+    }
+  }
+  const last = holder.userData.lastT as number | undefined;
+  let dt = last == null ? 1 / 60 : t - last;
+  if (!(dt > 0 && dt < 0.08)) dt = 1 / 60;
+  holder.userData.lastT = t;
+  mixer.update(dt);
+  return true;
+}
+
 export function tickPlayerFigure(group: THREE.Group, t: number, clip: AnimClip = "idle", active = false) {
+  if (group.userData.glb && driveMocap(group, clip, t)) return;
   const phase = (group.userData.idle as number) + t * (active ? 1.35 : 0.55);
   if (group.userData.glb) {
     group.position.y = Math.sin(phase * Math.PI * 2) * (active ? 0.03 : 0.012);

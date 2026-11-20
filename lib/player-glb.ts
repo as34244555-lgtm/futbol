@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { clone as cloneSkeleton } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export const PLAYER_GLB_URL = "/models/player.glb";
 
@@ -24,7 +25,7 @@ function normalizeFigure(root: THREE.Group) {
   root.updateMatrixWorld(true);
 }
 
-function prepareScene(scene: THREE.Group) {
+function prepareScene(scene: THREE.Group, clips: THREE.AnimationClip[]) {
   scene.traverse((obj) => {
     const mesh = obj as THREE.Mesh;
     if (!mesh.isMesh) return;
@@ -40,6 +41,7 @@ function prepareScene(scene: THREE.Group) {
   });
   const group = new THREE.Group();
   group.name = "playerGlbTemplate";
+  group.userData.clips = clips;
   group.add(scene);
   normalizeFigure(group);
   return group;
@@ -54,7 +56,7 @@ function loadUrl(url: string): Promise<THREE.Group> {
       new GLTFLoader().load(
         url,
         (gltf) => {
-          const group = prepareScene(gltf.scene);
+          const group = prepareScene(gltf.scene, gltf.animations);
           templates.set(url, group);
           pending.delete(url);
           resolve(group);
@@ -103,23 +105,32 @@ export function clonePlayerGlb(slot?: number): THREE.Group {
   const holder = new THREE.Group();
   holder.name = "playerGlb";
   holder.userData.glb = true;
-  const mount = (url: string) => {
+  const mount = (tpl: THREE.Group) => {
+    const clips = tpl.userData.clips as THREE.AnimationClip[] | undefined;
+    const copy = clips?.length ? cloneSkeleton(tpl) : tpl.clone(true);
+    holder.add(copy);
+    if (clips?.length) {
+      holder.userData.mixer = new THREE.AnimationMixer(copy);
+      holder.userData.clips = clips;
+    }
+  };
+  const loadInto = (url: string) => {
     const cached = templates.get(url);
     if (cached) {
-      holder.add(cached.clone(true));
+      if (holder.children.length === 0) mount(cached);
       return;
     }
     void loadUrl(url)
       .catch(() => loadUrl(PLAYER_GLB_URL))
       .then((tpl) => {
-        if (holder.children.length === 0) holder.add(tpl.clone(true));
+        if (holder.children.length === 0) mount(tpl);
       })
       .catch(() => undefined);
   };
-  if (slots) mount(urlForSlot(slot));
+  if (slots) loadInto(urlForSlot(slot));
   else {
     void loadModelIndex().then(() => {
-      if (holder.children.length === 0) mount(urlForSlot(slot));
+      if (holder.children.length === 0) loadInto(urlForSlot(slot));
     });
   }
   return holder;
