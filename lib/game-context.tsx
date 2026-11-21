@@ -143,13 +143,14 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      apply(await fetchLeague());
+      const next = await fetchLeague();
+      setSnap((prev) => (prev.me && !next.me ? prev : next));
     } catch {
       /* keep last */
     } finally {
       setReady(true);
     }
-  }, [apply]);
+  }, []);
 
   useEffect(() => {
     void refresh();

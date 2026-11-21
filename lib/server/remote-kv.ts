@@ -62,6 +62,12 @@ export async function kvSetRaw(key: string, value: string): Promise<void> {
   await redis(["SET", key, value]);
 }
 
+export async function kvSetNx(key: string, value: string): Promise<boolean> {
+  if (!kvConfigured()) return false;
+  const result = await redis(["SET", key, value, "NX"]);
+  return result === "OK";
+}
+
 export async function readKv(room: string): Promise<LeagueDocument | null> {
   const result = await redis(["GET", keyFor(room)]);
   if (result == null || result === "") return null;

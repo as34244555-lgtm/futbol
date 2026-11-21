@@ -7,7 +7,7 @@ export type Lang = "tr" | "en";
 const KEY = "ml-lang";
 
 const TR: Record<string, string> = {
-  game: "Abdullah Studio",
+  game: "e-futbol",
   studio: "A Studio",
   studioPresents: "sunar",
   tagline: "Futbol oyunu",
@@ -34,7 +34,7 @@ const TR: Record<string, string> = {
   language: "Dil",
   "lang.tr": "Türkçe",
   "lang.en": "English",
-  "join.kicker": "ABDULLAH STUDIO",
+  "join.kicker": "e-futbol",
   "join.title": "Sahaya çık",
   "join.name": "Oyuncu adı",
   "join.namePh": "Adını yaz",
@@ -204,7 +204,7 @@ const TR: Record<string, string> = {
 };
 
 const EN: Record<string, string> = {
-  game: "Abdullah Studio",
+  game: "e-futbol",
   studio: "A Studio",
   studioPresents: "presents",
   tagline: "Football game",
@@ -231,7 +231,7 @@ const EN: Record<string, string> = {
   language: "Language",
   "lang.tr": "Türkçe",
   "lang.en": "English",
-  "join.kicker": "ABDULLAH STUDIO",
+  "join.kicker": "e-futbol",
   "join.title": "Take the pitch",
   "join.name": "Player name",
   "join.namePh": "Type your name",

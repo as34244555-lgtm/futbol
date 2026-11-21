@@ -1,6 +1,6 @@
 {
-  "name": "Abdullah Studio",
-  "short_name": "Abdullah Studio",
+  "name": "e-futbol",
+  "short_name": "e-futbol",
   "description": "Unlicensed football game. 3D player hub, live pitch, team, shop.",
   "start_url": "/dashboard",
   "display": "standalone",

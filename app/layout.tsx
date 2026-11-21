@@ -15,9 +15,8 @@ const display = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
-  title: "Abdullah Studio — Football",
-  description:
-    "Abdullah Studio football game with a live 3D pitch and a shared league.",
+  title: "e-futbol",
+  description: "e-futbol. Canlı saha, kadro ve mağaza.",
   icons: {
     icon: "/a-studio-192.png",
     apple: "/apple-touch-icon.png",
@@ -25,7 +24,7 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "Abdullah Studio",
+    title: "e-futbol",
     statusBarStyle: "black-translucent",
   },
 };

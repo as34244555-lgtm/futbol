@@ -2,7 +2,7 @@
 
 import { CardArt } from "@/components/Portrait";
 import { PlayerInspect } from "@/components/scene/PlayerInspect";
-import { cardRarity, displayOvr, EF_POS, RARITY_THEME, specialSkills } from "@/lib/card-rarity";
+import { cardRarity, displayOvr, EF_POS, plainCard, RARITY_THEME, specialSkills } from "@/lib/card-rarity";
 import { deriveAttrs } from "@/lib/career";
 import { flagUrl } from "@/lib/nations";
 import { marketValue } from "@/lib/ratings";
@@ -64,7 +64,8 @@ export function PlayerCard({
   const [inspect, setInspect] = useState(false);
   const [tilt, setTilt] = useState({ x: 0, y: 0, px: 50, py: 40 });
   const rarity = cardRarity(player);
-  const theme = RARITY_THEME[rarity];
+  const plain = plainCard(player);
+  const theme = plain ? RARITY_THEME.bronze : RARITY_THEME[rarity];
   const skills = specialSkills(player);
   const attrs = deriveAttrs(player);
   const hurt = (row?.injuryWeeks ?? 0) > 0;
@@ -122,10 +123,12 @@ export function PlayerCard({
                 nation={player.nationality_code}
                 age={player.age}
               />
-              <span
-                className={cn("ef-foil", `ef-foil-${rarity}`)}
-                style={{ backgroundPosition: `${tilt.px}% ${tilt.py}%` }}
-              />
+              {!plain && (
+                <span
+                  className={cn("ef-foil ef-foil-shine", `ef-foil-${rarity}`)}
+                  style={{ backgroundPosition: `${tilt.px}% ${tilt.py}%` }}
+                />
+              )}
               <span className="pointer-events-none absolute inset-0 rounded-[0.92rem] ring-1 ring-inset ring-white/20" />
               <div className="absolute left-2 top-2 z-10 min-w-[2.7rem] rounded-md bg-black/50 px-1.5 py-1 text-center backdrop-blur-[2px] ring-1 ring-white/10">
                 <p className={cn("font-display leading-none", compact ? "text-2xl" : "text-3xl", theme.ovr)}>{ovr}</p>

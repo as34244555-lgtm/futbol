@@ -10,7 +10,7 @@ export async function getSession() {
 
 export async function setSessionCookie(payload: SessionPayload) {
   const jar = await cookies();
-  jar.set(COOKIE, signSession(payload), {
+  jar.set(COOKIE, await signSession(payload), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

@@ -77,6 +77,11 @@ export const RARITY_THEME: Record<
   },
 };
 
+/** Standart 24 ve iki özel kaleci sade kart. Diğer herkes ışıltılı. */
+export function plainCard(player: Pick<Player, "tier" | "position">): boolean {
+  return player.tier === "standard" || (player.tier === "special" && player.position === "KL");
+}
+
 export function cardRarity(player: Pick<Player, "overall" | "legend" | "tier">): CardRarity {
   if (player.legend || player.overall >= 100) return "legend";
   if (player.tier === "standard") return "bronze";

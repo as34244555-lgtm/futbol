@@ -100,8 +100,8 @@ assert(hydrateWorld(joined.world).teams[0]?.stadium?.sky, "hydrate fills stadium
 assert(DRIBBLE_CLIPS.length === 5 && PASS_CLIPS.length === 3 && SHOT_CLIPS.length === 2 && TACKLE_CLIPS.length === 1 && SAVE_CLIPS.length === 5, "animation set sizes");
 assert(clipForEvent({ eventType: "shot", minute: 12, playerId: "gk1", gk: true, involved: false, attacking: false }).startsWith("save_"), "gk save clip");
 assert(specialSkills(makeAbdullah()).includes("Big Time"), "legend skill chip");
-assert(translate("en", "game") === "Abdullah Studio", "en game name");
-assert(translate("tr", "game") === "Abdullah Studio", "tr game name");
+assert(translate("en", "game") === "e-futbol", "en game name");
+assert(translate("tr", "game") === "e-futbol", "tr game name");
 
 const sample = world0.listings.find((l) => l.status === "active")!;
 const seller = world0.teams.find((t) => t.id === sample.seller_team_id)!;

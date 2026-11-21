@@ -1,4 +1,5 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { kvConfigured, kvGetRaw, kvSetNx } from "./remote-kv";
 
 const SALT_LEN = 16;
 const KEY_LEN = 32;
@@ -20,28 +21,51 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 let runtimeSecret: string | undefined;
 
-export function sessionSecret(): string {
+async function sharedSecret(): Promise<string> {
+  if (runtimeSecret) return runtimeSecret;
+  if (kvConfigured()) {
+    const existing = await kvGetRaw("auth:secret");
+    if (existing && existing.length >= 32) {
+      runtimeSecret = existing;
+      return existing;
+    }
+    const created = randomBytes(32).toString("hex");
+    const won = await kvSetNx("auth:secret", created);
+    if (!won) {
+      const winner = await kvGetRaw("auth:secret");
+      runtimeSecret = winner && winner.length >= 32 ? winner : created;
+      return runtimeSecret;
+    }
+    runtimeSecret = created;
+    return created;
+  }
+  runtimeSecret = randomBytes(32).toString("hex");
+  return runtimeSecret;
+}
+
+export async function sessionSecret(): Promise<string> {
   const configured = process.env.AUTH_SECRET || process.env.SESSION_SECRET;
   if (configured) return configured;
-  if (!runtimeSecret) runtimeSecret = randomBytes(32).toString("hex");
-  return runtimeSecret;
+  return sharedSecret();
 }
 
 export type SessionPayload = { sub: string; name: string; teamId: string; teamName?: string; roomCode?: string };
 
-export function signSession(payload: SessionPayload): string {
+export async function signSession(payload: SessionPayload): Promise<string> {
+  const secret = await sessionSecret();
   const body = Buffer.from(
     JSON.stringify({ ...payload, exp: Date.now() + 14 * 24 * 60 * 60 * 1000 }),
   ).toString("base64url");
-  const sig = createHmac("sha256", sessionSecret()).update(body).digest("base64url");
+  const sig = createHmac("sha256", secret).update(body).digest("base64url");
   return `${body}.${sig}`;
 }
 
-export function readSession(token: string | undefined): SessionPayload | null {
+export async function readSession(token: string | undefined): Promise<SessionPayload | null> {
   if (!token) return null;
   const [body, sig] = token.split(".");
   if (!body || !sig) return null;
-  const expected = createHmac("sha256", sessionSecret()).update(body).digest("base64url");
+  const secret = await sessionSecret();
+  const expected = createHmac("sha256", secret).update(body).digest("base64url");
   const a = Buffer.from(sig);
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
