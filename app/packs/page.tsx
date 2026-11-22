@@ -66,26 +66,26 @@ function PackBanner({
         </span>
 
         {/* Cards fill the art plane like eFootball product covers */}
-        <div className="absolute inset-x-0 bottom-[2%] top-[14%] flex items-center justify-center">
+        <div className="absolute inset-x-0 bottom-[3%] top-[12%] flex items-center justify-center overflow-hidden">
           {players.map((p, i) => {
             const offset = i - mid;
             const isHero = i === mid;
+            const cardH = kind === "epic" ? (isHero ? "min(62vh, 28rem)" : "min(52vh, 23rem)") : isHero ? "min(60vh, 26rem)" : "min(50vh, 22rem)";
             return (
               <div
                 key={p.id}
-                className="absolute top-1/2 -translate-y-1/2"
+                className="absolute"
                 style={{
-                  height: isHero ? "96%" : "82%",
-                  aspectRatio: "5 / 7",
-                  left: `calc(50% + ${offset * (kind === "epic" ? 15.5 : 20)}%)`,
-                  transform: `translate(-50%, -50%) translateY(${Math.abs(offset) * 2}%) rotate(${offset * (kind === "epic" ? 6 : 5)}deg) scale(${isHero ? 1.06 : 0.9})`,
+                  height: cardH,
+                  width: `calc(${cardH} * 5 / 7)`,
+                  left: `calc(50% + ${offset * (kind === "epic" ? 11 : 14)}vw)`,
+                  top: "50%",
+                  transform: `translate(-50%, -50%) translateY(${Math.abs(offset) * 1.2}vh) rotate(${offset * (kind === "epic" ? 6 : 5)}deg)`,
                   zIndex: 20 - Math.abs(offset),
                   filter: "drop-shadow(0 24px 40px rgba(0,0,0,0.7))",
                 }}
               >
-                <div className="h-full w-full [&_.ef-inner]:!aspect-auto [&_.ef-inner]:h-full [&_.ef-scene]:h-full">
-                  <PlayerCard player={p} featured />
-                </div>
+                <PlayerCard player={p} featured />
               </div>
             );
           })}
