@@ -54,7 +54,4 @@ keystore.properties
 /www/
 # Drop-site secrets must stay untracked (folder may exist for publish)
 play-drop-site/
-efutbol-play-drop/*.aab
-efutbol-play-drop/*.apk
-efutbol-play-drop/*.jks
-efutbol-play-drop/CREDENTIALS.txt
+CREDENTIALS.txt
