@@ -87,6 +87,12 @@ type GameContextValue = {
   respondOffer: (offerId: string, accept: boolean) => Promise<string | null>;
   importPlayers: (players: Player[], mode: "merge" | "replace") => Promise<void>;
   claimRewarded: () => Promise<string | null>;
+  dailyLogin: () => Promise<string | null>;
+  claimQuest: (questId: string) => Promise<string | null>;
+  claimBattle: (tier: number) => Promise<string | null>;
+  openPack: (pay: "coins" | "gems") => Promise<{ pulls?: Array<{ player: Player; fromPool: string }>; error?: string }>;
+  upgradeCard: (teamPlayerId: string, mode: "level" | "boost" | "train") => Promise<string | null>;
+  advanceTutorial: (done?: boolean) => Promise<void>;
   watching: boolean;
   setWatching: (v: boolean) => void;
 };
@@ -352,6 +358,60 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [apply]);
 
+  const dailyLogin = useCallback(async () => {
+    try {
+      apply(await postAction({ type: "dailyLogin" }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Giriş ödülü alınamadı";
+    }
+  }, [apply]);
+
+  const claimQuest = useCallback(async (questId: string) => {
+    try {
+      apply(await postAction({ type: "claimQuest", questId }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Görev alınamadı";
+    }
+  }, [apply]);
+
+  const claimBattle = useCallback(async (tier: number) => {
+    try {
+      apply(await postAction({ type: "claimBattle", tier }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Battle ödülü alınamadı";
+    }
+  }, [apply]);
+
+  const openPackFn = useCallback(async (pay: "coins" | "gems") => {
+    try {
+      const res = await postAction<{ snap?: LeagueSnap; pulls?: Array<{ player: Player; fromPool: string }> }>({
+        type: "openPack",
+        pay,
+      });
+      if (res.snap) apply(res.snap);
+      else apply(res as unknown as LeagueSnap);
+      return { pulls: res.pulls };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Paket açılamadı" };
+    }
+  }, [apply]);
+
+  const upgradeCard = useCallback(async (teamPlayerId: string, mode: "level" | "boost" | "train") => {
+    try {
+      apply(await postAction({ type: "upgradeCard", teamPlayerId, mode }));
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Geliştirme başarısız";
+    }
+  }, [apply]);
+
+  const advanceTutorial = useCallback(async (done?: boolean) => {
+    apply(await postAction({ type: "advanceTutorial", done }));
+  }, [apply]);
+
   const importPlayers = useCallback(async (players: Player[], mode: "merge" | "replace") => {
     apply(await postAction({ type: "importPlayers", players, mode }));
   }, [apply]);
@@ -388,6 +448,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       respondOffer,
       importPlayers,
       claimRewarded,
+      dailyLogin,
+      claimQuest,
+      claimBattle,
+      openPack: openPackFn,
+      upgradeCard,
+      advanceTutorial,
       watching,
       setWatching,
     }),
@@ -415,6 +481,12 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       respondOffer,
       importPlayers,
       claimRewarded,
+      dailyLogin,
+      claimQuest,
+      claimBattle,
+      openPackFn,
+      upgradeCard,
+      advanceTutorial,
       watching,
     ],
   );
@@ -423,6 +495,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     <GameContext.Provider value={value}>
       <RegisterPwa />
       {children}
+      {/* tutorial mounted from client layout pages via HomeMenu */}
     </GameContext.Provider>
   );
 }

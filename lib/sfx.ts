@@ -129,14 +129,45 @@ export function playFanfare() {
   shoutChampion();
 }
 
+export function playSkill() {
+  tone(520, 0.1, "triangle", 0.04);
+  tone(780, 0.14, "sine", 0.035, 0.08);
+  noise(0.12, 0.02);
+}
+
+export function playSetPiece() {
+  tone(240, 0.16, "sine", 0.05);
+  tone(360, 0.2, "triangle", 0.04, 0.1);
+}
+
+export function playPackReveal() {
+  tone(440, 0.12, "sine", 0.05);
+  tone(660, 0.18, "triangle", 0.055, 0.1);
+  tone(880, 0.28, "sine", 0.06, 0.22);
+  noise(0.35, 0.03, 0.15);
+}
+
 export function playByEvent(type: string) {
   if (type === "goal") {
     playGoalCrowd();
     shoutGoal();
     return;
   }
-  if (type === "shot" || type === "chance") {
+  if (type === "shot" || type === "chance" || type === "penalty") {
     playKick();
+    return;
+  }
+  if (type === "skill") {
+    playSkill();
+    return;
+  }
+  if (type === "corner" || type === "freekick") {
+    playSetPiece();
+    return;
+  }
+  if (type === "tackle") {
+    noise(0.1, 0.05);
+    tone(110, 0.1, "square", 0.03);
     return;
   }
   if (type === "whistle" || type === "kickoff") playWhistle();

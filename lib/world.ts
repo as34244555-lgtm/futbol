@@ -9,6 +9,7 @@ import {
   playsPosition,
 } from "./catalog";
 import { applyTrainingRecovery, hydrateWorld, isInjured, pushNews, rollInjuries, weeklyWage } from "./career";
+import { applyMatchRewards } from "./meta";
 import { marketValue } from "./ratings";
 import { FORMATION_SLOTS } from "./formations";
 import { normalizePosition } from "./positions";
@@ -57,6 +58,15 @@ function emptyTeam(
     goals_against: 0,
     titles: 0,
     stadium: { sky: "night", weather: "clear", crowd: "full", camera: "broadcast" },
+    gems: userId ? 80 : 0,
+    rankedPoints: 1000,
+    rankedDivision: 3,
+    tutorialStep: 0,
+    tutorialDone: false,
+    battleXp: 0,
+    battleClaimed: [],
+    questDay: undefined,
+    quests: undefined,
   };
 }
 
@@ -471,12 +481,14 @@ export function applyMatchResult(
     const draw = gf === ga;
     const lost = gf < ga;
     if (opts?.cup) {
-      return {
+      let next: Team = {
         ...t,
         coins: t.user_id ? t.coins + (won ? 400 : draw ? 160 : 60) : t.coins,
       };
+      if (t.user_id) next = applyMatchRewards(next, won ? "win" : draw ? "draw" : "loss");
+      return next;
     }
-    return {
+    let next: Team = {
       ...t,
       points: t.points + (won ? 3 : draw ? 1 : 0),
       played: t.played + 1,
@@ -487,6 +499,8 @@ export function applyMatchResult(
       goals_against: t.goals_against + ga,
       coins: t.user_id ? t.coins + reward(won, draw, gf) + (home ? 80 : 0) : t.coins,
     };
+    if (t.user_id) next = applyMatchRewards(next, won ? "win" : draw ? "draw" : "loss");
+    return next;
   };
 
   const drain = (tp: TeamPlayer): TeamPlayer => {

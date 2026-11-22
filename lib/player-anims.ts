@@ -6,12 +6,15 @@ export const DRIBBLE_CLIPS = [
   "dribble_elastico",
   "dribble_sprint",
   "dribble_feint",
+  "dribble_rainbow",
+  "dribble_roulette",
 ] as const;
-
-export const PASS_CLIPS = ["pass_ground", "pass_through", "pass_cross"] as const;
-export const SHOT_CLIPS = ["shot_drive", "shot_chip"] as const;
-export const TACKLE_CLIPS = ["tackle_slide"] as const;
+export const PASS_CLIPS = ["pass_ground", "pass_through", "pass_cross", "pass_lob"] as const;
+export const SHOT_CLIPS = ["shot_drive", "shot_chip", "shot_header", "shot_volley"] as const;
+export const TACKLE_CLIPS = ["tackle_slide", "tackle_stand"] as const;
 export const SAVE_CLIPS = ["save_dive_l", "save_dive_r", "save_high", "save_low", "save_catch"] as const;
+export const SETPIECE_CLIPS = ["set_corner", "set_freekick", "set_throw", "set_penalty"] as const;
+export const CELEBRATION_CLIPS = ["cele_arms", "cele_slide", "cele_point"] as const;
 
 export type AnimClip =
   | "idle"
@@ -20,14 +23,21 @@ export type AnimClip =
   | (typeof PASS_CLIPS)[number]
   | (typeof SHOT_CLIPS)[number]
   | (typeof TACKLE_CLIPS)[number]
-  | (typeof SAVE_CLIPS)[number];
+  | (typeof SAVE_CLIPS)[number]
+  | (typeof SETPIECE_CLIPS)[number]
+  | (typeof CELEBRATION_CLIPS)[number];
 
-export function pickClip(kind: "dribble" | "pass" | "shot" | "tackle" | "save", seed: string): AnimClip {
+export function pickClip(
+  kind: "dribble" | "pass" | "shot" | "tackle" | "save" | "set" | "cele",
+  seed: string,
+): AnimClip {
   const h = hash32(seed);
   if (kind === "dribble") return DRIBBLE_CLIPS[h % DRIBBLE_CLIPS.length]!;
   if (kind === "pass") return PASS_CLIPS[h % PASS_CLIPS.length]!;
   if (kind === "shot") return SHOT_CLIPS[h % SHOT_CLIPS.length]!;
-  if (kind === "tackle") return TACKLE_CLIPS[0]!;
+  if (kind === "tackle") return TACKLE_CLIPS[h % TACKLE_CLIPS.length]!;
+  if (kind === "set") return SETPIECE_CLIPS[h % SETPIECE_CLIPS.length]!;
+  if (kind === "cele") return CELEBRATION_CLIPS[h % CELEBRATION_CLIPS.length]!;
   return SAVE_CLIPS[h % SAVE_CLIPS.length]!;
 }
 
@@ -42,11 +52,15 @@ export function clipForEvent(opts: {
 }): AnimClip {
   const seed = `${opts.playerId}:${opts.minute}:${opts.eventType}`;
   const shotty = opts.eventType === "goal" || opts.eventType === "shot" || opts.eventType === "chance";
+  if (opts.eventType === "goal" && opts.involved) return pickClip("cele", seed);
+  if (opts.eventType === "corner" || opts.eventType === "freekick" || opts.eventType === "penalty") {
+    return pickClip("set", seed + opts.eventType);
+  }
   if (opts.gk && shotty && !opts.involved) return pickClip("save", seed);
   if (opts.involved) {
     if (opts.eventType === "goal" || opts.eventType === "shot") return pickClip("shot", seed);
     if (opts.eventType === "pass") return pickClip("pass", seed);
-    if (opts.eventType === "card") return pickClip("tackle", seed);
+    if (opts.eventType === "card" || opts.eventType === "foul") return pickClip("tackle", seed);
     if (shotty) return pickClip("dribble", seed);
     return pickClip("dribble", seed);
   }
@@ -155,6 +169,26 @@ export function poseForClip(clip: AnimClip, t: number): Pose {
       armR: { z: -0.15 },
     };
   }
+  if (clip === "dribble_rainbow") {
+    return {
+      hips: { y: 0.35 * k },
+      spine: { x: -0.2 * k },
+      thighR: { x: 1.4 * k, z: 0.2 },
+      shinR: { x: 0.9 * k },
+      armL: { z: 0.7 * k },
+      armR: { z: -0.7 * k },
+    };
+  }
+  if (clip === "dribble_roulette") {
+    return {
+      hips: { y: 0.55 * s },
+      spine: { y: 1.2 * s },
+      thighL: { x: 0.35, z: 0.45 * s },
+      thighR: { x: -0.25, z: -0.45 * s },
+      armL: { x: 0.6, z: 0.8 * s },
+      armR: { x: 0.6, z: -0.8 * s },
+    };
+  }
   if (clip === "pass_ground") {
     return {
       spine: { y: -0.35 * k, x: 0.12 },
@@ -182,6 +216,14 @@ export function poseForClip(clip: AnimClip, t: number): Pose {
       shinR: { x: 0.5 },
     };
   }
+  if (clip === "pass_lob") {
+    return {
+      spine: { x: -0.15 * k },
+      thighR: { x: 0.95 * k },
+      shinR: { x: 0.35 * k },
+      armR: { x: -0.6 + 1.4 * k, z: -0.2 },
+    };
+  }
   if (clip === "shot_drive") {
     const plant = u < 0.35 ? u / 0.35 : 1;
     const swing = u < 0.35 ? 0 : Math.sin(((u - 0.35) / 0.65) * Math.PI);
@@ -204,6 +246,25 @@ export function poseForClip(clip: AnimClip, t: number): Pose {
       armR: { x: 0.5 * k },
     };
   }
+  if (clip === "shot_header") {
+    return {
+      spine: { x: 0.55 * k },
+      hips: { y: 0.45 * k },
+      armL: { x: -0.8 * k, z: 0.5 },
+      armR: { x: -0.8 * k, z: -0.5 },
+      thighL: { x: 0.7 * k },
+      thighR: { x: 0.55 * k },
+    };
+  }
+  if (clip === "shot_volley") {
+    return {
+      spine: { x: 0.35 * k, z: 0.2 * k },
+      thighR: { x: 1.25 * k, z: -0.35 * k },
+      shinR: { x: 0.4 },
+      armL: { z: 0.7 },
+      armR: { x: 0.6 * k },
+    };
+  }
   if (clip === "tackle_slide") {
     return {
       root: { z: -1.05 * k, x: 0.15 * k },
@@ -213,6 +274,68 @@ export function poseForClip(clip: AnimClip, t: number): Pose {
       armL: { x: 0.8, z: 0.6 },
       armR: { x: 0.4, z: -0.5 },
       spine: { x: 0.4 },
+    };
+  }
+  if (clip === "tackle_stand") {
+    return {
+      spine: { y: 0.35 * k },
+      thighL: { x: 0.85 * k },
+      thighR: { x: -0.2 },
+      armL: { x: 0.9 * k, z: 0.4 },
+      armR: { x: -0.3, z: -0.5 },
+    };
+  }
+  if (clip === "set_corner") {
+    return {
+      spine: { y: -0.55 * k, x: 0.1 },
+      armR: { x: -0.5 + 1.5 * k, z: -0.85 * k },
+      thighR: { x: 0.7 * k },
+      shinR: { x: 0.35 },
+    };
+  }
+  if (clip === "set_freekick") {
+    return {
+      spine: { x: 0.25 * k, y: -0.2 },
+      thighR: { x: lerp(1.1, -1.2, k) },
+      shinR: { x: 0.5 },
+      armL: { z: 0.55 },
+      armR: { x: 0.4 },
+    };
+  }
+  if (clip === "set_throw") {
+    return {
+      armL: { x: -2.1 * k, z: 0.2 },
+      armR: { x: -2.1 * k, z: -0.2 },
+      spine: { x: -0.35 * k },
+      hips: { y: 0.15 * k },
+    };
+  }
+  if (clip === "set_penalty") {
+    return mix(poseForClip("shot_drive", t), { spine: { x: 0.15 }, armL: { z: 0.25 } }, 0.35);
+  }
+  if (clip === "cele_arms") {
+    return {
+      armL: { x: -2.4 * k, z: 0.35 },
+      armR: { x: -2.4 * k, z: -0.35 },
+      spine: { x: -0.2 * k },
+      hips: { y: 0.2 * s },
+    };
+  }
+  if (clip === "cele_slide") {
+    return {
+      root: { y: -0.6 * k, z: 0.4 * k },
+      thighL: { x: 0.9 * k },
+      thighR: { x: 0.4 },
+      armL: { x: -1.2 * k, z: 0.6 },
+      armR: { x: -0.8 * k, z: -0.5 },
+    };
+  }
+  if (clip === "cele_point") {
+    return {
+      armR: { x: -1.8 * k, z: -0.2 },
+      forearmR: { x: 0.2 },
+      spine: { y: -0.25 * k },
+      armL: { z: 0.35 },
     };
   }
   if (clip === "save_dive_l") {
@@ -254,7 +377,6 @@ export function poseForClip(clip: AnimClip, t: number): Pose {
       armR: { x: 0.8 * k, z: -0.4 },
     };
   }
-  // save_catch
   return {
     armL: { x: -0.9 * k, z: 0.35 },
     armR: { x: -0.9 * k, z: -0.35 },

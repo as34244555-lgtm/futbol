@@ -3,13 +3,15 @@
 import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
 import { FORMATION_SLOTS } from "@/lib/formations";
 import { modelSlotOf } from "@/lib/player-photo";
-import { createPitch, tickPitch, type PitchBall, type PitchState, type RemotePitch, type Side, type Stick } from "@/lib/pitch-sim";
+import { createPitch, tickPitch, type PitchBall, type PitchState, type PitchTactics, type RemotePitch, type Side, type Stick } from "@/lib/pitch-sim";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import type { AnimClip } from "@/lib/player-anims";
 import { applyStadiumLights, cameraFor, createStadium, pitchToWorld } from "@/lib/three-stadium";
 import { normalizeStadium } from "@/lib/stadium";
+import { playByEvent } from "@/lib/sfx";
+import { speakComment } from "@/lib/commentary";
 import type { Player, Team, TeamPlayer } from "@/lib/types";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 type Roster = TeamPlayer & { player: Player };
@@ -44,7 +46,17 @@ export function LiveMatch({
   const figures = useRef<Map<string, THREE.Group>>(new Map());
   const ballMesh = useRef<THREE.Mesh | null>(null);
   const cam = useRef<THREE.PerspectiveCamera | null>(null);
-  const stick = useRef<Stick>({ x: 0, y: 0, sprint: false, pass: false, through: false, shoot: false, tackle: false });
+  const stick = useRef<Stick>({
+    x: 0,
+    y: 0,
+    sprint: false,
+    pass: false,
+    through: false,
+    shoot: false,
+    tackle: false,
+    skill: false,
+    setpiece: false,
+  });
   const remote = useRef<RemotePitch>(null);
   const ended = useRef(false);
   const syncing = useRef(false);
@@ -58,12 +70,23 @@ export function LiveMatch({
     energy: 1,
     dots: [] as { x: number; y: number; mine: boolean }[],
     ball: { x: 50, y: 50 },
+    phase: "play",
+    comment: "",
   });
   const energy = useRef(1);
   const hudAcc = useRef(0);
   const [knob, setKnob] = useState({ x: 0, y: 0 });
   const joy = useRef({ id: -1, ox: 0, oy: 0 });
   const clock = useRef(0);
+  const [line, setLine] = useState(0);
+  const [press, setPress] = useState(1);
+  const [benchOpen, setBenchOpen] = useState(false);
+  const tactics = useRef<PitchTactics>({ line: 0, press: 1 });
+  const homeAll = useMemo(() => (control === "home" ? homeStarters : awayStarters), [awayStarters, control, homeStarters]);
+  const [onPitchIds, setOnPitchIds] = useState<string[]>(() => homeAll.slice(0, 11).map((r) => r.id));
+  useEffect(() => {
+    tactics.current = { line, press };
+  }, [line, press]);
 
   const build = useCallback(
     (scene: THREE.Scene, camera: THREE.PerspectiveCamera, renderer: THREE.WebGLRenderer) => {
@@ -133,12 +156,23 @@ export function LiveMatch({
       if (energy.current <= 0) stick.current.sprint = false;
       clock.current += dt;
       const moving = Math.hypot(stick.current.x, stick.current.y) > 0.12;
-      const gesture: AnimClip = stick.current.shoot
-        ? "shot_drive"
-        : stick.current.pass || stick.current.through
-          ? "pass_ground"
-          : "idle";
-      const out = tickPitch(state, dt, control, stick.current, remote.current);
+      const gesture: AnimClip = stick.current.skill
+        ? "dribble_rainbow"
+        : stick.current.setpiece
+          ? "set_freekick"
+          : stick.current.shoot
+            ? "shot_drive"
+            : stick.current.pass || stick.current.through
+              ? "pass_ground"
+              : stick.current.tackle
+                ? "tackle_stand"
+                : "idle";
+      const out = tickPitch(state, dt, control, stick.current, remote.current, Date.now(), tactics.current);
+      if (out.event) {
+        playByEvent(out.event);
+        const line = speakComment(out.event) ?? "";
+        if (line) setHud((h) => ({ ...h, comment: line }));
+      }
       for (const p of state.players) {
         const fig = figures.current.get(p.id);
         if (!fig) continue;
@@ -146,14 +180,16 @@ export function LiveMatch({
         fig.position.x = w.x;
         fig.position.z = w.z;
         fig.position.y = 0;
-        const atk = p.side === "home" ? 1 : -1;
-        fig.rotation.y = atk > 0 ? 0 : Math.PI;
+        const atkDir = p.side === "home" ? 1 : -1;
+        fig.rotation.y = atkDir > 0 ? 0 : Math.PI;
         const clip: AnimClip =
           state.ball.holder === p.id && gesture !== "idle"
             ? gesture
-            : p.side === control && moving
-              ? "run"
-              : "idle";
+            : (state.lastClip as AnimClip) && state.ball.holder === p.id
+              ? ((state.lastClip as AnimClip) ?? "idle")
+              : p.side === control && moving
+                ? "run"
+                : "idle";
         tickPlayerFigure(fig, clock.current, clip, true);
       }
       if (ballMesh.current) {
@@ -213,15 +249,17 @@ export function LiveMatch({
         state.score[1] !== hud.score[1]
       ) {
         hudAcc.current = 0;
-        setHud({
+        setHud((h) => ({
+          ...h,
           minute: Math.floor(state.minute),
           score: [state.score[0], state.score[1]],
           peer: peer.current,
           full: false,
           energy: energy.current,
           ball: { x: state.ball.x, y: state.ball.y },
+          phase: state.phase,
           dots: state.players.map((p) => ({ x: p.x, y: p.y, mine: p.side === control })),
-        });
+        }));
       }
       if (out.done && !ended.current) {
         ended.current = true;
@@ -264,8 +302,28 @@ export function LiveMatch({
     setKnob({ x: 0, y: 0 });
   };
 
-  const tap = (key: "pass" | "through" | "shoot" | "tackle") => {
+  const tap = (key: "pass" | "through" | "shoot" | "tackle" | "skill" | "setpiece") => {
     stick.current[key] = true;
+  };
+
+  const subIn = (benchId: string) => {
+    const state = stateRef.current;
+    if (!state) return;
+    const mine = state.players.filter((p) => p.side === control && !p.gk);
+    const out = mine.sort((a, b) => a.pace - b.pace)[0];
+    if (!out) return;
+    const oldId = out.id;
+    const fig = figures.current.get(oldId);
+    const row = homeAll.find((r) => r.id === benchId);
+    if (!row || !fig || onPitchIds.includes(benchId)) return;
+    out.id = row.id;
+    out.pace = row.player.pace ?? row.player.overall;
+    out.finish = row.player.finishing ?? row.player.attack ?? row.player.overall;
+    figures.current.delete(oldId);
+    figures.current.set(row.id, fig);
+    setOnPitchIds((ids) => ids.map((id) => (id === oldId ? row.id : id)));
+    setBenchOpen(false);
+    setHud((h) => ({ ...h, comment: `Değişiklik: ${row.player.name}` }));
   };
 
   return (
@@ -288,8 +346,39 @@ export function LiveMatch({
         Çık
       </button>
       <p className="pointer-events-none absolute right-3 top-4 text-[10px] uppercase tracking-[0.18em] text-[#e7c56a]">
-        {hud.full ? "Maç bitti" : hud.peer ? "Rakip bağlı" : "Canlı"}
+        {hud.full ? "Maç bitti" : hud.peer ? "Rakip bağlı" : hud.phase !== "play" ? hud.phase : "Canlı"}
       </p>
+      {hud.comment && (
+        <p className="pointer-events-none absolute inset-x-0 top-16 mx-auto max-w-lg rounded-full bg-black/55 px-4 py-1 text-center text-xs text-[#f8e7a8]">
+          {hud.comment}
+        </p>
+      )}
+      <div className="absolute left-3 top-14 flex flex-col gap-1">
+        <button type="button" className="rounded bg-black/55 px-2 py-1 text-[10px] text-white" onClick={() => setLine((n) => Math.max(-1, n - 0.25))}>
+          Savun −
+        </button>
+        <button type="button" className="rounded bg-black/55 px-2 py-1 text-[10px] text-white" onClick={() => setLine((n) => Math.min(1, n + 0.25))}>
+          Hücum +
+        </button>
+        <button type="button" className="rounded bg-black/55 px-2 py-1 text-[10px] text-white" onClick={() => setPress((n) => (n > 1.1 ? 0.85 : 1.25))}>
+          Pres {press > 1.1 ? "AÇ" : "KAPALI"}
+        </button>
+        <button type="button" className="rounded bg-black/55 px-2 py-1 text-[10px] text-white" onClick={() => setBenchOpen((v) => !v)}>
+          Değişiklik
+        </button>
+      </div>
+      {benchOpen && (
+        <div className="absolute left-3 top-44 max-h-40 w-44 overflow-auto rounded-xl border border-white/15 bg-black/80 p-2 text-xs text-white">
+          {homeAll
+            .filter((r) => !onPitchIds.includes(r.id))
+            .slice(0, 7)
+            .map((r) => (
+              <button key={r.id} type="button" className="block w-full rounded px-2 py-1 text-left hover:bg-white/10" onClick={() => subIn(r.id)}>
+                {r.player.name}
+              </button>
+            ))}
+        </div>
+      )}
 
       <svg viewBox="0 0 68 105" className="pointer-events-none absolute bottom-24 left-1/2 h-28 w-16 -translate-x-1/2 rounded border border-white/20 bg-black/45">
         <rect x="1" y="1" width="66" height="103" fill="none" stroke="white" strokeOpacity="0.35" />
@@ -329,9 +418,11 @@ export function LiveMatch({
         </div>
       </div>
 
-      <div className="absolute bottom-8 right-4 h-52 w-52">
-        <Pad className="absolute right-2 top-0 h-14 w-14 bg-emerald-400 text-black" label="ARA" onClick={() => tap("through")} />
-        <Pad className="absolute left-2 top-10 h-14 w-14 bg-white/15 text-white" label="MÜD" onClick={() => tap("tackle")} />
+      <div className="absolute bottom-8 right-4 h-56 w-56">
+        <Pad className="absolute right-2 top-0 h-12 w-12 bg-fuchsia-400 text-black" label="SKILL" onClick={() => tap("skill")} />
+        <Pad className="absolute right-16 top-0 h-12 w-12 bg-amber-300 text-black" label="DURAN" onClick={() => tap("setpiece")} />
+        <Pad className="absolute right-2 top-14 h-14 w-14 bg-emerald-400 text-black" label="ARA" onClick={() => tap("through")} />
+        <Pad className="absolute left-2 top-14 h-14 w-14 bg-white/15 text-white" label="MÜD" onClick={() => tap("tackle")} />
         <Pad className="absolute bottom-10 left-0 h-[4.5rem] w-[4.5rem] bg-sky-500 text-white" label="PAS" onClick={() => tap("pass")} />
         <Pad className="absolute bottom-0 right-0 h-20 w-20 bg-orange-500 text-black" label="ŞUT" onClick={() => tap("shoot")} />
         <button

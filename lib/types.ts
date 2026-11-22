@@ -123,6 +123,24 @@ export type Team = {
   readyWeek?: number;
   /** Maç stadyumu: gökyüzü, hava, tribün, kamera. */
   stadium?: StadiumPrefs;
+  /** Premium soft currency (gem). */
+  gems?: number;
+  rankedPoints?: number;
+  rankedDivision?: number;
+  dailyLoginAt?: string;
+  questDay?: string;
+  quests?: Array<{
+    id: string;
+    progress: number;
+    target: number;
+    claimed: boolean;
+    rewardCoins: number;
+    rewardGems: number;
+  }>;
+  tutorialStep?: number;
+  tutorialDone?: boolean;
+  battleXp?: number;
+  battleClaimed?: number[];
 };
 
 export type Player = {
@@ -167,6 +185,11 @@ export type TeamPlayer = {
   contractYears?: number;
   injuryWeeks?: number;
   injury?: string;
+  /** Kart seviyesi (1–20). */
+  level?: number;
+  /** Anlık boost (+0–10 OVR). */
+  boost?: number;
+  trainedAt?: string;
 };
 
 export type TransferListing = {

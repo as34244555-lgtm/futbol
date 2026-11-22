@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { TutorialOverlay } from "@/components/TutorialOverlay";
 import { useGame } from "@/lib/game-context";
 import { useI18n } from "@/lib/i18n";
 import { flagUrl } from "@/lib/nations";
@@ -64,10 +65,10 @@ export function HomeMenu() {
 
   const actions = [
     { href: "/match", label: t("menu.match"), color: "bg-[#1f6dff]", icon: <BallIcon />, alert: false },
-    { href: "/match", label: t("menu.shoot"), color: "bg-[#ff7a12]", icon: <GoalIcon />, alert: !next },
-    { href: "/tactics", label: t("menu.plan"), color: "bg-[#5eae2e]", icon: <PlanIcon />, alert: !userTeam?.training },
+    { href: "/packs", label: "Paket", color: "bg-[#ff7a12]", icon: <GoalIcon />, alert: false },
+    { href: "/events", label: "Görev", color: "bg-[#5eae2e]", icon: <PlanIcon />, alert: !userTeam?.dailyLoginAt },
     { href: "/squad", label: t("menu.team"), color: "bg-[#e23b4a]", icon: <ShieldIcon />, alert: false },
-    { href: "/transfer", label: t("menu.contract"), color: "bg-[#9b4dff]", icon: <SignIcon />, alert: false },
+    { href: "/ranked", label: "Ranked", color: "bg-[#9b4dff]", icon: <SignIcon />, alert: false },
   ];
 
   const current = slides[slide];
@@ -87,6 +88,9 @@ export function HomeMenu() {
           <span className="flex items-center gap-1 text-sm font-semibold text-white drop-shadow">
             <Image src="/a-studio-icon.png" alt="Abdullah Studio" width={22} height={22} className="h-5 w-5 rounded-sm object-contain" />
             {formatCoins(userTeam?.coins ?? 0)}
+          </span>
+          <span className="flex items-center gap-1 text-sm font-semibold text-cyan-300 drop-shadow">
+            ◆ {formatCoins(userTeam?.gems ?? 0)}
           </span>
           <div className="ml-auto flex items-center gap-3">
             <button type="button" aria-label={t("settings")} onClick={() => setSettings(true)} className="text-[#7eb6ff] drop-shadow">
@@ -238,6 +242,7 @@ export function HomeMenu() {
           </div>
         </div>
       )}
+      <TutorialOverlay />
     </div>
   );
 }

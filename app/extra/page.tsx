@@ -9,6 +9,10 @@ export default function ExtraPage() {
   const { t } = useI18n();
   const tiles = [
     { href: "/league", icon: Trophy, title: t("nav.league"), text: t("extra.league") },
+    { href: "/packs", icon: Trophy, title: "Paketler", text: "Gacha · coin/gem paket açılışı" },
+    { href: "/events", icon: Inbox, title: "Görevler", text: "Günlük login · battle pass" },
+    { href: "/ranked", icon: Shield, title: "Ranked", text: "Division · RP tablosu" },
+    { href: "/friendly", icon: Flag, title: "Friendly", text: "vs CPU / dostluk lobisi" },
     { href: "/tactics", icon: Shield, title: t("nav.tactics"), text: t("extra.tactics") },
     { href: "/inbox", icon: Inbox, title: t("nav.inbox"), text: t("extra.inbox") },
     { href: "/gizlilik", icon: Flag, title: t("privacy"), text: t("extra.legal") },

@@ -25,7 +25,13 @@ type Body =
   | { type: "respondOffer"; offerId: string; accept: boolean }
   | { type: "setClub"; kit_primary?: string; kit_secondary?: string; kit_style?: string; stadium?: StadiumPrefs }
   | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" }
-  | { type: "claimRewarded" };
+  | { type: "claimRewarded" }
+  | { type: "dailyLogin" }
+  | { type: "claimQuest"; questId: string }
+  | { type: "claimBattle"; tier: number }
+  | { type: "openPack"; pay: "coins" | "gems" }
+  | { type: "upgradeCard"; teamPlayerId: string; mode: "level" | "boost" | "train" }
+  | { type: "advanceTutorial"; done?: boolean };
 
 export async function POST(req: Request) {
   const session = await getSession();
@@ -81,6 +87,18 @@ export async function POST(req: Request) {
           );
         case "claimRewarded":
           return NextResponse.json(await actions.claimRewarded(session));
+        case "dailyLogin":
+          return NextResponse.json(await actions.dailyLogin(session));
+        case "claimQuest":
+          return NextResponse.json(await actions.claimQuestReward(session, body.questId));
+        case "claimBattle":
+          return NextResponse.json(await actions.claimBattle(session, body.tier));
+        case "openPack":
+          return NextResponse.json(await actions.openPlayerPack(session, body.pay));
+        case "upgradeCard":
+          return NextResponse.json(await actions.upgradeCard(session, body.teamPlayerId, body.mode));
+        case "advanceTutorial":
+          return NextResponse.json(await actions.advanceTutorial(session, body.done));
         case "importPlayers":
           return NextResponse.json({ error: "Kapalı" }, { status: 404 });
         default:

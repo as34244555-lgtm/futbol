@@ -176,8 +176,22 @@ export function hydrateWorld(world: GameWorld): GameWorld {
     training: t.training ?? "FITNESS",
     kit_style: t.kit_style ?? "solid",
     stadium: normalizeStadium(t.stadium),
+    gems: t.gems ?? (t.user_id ? 80 : 0),
+    rankedPoints: t.rankedPoints ?? 1000,
+    rankedDivision: t.rankedDivision ?? 3,
+    quests: t.quests,
+    questDay: t.questDay,
+    tutorialStep: t.tutorialStep ?? 0,
+    tutorialDone: Boolean(t.tutorialDone),
+    battleXp: t.battleXp ?? 0,
+    battleClaimed: t.battleClaimed ?? [],
   }));
-  return { ...world, players, teamPlayers, teams, news: world.news ?? [], offers: world.offers ?? [] };
+  const teamPlayersHydrated = teamPlayers.map((tp) => ({
+    ...tp,
+    level: tp.level ?? 1,
+    boost: tp.boost ?? 0,
+  }));
+  return { ...world, players, teamPlayers: teamPlayersHydrated, teams, news: world.news ?? [], offers: world.offers ?? [] };
 }
 
 const INJURY_NAME = ["Darbe", "Burkulma", "Kas yırtığı"] as const;

@@ -25,6 +25,17 @@ import { specialSkills } from "../lib/card-rarity";
 import { translate } from "../lib/i18n";
 import { createPitch, tickPitch, type Stick } from "../lib/pitch-sim";
 import { pushLive } from "../lib/server/live-store";
+import {
+  CELEBRATION_CLIPS,
+  SETPIECE_CLIPS,
+} from "../lib/player-anims";
+import {
+  cardLiveOverall,
+  claimDailyLogin,
+  divisionFromPoints,
+  openPack,
+  squadChemistry,
+} from "../lib/meta";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -81,7 +92,7 @@ const zaid = roster.find((p) => p.name === "Muhammed Zaid");
 assert(Boolean(zaid), "Muhammed Zaid is on the special roster");
 assert(zaid!.tier === "special" && zaid!.position === "FV", "Zaid is a special CF");
 assert(zaid!.nationality_code === "sa", "Zaid is Saudi Arabian");
-assert(zaid!.portrait.includes("muhammed-zaid"), "Zaid has his portrait");
+assert(Boolean(zaid!.portrait?.includes("muhammed-zaid")), "Zaid has his portrait");
 assert(cardRarity(standards[0]!) === "bronze", "standard card stays the plain frame");
 assert(cardRarity(keepers[0]!) !== "bronze", "goalkeeper card is special");
 assert(world0.players.some((p) => p.position === "KL"), "catalog includes a goalkeeper");
@@ -102,7 +113,7 @@ assert(
 assert(normalizeStadium(joined.team.stadium).camera === "broadcast", "default stadium camera");
 assert(normalizeStadium({}).pitch === "lush" && normalizeStadium({}).roof === "open", "stadium extras default");
 assert(hydrateWorld(joined.world).teams[0]?.stadium?.sky, "hydrate fills stadium");
-assert(DRIBBLE_CLIPS.length === 5 && PASS_CLIPS.length === 3 && SHOT_CLIPS.length === 2 && TACKLE_CLIPS.length === 1 && SAVE_CLIPS.length === 5, "animation set sizes");
+assert(DRIBBLE_CLIPS.length >= 5 && PASS_CLIPS.length >= 3 && SHOT_CLIPS.length >= 2 && TACKLE_CLIPS.length >= 1 && SAVE_CLIPS.length === 5, "animation set sizes");
 assert(clipForEvent({ eventType: "shot", minute: 12, playerId: "gk1", gk: true, involved: false, attacking: false }).startsWith("save_"), "gk save clip");
 assert(specialSkills(makeAbdullah()).includes("Big Time"), "legend skill chip");
 assert(translate("en", "game") === "e-futbol", "en game name");
@@ -359,6 +370,16 @@ void (async () => {
   assert(both.away?.players.length === 11, "away posts eleven positions");
   assert(both.score[0] === 1, "ball owner keeps the score");
   assert(live.home?.teamId === "t1", "home team owns the side");
+
+  assert(SETPIECE_CLIPS.length >= 4 && CELEBRATION_CLIPS.length >= 3, "set piece and celebration clips exist");
+  const metaTeam = claimDailyLogin({ ...joined.team, gems: 80, quests: undefined, questDay: undefined, dailyLoginAt: undefined });
+  assert((metaTeam.gems ?? 0) >= 85, "daily login grants gems");
+  const chem = squadChemistry(rosterOf(joined.world, joined.team.id).slice(0, 11).map((r) => ({ ...r, is_starter: true })), "tr");
+  assert(chem.score >= 0 && chem.score <= 100, "chemistry score in range");
+  const pack = openPack(joined.world, { ...joined.team, coins: 20000, gems: 100 }, "coins");
+  assert(pack.pulls.length === 3, "pack yields three cards");
+  assert(cardLiveOverall(pack.pulls[0]!.player, { level: 5, boost: 2 }) >= pack.pulls[0]!.player.overall, "level boosts live ovr");
+  assert(divisionFromPoints(1500) >= 5, "division ladder maps points");
 
   console.log(
     JSON.stringify({

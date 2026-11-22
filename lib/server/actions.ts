@@ -19,6 +19,16 @@ import { botManagerName } from "@/lib/catalog";
 import { isPoolListingId, playerFromPoolListing } from "@/lib/market-pool";
 import { autoSelectStarters, createUserTeam, leagueTeams, type ClubIdentity } from "@/lib/world";
 import { listingId, rowId, uid } from "@/lib/utils";
+import {
+  boostCard,
+  claimBattleTier,
+  claimDailyLogin,
+  claimQuest,
+  levelUpCard,
+  openPack,
+  trainCard,
+  type QuestId,
+} from "@/lib/meta";
 
 export class ActionError extends Error {
   constructor(message: string) {
@@ -826,4 +836,94 @@ export async function getSnapshot(userId: string | null) {
     };
   }
   return snapshot(doc, userId);
+}
+
+export async function dailyLogin(session: SessionHint) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const updated = claimDailyLogin(team);
+    const world = { ...doc.world, teams: doc.world.teams.map((t) => (t.id === team.id ? updated : t)) };
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
+}
+
+export async function claimQuestReward(session: SessionHint, questId: string) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const updated = claimQuest(team, questId as QuestId);
+    const world = { ...doc.world, teams: doc.world.teams.map((t) => (t.id === team.id ? updated : t)) };
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
+}
+
+export async function claimBattle(session: SessionHint, tier: number) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const updated = claimBattleTier(team, tier);
+    const world = { ...doc.world, teams: doc.world.teams.map((t) => (t.id === team.id ? updated : t)) };
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
+}
+
+export async function openPlayerPack(session: SessionHint, pay: "coins" | "gems") {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const opened = openPack(doc.world, team, pay);
+    const world = {
+      ...doc.world,
+      players: opened.worldPlayers,
+      teamPlayers: [...doc.world.teamPlayers, ...opened.newRows],
+      teams: doc.world.teams.map((t) => (t.id === team.id ? opened.team : t)),
+    };
+    const next = { ...doc, world };
+    return {
+      doc: next,
+      result: { snap: snapshot(next, session.sub), pulls: opened.pulls },
+    };
+  });
+}
+
+export async function upgradeCard(
+  session: SessionHint,
+  teamPlayerId: string,
+  mode: "level" | "boost" | "train",
+) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const tp = doc.world.teamPlayers.find((r) => r.id === teamPlayerId && r.team_id === team.id);
+    if (!tp) throw new ActionError("Oyuncu bulunamadı.");
+    const out =
+      mode === "level" ? levelUpCard(tp, team) : mode === "boost" ? boostCard(tp, team) : trainCard(tp, team);
+    const world = {
+      ...doc.world,
+      teams: doc.world.teams.map((t) => (t.id === team.id ? out.team : t)),
+      teamPlayers: doc.world.teamPlayers.map((r) => (r.id === tp.id ? out.tp : r)),
+    };
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
+}
+
+export async function advanceTutorial(session: SessionHint, done?: boolean) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const step = Math.min(5, (team.tutorialStep ?? 0) + 1);
+    const updated = {
+      ...team,
+      tutorialStep: done ? 5 : step,
+      tutorialDone: Boolean(done) || step >= 5,
+    };
+    const world = { ...doc.world, teams: doc.world.teams.map((t) => (t.id === team.id ? updated : t)) };
+    const next = { ...doc, world };
+    return { doc: next, result: snapshot(next, session.sub) };
+  });
 }

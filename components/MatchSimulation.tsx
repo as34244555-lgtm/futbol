@@ -12,6 +12,7 @@ import { normalizeStadium } from "@/lib/stadium";
 import { delayForEvent, delayForHighlight, densifyTimeline, highlightEvents } from "@/lib/match-playback";
 import { cn } from "@/lib/utils";
 import { isMuted, playByEvent, playKick, setMuted, unlockAudio } from "@/lib/sfx";
+import { speakComment } from "@/lib/commentary";
 
 type Roster = TeamPlayer & { player: Player };
 
@@ -87,15 +88,23 @@ export function MatchSimulation({
     const key = `${event.minute}-${event.eventType}-${event.actorId ?? ""}-${event.score.join(":")}`;
     if (lastSfx.current === key) return;
     lastSfx.current = key;
-    if (event.minute === 1) playByEvent("kickoff");
-    else if (event.eventType === "goal") {
+    if (event.minute === 1) {
+      playByEvent("kickoff");
+      speakComment("kickoff");
+    } else if (event.eventType === "goal") {
       playByEvent("goal");
+      speakComment("goal");
       setShake(true);
       setGoalFlash(true);
       window.setTimeout(() => setShake(false), 750);
       window.setTimeout(() => setGoalFlash(false), 3200);
-    } else if (event.eventType === "shot" || event.eventType === "chance") playKick();
-    else if (event.minute === 45 || event.minute === 90) playByEvent("whistle");
+    } else if (event.eventType === "shot" || event.eventType === "chance") {
+      playKick();
+      speakComment("shot");
+    } else if (event.minute === 45 || event.minute === 90) {
+      playByEvent("whistle");
+      speakComment(event.minute === 90 ? "full" : "half");
+    }
   }, [event]);
 
   const commentary = events.slice(Math.max(0, safeIdx - 12), safeIdx + 1).reverse();
