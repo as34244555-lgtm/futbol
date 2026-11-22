@@ -56,7 +56,7 @@ export const SPECIAL_SPECS: RosterSpec[] = [
     nationality: "Suudi Arabistan",
     nationality_code: "sa",
     position: "FV",
-    age: 22,
+    age: 20,
     attack: 99,
     defense: 70,
     tier: "special",
