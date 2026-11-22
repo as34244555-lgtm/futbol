@@ -51,4 +51,15 @@ export const SPECIAL_SPECS: RosterSpec[] = [
   { name: "Idris Ndiaye", nationality: "Senegal", nationality_code: "sn", position: "MOS", age: 26, attack: 92, defense: 90, tier: "special", portrait: "/portraits/special/idris-ndiaye.jpg" },
   { name: "Piero Conti", nationality: "İtalya", nationality_code: "it", position: "SĞB", age: 28, attack: 84, defense: 92, tier: "special", portrait: "/portraits/special/piero-conti.jpg" },
   { name: "Yusuf Acar", nationality: "Türkiye", nationality_code: "tr", position: "KANAT", age: 22, attack: 97, defense: 60, tier: "special", portrait: "/portraits/special/yusuf-acar.jpg" },
+  {
+    name: "Muhammed Zaid",
+    nationality: "Türkiye",
+    nationality_code: "tr",
+    position: "FV",
+    age: 22,
+    attack: 99,
+    defense: 70,
+    tier: "special",
+    portrait: "/portraits/special/muhammed-zaid.jpg",
+  },
 ];

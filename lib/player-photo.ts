@@ -46,6 +46,23 @@ export function photoPortrait(player: {
   return `/portraits/p${String(i).padStart(2, "0")}.webp?v=${PHOTO_VER}`;
 }
 
+/** Named special Drive GLBs under /models/special/. */
+const SPECIAL_MODEL: Record<string, string> = {
+  "muhammed-zaid": "/models/special/muhammed-zaid.glb",
+};
+
+export function modelUrlOf(player: {
+  id: string;
+  portrait?: string;
+  nationality_code?: string;
+  age?: number;
+}): string | undefined {
+  const special = player.portrait?.match(/\/portraits\/special\/([^/?]+)/);
+  if (!special) return undefined;
+  const key = special[1].replace(/\.(jpg|png|webp)$/i, "");
+  return SPECIAL_MODEL[key];
+}
+
 /** 0–23 slot for an optional /models/pXX.glb. Falls back to the shared model. */
 export function modelSlotOf(player: {
   id: string;
@@ -53,6 +70,7 @@ export function modelSlotOf(player: {
   nationality_code?: string;
   age?: number;
 }): number {
+  if (modelUrlOf(player)) return -1;
   const body = photoBody(player);
   const m = body.match(/b(\d{2})/);
   if (m) return Number(m[1]);

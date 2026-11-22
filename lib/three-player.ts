@@ -12,6 +12,7 @@ export type PlayerFigureOpts = {
   portraitUrl?: string;
   bodyUrl?: string;
   modelSlot?: number;
+  modelUrl?: string;
 };
 
 const BONE_NAMES = [
@@ -54,12 +55,16 @@ export function createPlayerFigure(opts: PlayerFigureOpts): THREE.Group {
   shadow.position.y = 0.01;
   root.add(shadow);
 
-  const glb = clonePlayerGlb(opts.modelSlot, {
-    kit: opts.kit,
-    kitSecondary: opts.kitSecondary,
-    kitStyle: opts.kitStyle,
-    gk: opts.gk,
-  });
+  const glb = clonePlayerGlb(
+    opts.modelSlot,
+    {
+      kit: opts.kit,
+      kitSecondary: opts.kitSecondary,
+      kitStyle: opts.kitStyle,
+      gk: opts.gk,
+    },
+    opts.modelUrl,
+  );
   glb.name = "glbBody";
   root.add(glb);
 

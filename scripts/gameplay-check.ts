@@ -77,6 +77,10 @@ assert(standards.length === 24, `expected 24 standard players, got ${standards.l
 assert(standards.every((p) => p.position !== "KL"), "the 24 standard players are outfield");
 assert(new Set(standards.map((p) => p.portrait)).size === 24, "each standard player has their own portrait");
 assert(keepers.length >= 2, "special goalkeepers exist outside the 24");
+const zaid = roster.find((p) => p.name === "Muhammed Zaid");
+assert(Boolean(zaid), "Muhammed Zaid is on the special roster");
+assert(zaid!.tier === "special" && zaid!.position === "FV", "Zaid is a special CF");
+assert(zaid!.portrait.includes("muhammed-zaid"), "Zaid has his portrait");
 assert(cardRarity(standards[0]!) === "bronze", "standard card stays the plain frame");
 assert(cardRarity(keepers[0]!) !== "bronze", "goalkeeper card is special");
 assert(world0.players.some((p) => p.position === "KL"), "catalog includes a goalkeeper");

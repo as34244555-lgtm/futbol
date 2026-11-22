@@ -1,7 +1,7 @@
 "use client";
 
 import { ThreeCanvas } from "@/components/scene/ThreeCanvas";
-import { modelSlotOf, photoBody } from "@/lib/player-photo";
+import { modelSlotOf, modelUrlOf, photoBody } from "@/lib/player-photo";
 import { createPlayerFigure, tickPlayerFigure } from "@/lib/three-player";
 import type { KitStyle, Player } from "@/lib/types";
 import { useCallback, useMemo, useRef } from "react";
@@ -74,6 +74,7 @@ export function PlayerInspect({
         bodyUrl: photoBody(player),
         portraitUrl: player.portrait,
         modelSlot: modelSlotOf(player),
+        modelUrl: modelUrlOf(player),
       });
       fig.rotation.y = 0.16;
       fig.scale.setScalar(1.02);

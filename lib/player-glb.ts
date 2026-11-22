@@ -93,7 +93,7 @@ export function loadModelIndex(): Promise<Set<number>> {
 }
 
 function urlForSlot(slot?: number) {
-  if (slot != null && slots?.has(slot)) return `/models/p${pad(slot)}.glb`;
+  if (slot != null && slot >= 0 && slots?.has(slot)) return `/models/p${pad(slot)}.glb`;
   return PLAYER_GLB_URL;
 }
 
@@ -101,8 +101,8 @@ export function loadPlayerGlb(): Promise<THREE.Group> {
   return loadUrl(PLAYER_GLB_URL);
 }
 
-/** Shared-geometry clone. Optional slot uses /models/pXX.glb when that file exists. */
-export function clonePlayerGlb(slot?: number, tint?: KitTint): THREE.Group {
+/** Shared-geometry clone. Optional slot uses /models/pXX.glb; modelUrl wins for specials. */
+export function clonePlayerGlb(slot?: number, tint?: KitTint, modelUrl?: string): THREE.Group {
   const holder = new THREE.Group();
   holder.name = "playerGlb";
   holder.userData.glb = true;
@@ -129,6 +129,10 @@ export function clonePlayerGlb(slot?: number, tint?: KitTint): THREE.Group {
       })
       .catch(() => undefined);
   };
+  if (modelUrl) {
+    loadInto(modelUrl);
+    return holder;
+  }
   if (slots) loadInto(urlForSlot(slot));
   else {
     void loadModelIndex().then(() => {
