@@ -39,7 +39,6 @@ export default function GoalRoomPage() {
 
   const [aimX, setAimX] = useState(0);
   const [power, setPower] = useState(0.62);
-  const [charging, setCharging] = useState(false);
   const [shooting, setShooting] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
   const [rewardLine, setRewardLine] = useState<string | null>(null);
@@ -48,7 +47,6 @@ export default function GoalRoomPage() {
   const onSettled = useCallback(
     async (result: "goal" | "save" | "miss") => {
       setShooting(false);
-      setCharging(false);
       setBanner(result === "goal" ? "GOL!" : result === "save" ? "KALECİ!" : "AUT / DİREK");
       setBusy(true);
       const res = await claimGoalReward(result === "goal");
@@ -71,24 +69,6 @@ export default function GoalRoomPage() {
     setBanner(null);
     setRewardLine(null);
     setShooting(true);
-  };
-
-  // Power charge while holding
-  const startCharge = () => {
-    if (shooting || remaining <= 0) return;
-    setCharging(true);
-    let p = 0.35;
-    const id = window.setInterval(() => {
-      p = p >= 1 ? 0.35 : p + 0.035;
-      setPower(Number(p.toFixed(3)));
-    }, 40);
-    (window as unknown as { __pkCharge?: number }).__pkCharge = id;
-  };
-  const endCharge = () => {
-    const id = (window as unknown as { __pkCharge?: number }).__pkCharge;
-    if (id) window.clearInterval(id);
-    setCharging(false);
-    shoot();
   };
 
   if (!userTeam) return null;
@@ -161,22 +141,22 @@ export default function GoalRoomPage() {
                 <span>Güç</span>
                 <span>{Math.round(power * 100)}</span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-white/15">
-                <div
-                  className={`h-full rounded-full ${charging ? "bg-[#ff9a3c]" : "bg-[#ff7a12]"}`}
-                  style={{ width: `${Math.round(power * 100)}%` }}
-                />
-              </div>
+              <input
+                type="range"
+                min={0.35}
+                max={1}
+                step={0.01}
+                value={power}
+                disabled={shooting || remaining <= 0}
+                onChange={(e) => setPower(Number(e.target.value))}
+                className="w-full accent-[#ff7a12]"
+              />
             </div>
             <Button
               size="lg"
               className="min-w-[8.5rem] bg-[#ff7a12] text-white hover:bg-[#ff8c2e]"
               disabled={shooting || busy || remaining <= 0}
-              onPointerDown={startCharge}
-              onPointerUp={endCharge}
-              onPointerLeave={() => {
-                if (charging) endCharge();
-              }}
+              onClick={shoot}
             >
               {remaining <= 0 ? "Yarın" : shooting ? "..." : "PENALTI"}
             </Button>

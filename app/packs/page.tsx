@@ -36,37 +36,42 @@ export default function PacksPage() {
 
   return (
     <GameShell title="Ürün Ayrıntıları" flush>
-      <div className="flex h-[calc(100dvh-6.2rem)] w-full flex-col px-[clamp(0.75rem,2vw,1.5rem)]">
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Epic / özel çekiliş — kapakta en iyi özel kartlar */}
-          <article className="relative flex flex-col overflow-hidden rounded-3xl border border-[#e7c56a]/35 bg-[#071820] shadow-[0_0_40px_rgba(231,197,106,0.12)]">
-            <div className="relative min-h-0 flex-1">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#3dff8a44_0%,#0a2a18_42%,#071820_70%)]" />
-              <div className="absolute inset-0 bg-[repeating-radial-gradient(circle_at_center,#2bd67a22_0_2px,transparent_2px_22px)] opacity-55" />
-              <div className="absolute left-1/2 top-[8%] -translate-x-1/2 text-center">
-                <p className="text-[11px] font-bold tracking-[0.28em] text-[#e7c56a]">ÖZEL ÇEKİLİŞ</p>
-                <p className="font-display text-xl text-white/90">Çıkabilecek yıldızlar</p>
+      <div className="flex h-[calc(100dvh-6.2rem)] w-full flex-col px-[clamp(0.5rem,1.2vw,1rem)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 md:grid-cols-2">
+          <article className="relative flex flex-col overflow-hidden rounded-3xl border border-[#e7c56a]/45 bg-[#071820] shadow-[0_0_48px_rgba(231,197,106,0.18)]">
+            <div className="relative min-h-0 flex-[1.35]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#3dff8a55_0%,#0a2a18_40%,#071820_72%)]" />
+              <div className="absolute inset-0 bg-[repeating-radial-gradient(circle_at_center,#2bd67a25_0_2px,transparent_2px_20px)] opacity-60" />
+              <div className="absolute left-1/2 top-3 z-10 -translate-x-1/2 text-center">
+                <p className="text-[11px] font-bold tracking-[0.3em] text-[#e7c56a]">ÖZEL ÇEKİLİŞ</p>
+                <p className="font-display text-2xl text-white">Çıkabilecek yıldızlar</p>
               </div>
-              <div className="absolute inset-x-0 bottom-3 flex items-end justify-center px-3">
-                {stars.map((p, i) => (
-                  <div
-                    key={p.id}
-                    className="w-[18%] max-w-[6.2rem] shrink-0 drop-shadow-[0_12px_24px_rgba(0,0,0,0.55)]"
-                    style={{
-                      marginLeft: i === 0 ? 0 : "-0.65rem",
-                      transform: `translateY(${i === 2 ? 0 : 12 + Math.abs(i - 2) * 6}px) rotate(${(i - 2) * 7}deg) scale(${i === 2 ? 1.12 : 0.9})`,
-                      zIndex: i === 2 ? 6 : 5 - Math.abs(i - 2),
-                    }}
-                  >
-                    <PlayerCard player={p} compact featured />
-                  </div>
-                ))}
+              {/* Hero cards — large, centered fan */}
+              <div className="absolute inset-x-0 bottom-2 top-14 flex items-end justify-center">
+                {stars.map((p, i) => {
+                  const mid = 2;
+                  const offset = i - mid;
+                  return (
+                    <div
+                      key={p.id}
+                      className="absolute bottom-0 w-[min(22%,9.5rem)]"
+                      style={{
+                        left: `calc(50% + ${offset * 14}% - 11%)`,
+                        transform: `translateY(${Math.abs(offset) * 14}px) rotate(${offset * 9}deg) scale(${i === mid ? 1.18 : 0.92})`,
+                        zIndex: 10 - Math.abs(offset),
+                        filter: "drop-shadow(0 18px 28px rgba(0,0,0,0.55))",
+                      }}
+                    >
+                      <PlayerCard player={p} featured />
+                    </div>
+                  );
+                })}
               </div>
-              <span className="absolute right-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] text-white/85">
-                Sınırlı Çekiliş: 50/50
+              <span className="absolute right-3 top-3 z-20 rounded-md bg-black/60 px-2 py-1 text-[11px] text-white/85">
+                Sınırlı: 50/50
               </span>
             </div>
-            <div className="relative z-10 border-t border-white/10 bg-black/55 px-4 py-3">
+            <div className="relative z-10 border-t border-white/10 bg-black/60 px-4 py-3">
               <p className="text-sm font-semibold text-[#9dffb0]">Epic · Big Time</p>
               <p className="font-display text-2xl">Özel Oyuncu Paketi</p>
               <p className="text-xs text-white/55">Bitmesine: 3 gün 5 sa · En yüksek OVR havuzu</p>
@@ -75,7 +80,7 @@ export default function PacksPage() {
                   type="button"
                   disabled={busy}
                   onClick={() => void open("coins")}
-                  className="flex-1 rounded-full border border-[#e7c56a]/40 bg-[#2a3140] px-3 py-2 text-sm font-semibold hover:bg-[#343c4e]"
+                  className="flex-1 rounded-full border border-[#e7c56a]/45 bg-[#2a3140] px-3 py-2.5 text-sm font-semibold hover:bg-[#343c4e]"
                 >
                   x1 · {formatCoins(PACK_COST_COINS)} coin
                 </button>
@@ -83,7 +88,7 @@ export default function PacksPage() {
                   type="button"
                   disabled={busy}
                   onClick={() => void open("gems")}
-                  className="flex-1 rounded-full border border-[#7CFF4A]/35 bg-[#2a3140] px-3 py-2 text-sm font-semibold hover:bg-[#343c4e]"
+                  className="flex-1 rounded-full border border-[#7CFF4A]/4 bg-[#2a3140] px-3 py-2.5 text-sm font-semibold hover:bg-[#343c4e]"
                 >
                   x10 · {PACK_COST_GEMS * 9} gem
                 </button>
@@ -91,32 +96,32 @@ export default function PacksPage() {
             </div>
           </article>
 
-          {/* POTW */}
-          <article className="relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a1a12]">
-            <div className="relative min-h-0 flex-1">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,#3dff8a55,transparent_45%)]" />
-              <div className="absolute inset-y-0 right-2 flex items-center gap-0 font-display text-[5.5rem] leading-none text-[#7CFF4A]/28 sm:text-[7rem]">
-                <span>P</span>
-                <span>O</span>
-                <span>T</span>
-                <span>W</span>
+          <article className="relative flex flex-col overflow-hidden rounded-3xl border border-white/12 bg-[#0a1a12]">
+            <div className="relative min-h-0 flex-[1.35]">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_28%_35%,#3dff8a55,transparent_48%)]" />
+              <div className="absolute inset-y-0 right-1 flex items-center font-display text-[6rem] leading-none text-[#7CFF4A]/25 sm:text-[8rem]">
+                POTW
               </div>
-              <div className="absolute bottom-4 left-6 flex items-end -space-x-5">
+              <div className="absolute inset-x-0 bottom-3 top-10 flex items-end justify-center gap-1 px-6">
                 {potw.map((p, i) => (
                   <div
                     key={p.id}
-                    className="w-[5.5rem] shrink-0 sm:w-[6.5rem]"
-                    style={{ zIndex: potw.length - i, transform: `rotate(${(i - 1) * 7}deg)` }}
+                    className="w-[32%] max-w-[10rem]"
+                    style={{
+                      transform: `translateY(${i === 1 ? 0 : 18}px) rotate(${(i - 1) * 8}deg) scale(${i === 1 ? 1.08 : 0.95})`,
+                      zIndex: i === 1 ? 3 : 1,
+                      filter: "drop-shadow(0 14px 22px rgba(0,0,0,0.5))",
+                    }}
                   >
-                    <PlayerCard player={p} compact featured />
+                    <PlayerCard player={p} featured />
                   </div>
                 ))}
               </div>
-              <span className="absolute right-3 top-3 rounded-md bg-black/50 px-2 py-1 text-[11px] text-white/80">
-                Sınırlı Çekiliş: 11/11
+              <span className="absolute right-3 top-3 rounded-md bg-black/55 px-2 py-1 text-[11px] text-white/80">
+                Sınırlı: 11/11
               </span>
             </div>
-            <div className="relative z-10 border-t border-white/10 bg-black/50 px-4 py-3">
+            <div className="relative z-10 border-t border-white/10 bg-black/55 px-4 py-3">
               <p className="text-sm font-semibold text-[#9dffb0]">POTW</p>
               <p className="font-display text-2xl">Haftanın Oyuncuları</p>
               <p className="text-xs text-orange-300">Kalan: 3 · Bitmesine: 3 gün 5 sa</p>
@@ -125,7 +130,7 @@ export default function PacksPage() {
                   type="button"
                   disabled={busy}
                   onClick={() => void open("gems")}
-                  className="w-full rounded-full border border-white/20 bg-[#2a3140] px-3 py-2 text-sm font-semibold"
+                  className="w-full rounded-full border border-white/20 bg-[#2a3140] px-3 py-2.5 text-sm font-semibold"
                 >
                   x1 · {PACK_COST_GEMS} gem
                 </button>
