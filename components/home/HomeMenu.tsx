@@ -380,8 +380,9 @@ function GoldBallIcon() {
 function BallIcon() {
   return (
     <svg viewBox="0 0 64 64" className="h-10 w-10" aria-hidden>
-      <circle cx="32" cy="32" r="20" fill="#f3f5f8" />
-      <polygon points="32,24.8 38.8,29.8 36.2,37.8 27.8,37.8 25.2,29.8" fill="#1a1c22" />
+      <circle cx="32" cy="32" r="20" fill="#f3f5f8" stroke="#1a1c22" strokeWidth="1.5" />
+      <path d="M32 12l6 8-2 10h-8l-2-10z" fill="#1a1c22" />
+      <path d="M20 28l8 4-2 10-10 2-4-8zm24 0l-8 4 2 10 10 2 4-8zM18 44l10-2 4 8-8 6zm28 0l-10-2-4 8 8 6z" fill="#1a1c22" />
     </svg>
   );
 }
