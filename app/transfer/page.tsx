@@ -41,35 +41,39 @@ export default function TransferPage() {
 
   return (
     <GameShell>
-      <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Pazar</p>
-      <h1 className="font-display mb-2 text-5xl">Transfer piyasası</h1>
-      <p className="mb-6 text-slate-400">
-        Pazarda {all.length} oyuncu. Botlar teklifi listenin %85’i ve üstündeyse kabul eder, altını reddeder. Abdullah
-        100.000 ₡.
-      </p>
-      <div className="mb-6 flex flex-wrap gap-3">
-        <input
-          value={q}
-          onChange={(e) => {
-            setQ(e.target.value);
-            setShown(PAGE);
-          }}
-          placeholder="Oyuncu ara"
-          className="rounded-xl border border-white/10 bg-ink-800 px-4 py-2 text-sm outline-none ring-neon focus:ring-2"
-        />
-        {positionFilters().map((p) => (
-          <Button
-            key={p.id}
-            size="sm"
-            variant={pos === p.id ? "primary" : "ghost"}
-            onClick={() => {
-              setPos(p.id);
+      <div className="flex h-full min-h-0 flex-col">
+      <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-[#e7c56a]">Contract</p>
+          <h1 className="font-display text-3xl sm:text-4xl">Oyuncu Pazarı</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            {all.length} kart · filtrele, karşılaştır, satın al. Abdullah 100.000 ₡.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
               setShown(PAGE);
             }}
-          >
-            {p.label}
-          </Button>
-        ))}
+            placeholder="Oyuncu ara"
+            className="min-w-[180px] rounded-xl border border-white/10 bg-ink-800 px-4 py-2 text-sm outline-none ring-[#e7c56a] focus:ring-2"
+          />
+          {positionFilters().map((p) => (
+            <Button
+              key={p.id}
+              size="sm"
+              variant={pos === p.id ? "primary" : "ghost"}
+              onClick={() => {
+                setPos(p.id);
+                setShown(PAGE);
+              }}
+            >
+              {p.label}
+            </Button>
+          ))}
+        </div>
       </div>
       {msg && <p className="mb-4 text-sm text-gold">{msg}</p>}
       {userTeam && (world.offers ?? []).some((o) => o.status === "pending" && o.sellerTeamId === userTeam.id) && (
@@ -125,11 +129,11 @@ export default function TransferPage() {
       )}
       {market.length === 0 ? (
         <p className="rounded-2xl border border-white/10 bg-ink-800 px-4 py-8 text-center text-slate-400">
-          Bu filtrede oyuncu yok. Mevkiyi Tümü yapın veya aramayı silin — pazarda her zaman en az 1000 isim durur.
+          Bu filtrede oyuncu yok. Mevkiyi Tümü yapın veya aramayı silin.
         </p>
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7">
             {visible.map((r) => {
               const seller =
                 r.listing.seller_team_id === SYSTEM_TEAM_ID
@@ -203,6 +207,7 @@ export default function TransferPage() {
           )}
         </>
       )}
+      </div>
     </GameShell>
   );
 }

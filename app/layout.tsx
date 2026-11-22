@@ -16,7 +16,7 @@ const display = Barlow_Condensed({
 
 export const metadata: Metadata = {
   title: "e-futbol",
-  description: "e-futbol. Canlı saha, kadro ve mağaza.",
+  description: "e-futbol. Yatay canlı maç, kartlar ve oyuncu pazarı.",
   icons: {
     icon: "/a-studio-192.png",
     apple: "/apple-touch-icon.png",

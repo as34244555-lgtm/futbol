@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>e-futbol — AAB indir</title>
+<style>
+  :root{--bg:#070b12;--card:#101826;--text:#eef3fa;--muted:#9db0c7;--gold:#e7c56a}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:ui-sans-serif,system-ui,Segoe UI,sans-serif;background:radial-gradient(900px 420px at 15% -10%,#1a3348,transparent),var(--bg);color:var(--text);min-height:100vh}
+  main{max-width:960px;margin:0 auto;padding:36px 20px 72px}
+  h1{font-size:clamp(1.8rem,4vw,2.8rem);margin:0 0 8px}
+  .sub{color:var(--muted);margin:0 0 24px}
+  .hero{display:grid;gap:18px;grid-template-columns:1.1fr .9fr;align-items:center}
+  @media(max-width:800px){.hero{grid-template-columns:1fr}}
+  .panel{background:var(--card);border:1px solid #243246;border-radius:18px;padding:22px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--gold);color:#111;font-weight:800;text-decoration:none;border-radius:12px;padding:14px 18px}
+  .btn:hover{filter:brightness(1.05)}
+  .meta{margin-top:12px;color:var(--muted);font-size:.92rem;line-height:1.45}
+  .shots{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:28px}
+  .shots img{width:100%;border-radius:12px;border:1px solid #243246;background:#0a1018}
+  code{background:#0c121c;padding:2px 6px;border-radius:6px}
+  .note{margin-top:22px;padding:12px 14px;border-radius:12px;border:1px solid #3a4a60;color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<main>
+  <div class="hero">
+    <div>
+      <h1>e-futbol AAB</h1>
+      <p class="sub">İmzalı Android App Bundle · paket <code>com.astudio.efutbol</code> · v1.0.0 · yatay mod</p>
+      <div class="panel">
+        <a class="btn" href="./e-futbol-1.0.0.aab" download="e-futbol-1.0.0.aab">AAB indir</a>
+        <p class="meta">
+          Play Console’a yüklemek için bu dosyayı kullan.<br/>
+          Keystore/şifreler bu sitede yok — ayrı güvenli yedekten al.
+        </p>
+      </div>
+      <p class="note">Bu geçici indirme sayfasıdır. İndirme yalnızca butona basınca başlar.</p>
+    </div>
+    <div class="panel">
+      <p style="margin:0 0 8px;font-weight:700">Mağaza görselleri</p>
+      <p class="meta" style="margin:0">Yatay menü, pazar, paket ve canlı maç kareleri aşağıda.</p>
+    </div>
+  </div>
+  <div class="shots" id="shots"></div>
+</main>
+<script>
+  const files = [
+    "shots/menu.png","shots/transfer.png","shots/packs.png","shots/ranked.png","shots/match.png","shots/live.png"
+  ];
+  const root = document.getElementById("shots");
+  for (const f of files) {
+    const img = document.createElement("img");
+    img.src = "./" + f;
+    img.alt = f;
+    img.onerror = () => img.remove();
+    root.appendChild(img);
+  }
+</script>
+</body>
+</html>
