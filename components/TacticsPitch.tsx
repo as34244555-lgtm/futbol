@@ -2,8 +2,9 @@
 
 import { FORMATION_SLOTS } from "@/lib/formations";
 import type { Formation, Player, TeamPlayer } from "@/lib/types";
+import { cardLiveOverall } from "@/lib/meta";
 import { cn } from "@/lib/utils";
-import { StadiumBowl } from "@/components/StadiumBowl";
+import { Portrait } from "@/components/Portrait";
 
 type Roster = TeamPlayer & { player: Player };
 
@@ -13,85 +14,92 @@ export function TacticsPitch({
   selectedId,
   onSelectSlot,
   kit = "#3dff8a",
+  fill = false,
 }: {
   formation: Formation;
   roster: Roster[];
   selectedId?: string | null;
   onSelectSlot?: (slotKey: string) => void;
   kit?: string;
+  /** Fill parent height for landscape eFootball game-plan */
+  fill?: boolean;
 }) {
   const slots = FORMATION_SLOTS[formation];
   const bySlot = new Map(roster.filter((r) => r.squad_position).map((r) => [r.squad_position, r]));
 
   return (
-    <StadiumBowl>
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 shadow-xl">
-      <svg viewBox="0 0 100 68" className="h-auto w-full bg-[#147a36]">
-        <defs>
-          <pattern id="grass" width="10" height="68" patternUnits="userSpaceOnUse">
-            <rect width="5" height="68" fill="#157f38" />
-            <rect x="5" width="5" height="68" fill="#117433" />
-          </pattern>
-        </defs>
-        <rect width="100" height="68" fill="url(#grass)" />
-        <g fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="0.35">
-          <rect x="2" y="2" width="96" height="64" />
-          <line x1="50" y1="2" x2="50" y2="66" />
-          <circle cx="50" cy="34" r="8" />
-          <circle cx="50" cy="34" r="0.7" fill="white" stroke="none" />
-          <rect x="2" y="20.5" width="14" height="27" />
-          <rect x="2" y="26.5" width="6" height="15" />
-          <rect x="84" y="20.5" width="14" height="27" />
-          <rect x="92" y="26.5" width="6" height="15" />
-        </g>
-        {slots.map((s) => {
-          const holder = bySlot.get(s.key);
-          const cx = s.x;
-          const cy = (s.y / 100) * 68;
-          const selected = holder && holder.id === selectedId;
-          return (
-            <g
-              key={s.key}
-              className={onSelectSlot ? "cursor-pointer" : undefined}
-              onClick={() => onSelectSlot?.(s.key)}
-            >
-              <circle
-                cx={cx}
-                cy={cy}
-                r={selected ? 5.2 : holder?.player.legend ? 5 : 4.6}
-                fill={holder ? (holder.player.legend ? "#f0c14b" : kit) : "rgba(0,0,0,0.25)"}
-                stroke={selected || holder?.player.legend ? "#f0c14b" : "white"}
-                strokeWidth={selected || holder?.player.legend ? 0.7 : 0.35}
-              />
-              {holder && (
-                <path
-                  d={`M${cx - 2.2},${cy - 1.2} L${cx - 3.4},${cy - 2.4} L${cx - 1.5},${cy - 2.6} L${cx - 0.6},${cy - 1.4} H${cx + 0.6} L${cx + 1.5},${cy - 2.6} L${cx + 3.4},${cy - 2.4} L${cx + 2.2},${cy - 1.2} V${cy + 3.2} H${cx - 2.2} Z`}
-                  fill={holder.player.legend ? "#f0c14b" : kit}
-                  opacity="0.95"
-                />
-              )}
-              <text
-                x={cx}
-                y={cy + 0.8}
-                textAnchor="middle"
-                fontSize={holder && holder.player.overall >= 100 ? 2.3 : 3.2}
-                fontWeight="700"
-                fill={holder ? "#04110a" : "#fff"}
+    <div
+      className={cn(
+        "relative overflow-hidden rounded-xl border border-white/10 bg-[#147a36] shadow-xl",
+        fill ? "h-full w-full" : "aspect-[100/68] w-full",
+      )}
+    >
+      <div
+        className="absolute inset-0 opacity-90"
+        style={{ background: "repeating-linear-gradient(0deg,#157f38 0 28px,#117433 28px 56px)" }}
+      />
+      {/* Vertical pitch markings (attack up) */}
+      <div className="pointer-events-none absolute inset-[2.5%] rounded-sm border border-white/40">
+        <div className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-white/40" />
+        <div className="absolute left-1/2 top-1/2 h-[10%] w-[22%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40" />
+        <div className="absolute bottom-0 left-1/2 h-[18%] w-[55%] -translate-x-1/2 border border-b-0 border-white/40" />
+        <div className="absolute top-0 left-1/2 h-[18%] w-[55%] -translate-x-1/2 border border-t-0 border-white/40" />
+      </div>
+
+      {slots.map((s) => {
+        const holder = bySlot.get(s.key);
+        const selected = holder && holder.id === selectedId;
+        const ovr = holder ? cardLiveOverall(holder.player, holder) : null;
+        // Formation x = attack depth (10 GK … 80 ST), y = lateral (0–100)
+        const left = s.y;
+        const top = 100 - s.x;
+        return (
+          <button
+            key={s.key}
+            type="button"
+            className="absolute z-10 -translate-x-1/2 -translate-y-1/2"
+            style={{ left: `${left}%`, top: `${top}%` }}
+            onClick={() => onSelectSlot?.(s.key)}
+          >
+            {holder ? (
+              <span
+                className={cn(
+                  "flex w-[clamp(3.2rem,6.5vw,4.8rem)] flex-col overflow-hidden rounded-md border bg-black/55 shadow-lg backdrop-blur-sm",
+                  selected ? "border-[#e7c56a] ring-2 ring-[#e7c56a]/60" : "border-white/25",
+                )}
               >
-                {holder ? holder.player.overall : s.label}
-              </text>
-              <text x={cx} y={cy + 8} textAnchor="middle" fontSize="2.4" fill="white">
-                {holder ? holder.player.name.split(" ").slice(-1)[0] : s.position}
-              </text>
-            </g>
-          );
-        })}
-      </svg>
-      <p className="absolute left-3 top-3 rounded-full bg-black/40 px-2 py-0.5 text-[10px] uppercase tracking-widest text-white">
-        {formation}
-      </p>
+                <span className="relative flex aspect-[4/5] w-full items-center justify-center bg-gradient-to-b from-[#1a2433] to-[#0a1018]">
+                  <Portrait
+                    id={holder.player.id}
+                    size={56}
+                    kit={kit}
+                    nation={holder.player.nationality_code}
+                    age={holder.player.age}
+                    portrait={holder.player.portrait}
+                  />
+                  <span
+                    className="absolute left-0.5 top-0.5 rounded px-1 text-[9px] font-black text-black sm:text-[10px]"
+                    style={{ background: kit }}
+                  >
+                    {s.label}
+                  </span>
+                  <span className="absolute bottom-0.5 right-0.5 rounded bg-black/75 px-1 text-[10px] font-bold text-[#e7c56a] sm:text-[11px]">
+                    {ovr}
+                  </span>
+                </span>
+                <span className="truncate px-0.5 py-0.5 text-center text-[9px] font-semibold leading-tight text-white sm:text-[10px]">
+                  {holder.player.name.split(" ").slice(-1)[0]}
+                </span>
+              </span>
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-white/40 bg-black/30 text-[10px] font-bold text-white/80 sm:h-12 sm:w-12">
+                {s.label}
+              </span>
+            )}
+          </button>
+        );
+      })}
     </div>
-    </StadiumBowl>
   );
 }
 

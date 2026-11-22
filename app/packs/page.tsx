@@ -2,15 +2,15 @@
 
 import { GameShell } from "@/components/GameShell";
 import { PackOpen } from "@/components/PackOpen";
-import { Button } from "@/components/ui/Button";
 import { useGame } from "@/lib/game-context";
 import { PACK_COST_COINS, PACK_COST_GEMS } from "@/lib/meta";
 import { formatCoins } from "@/lib/utils";
 import type { Player } from "@/lib/types";
+import Image from "next/image";
 import { useState } from "react";
 
 export default function PacksPage() {
-  const { userTeam, openPack } = useGame();
+  const { openPack } = useGame();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [pulls, setPulls] = useState<Array<{ player: Player; fromPool: string }> | null>(null);
@@ -25,32 +25,79 @@ export default function PacksPage() {
   };
 
   return (
-    <GameShell>
-      <p className="text-[10px] uppercase tracking-[0.35em] text-[#d4af37]">Gacha</p>
-      <h1 className="font-display mt-1 text-4xl">Oyuncu Paketi</h1>
-      <p className="mt-2 text-sm text-slate-400">3 kart çekimi · özel havuz şansı yüksek</p>
-      <div className="mt-4 flex gap-4 text-sm">
-        <span className="text-white">₡ {formatCoins(userTeam?.coins ?? 0)}</span>
-        <span className="text-cyan-300">◆ {formatCoins(userTeam?.gems ?? 0)}</span>
-      </div>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-2xl border border-white/10 bg-[#101826] p-4">
-          <p className="font-semibold">Coin Paketi</p>
-          <p className="mt-1 text-sm text-slate-400">{formatCoins(PACK_COST_COINS)} coin</p>
-          <Button className="mt-4 w-full" disabled={busy} onClick={() => void open("coins")}>
-            Aç
-          </Button>
+    <GameShell title="Ürün Ayrıntıları" flush>
+      <div className="flex h-[calc(100dvh-6.2rem)] w-full flex-col px-[clamp(0.75rem,2vw,1.5rem)]">
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-4 md:grid-cols-2">
+          {/* Epic-style pack */}
+          <article className="relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#071820]">
+            <div className="relative min-h-0 flex-1">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#3dff8a44_0%,#0a2a18_42%,#071820_70%)]" />
+              <div className="absolute inset-0 bg-[repeating-radial-gradient(circle_at_center,#2bd67a22_0_2px,transparent_2px_22px)] opacity-60" />
+              <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-end gap-2">
+                <Image src="/a-studio-192.png" alt="" width={120} height={160} className="h-36 w-28 rounded-xl object-cover ring-2 ring-[#e7c56a]/60" />
+              </div>
+              <span className="absolute right-3 top-3 rounded-md bg-black/50 px-2 py-1 text-[11px] text-white/80">Sınırlı Çekiliş: 50/50</span>
+            </div>
+            <div className="relative z-10 border-t border-white/10 bg-black/50 px-4 py-3">
+              <p className="text-sm font-semibold text-[#9dffb0]">Epic</p>
+              <p className="font-display text-2xl">Özel Kart Paketi</p>
+              <p className="text-xs text-white/55">Bitmesine: 3 gün 5 sa</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void open("coins")}
+                  className="flex-1 rounded-full border border-white/20 bg-[#2a3140] px-3 py-2 text-sm font-semibold"
+                >
+                  x1 · {formatCoins(PACK_COST_COINS)} coin
+                </button>
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void open("gems")}
+                  className="flex-1 rounded-full border border-white/20 bg-[#2a3140] px-3 py-2 text-sm font-semibold"
+                >
+                  x10 · {PACK_COST_GEMS * 9} gem
+                </button>
+              </div>
+            </div>
+          </article>
+
+          {/* POTW-style pack */}
+          <article className="relative flex flex-col overflow-hidden rounded-3xl border border-white/10 bg-[#0a1a12]">
+            <div className="relative min-h-0 flex-1">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_40%,#3dff8a55,transparent_45%)]" />
+              <div className="absolute inset-y-0 right-2 flex items-center gap-0 font-display text-[5.5rem] leading-none text-[#7CFF4A]/30 sm:text-[7rem]">
+                <span>P</span><span>O</span><span>T</span><span>W</span>
+              </div>
+              <div className="absolute bottom-6 left-8 flex -space-x-4">
+                <Image src="/a-studio-icon.png" alt="" width={72} height={96} className="h-24 w-18 rounded-lg object-cover ring-1 ring-white/30" />
+                <Image src="/apple-touch-icon.png" alt="" width={72} height={96} className="h-24 w-18 rounded-lg object-cover ring-1 ring-white/30" />
+                <Image src="/a-studio-192.png" alt="" width={72} height={96} className="h-24 w-18 rounded-lg object-cover ring-1 ring-white/30" />
+              </div>
+              <span className="absolute right-3 top-3 rounded-md bg-black/50 px-2 py-1 text-[11px] text-white/80">Sınırlı Çekiliş: 11/11</span>
+            </div>
+            <div className="relative z-10 border-t border-white/10 bg-black/50 px-4 py-3">
+              <p className="text-sm font-semibold text-[#9dffb0]">POTW</p>
+              <p className="font-display text-2xl">Haftanın Oyuncuları</p>
+              <p className="text-xs text-orange-300">Kalan: 3 · Bitmesine: 3 gün 5 sa</p>
+              <div className="mt-3">
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void open("gems")}
+                  className="w-full rounded-full border border-white/20 bg-[#2a3140] px-3 py-2 text-sm font-semibold"
+                >
+                  x1 · {PACK_COST_GEMS} gem
+                </button>
+              </div>
+            </div>
+          </article>
         </div>
-        <div className="rounded-2xl border border-cyan-400/30 bg-[#0c1a24] p-4">
-          <p className="font-semibold text-cyan-200">Gem Paketi</p>
-          <p className="mt-1 text-sm text-slate-400">{PACK_COST_GEMS} gem</p>
-          <Button className="mt-4 w-full" variant="gold" disabled={busy} onClick={() => void open("gems")}>
-            Aç
-          </Button>
-        </div>
+        {err && <p className="mt-2 text-sm text-rose-300">{err}</p>}
+        <p className="mt-2 text-[10px] text-white/40">* Gösterilen genel dereceler, oyuncuların olası en yüksek derecelerini yansıtır.</p>
+        {pulls && <PackOpen pulls={pulls} onClose={() => setPulls(null)} />}
       </div>
-      {err && <p className="mt-3 text-sm text-rose-300">{err}</p>}
-      {pulls && <PackOpen pulls={pulls} onClose={() => setPulls(null)} />}
     </GameShell>
   );
 }
