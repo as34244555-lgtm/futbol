@@ -4,34 +4,17 @@ import { normalizePosition } from "./positions";
 import { SPECIAL_SPECS, STANDARD_SPECS, type RosterSpec } from "./roster";
 import type { Player, Position } from "./types";
 
+/** Legacy id — stripped from worlds; no longer a playable card. */
 export const ABDULLAH_ID = "00000000-0000-4000-8000-aaa999000001";
+const LEGACY_ABDULLAH_NAME = "Abdullah Sarıyıldız";
 
-export function makeAbdullah(): Player {
-  return {
-    id: ABDULLAH_ID,
-    name: "Abdullah Sarıyıldız",
-    nationality: "Türkiye",
-    nationality_code: "tr",
-    position: "FV",
-    age: 27,
-    attack: 99,
-    defense: 99,
-    pace: 99,
-    finishing: 99,
-    passing: 99,
-    marking: 99,
-    handling: 99,
-    overall: 999,
-    base_value: 100_000,
-    versatile: true,
-    legend: true,
-    potential: 99,
-    portrait: "/abdullah-sariyildiz.webp",
-  };
+export function isLegacyAbdullah(p: Pick<Player, "id" | "name">): boolean {
+  return p.id === ABDULLAH_ID || p.name === LEGACY_ABDULLAH_NAME;
 }
 
 export function isLegend(p: Pick<Player, "id" | "name" | "legend">): boolean {
-  return p.id === ABDULLAH_ID || Boolean(p.legend) || p.name === "Abdullah Sarıyıldız";
+  if (isLegacyAbdullah(p)) return false;
+  return Boolean(p.legend);
 }
 
 export function playsPosition(p: Player, position: Position): boolean {
@@ -187,7 +170,7 @@ export function generateCatalog(count = 420): Player[] {
   const rand = seededRandom(20260828);
   const players: Player[] = [];
 
-  players.push(makeAbdullah(), ...rosterPlayers());
+  players.push(...rosterPlayers());
 
   for (let i = 40; i < count; i++) {
     const position = POS_CYCLE[i % POS_CYCLE.length]!;

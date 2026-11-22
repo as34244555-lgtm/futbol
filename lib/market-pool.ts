@@ -1,8 +1,8 @@
-import { ABDULLAH_ID, generatePlayerAt, isLegend, makeAbdullah } from "./catalog";
+import { generatePlayerAt, isLegacyAbdullah } from "./catalog";
 import { marketValue } from "./ratings";
 import { POSITIONS, SYSTEM_TEAM_ID } from "./types";
 import type { GameWorld, Player, Position, TransferListing } from "./types";
-import { catalogId, hash32, listingId, seededRandom } from "./utils";
+import { catalogId, hash32, seededRandom } from "./utils";
 
 /** Ajans stoğu KV'yi şişirmeden pazarda 1000+ oyuncu dursun. */
 export const MARKET_POOL_SIZE = 1200;
@@ -57,7 +57,7 @@ export function virtualMarketRows(world: GameWorld): MarketRow[] {
   const rows: MarketRow[] = [];
   for (let i = 0; i < MARKET_POOL_SIZE; i++) {
     const player = marketPoolPlayer(i);
-    if (owned.has(player.id) || worldIds.has(player.id)) continue;
+    if (owned.has(player.id) || worldIds.has(player.id) || isLegacyAbdullah(player)) continue;
     const price = Math.max(220, Math.round(marketValue(player) * (0.88 + (hash32(player.id) % 28) / 100)));
     rows.push({
       player,
@@ -85,32 +85,6 @@ export function playerFromPoolListing(listingIdArg: string): Player | null {
   return null;
 }
 
-export function abdullahListing(world: GameWorld): MarketRow | null {
-  const owned = world.teamPlayers.some((tp) => tp.player_id === ABDULLAH_ID && tp.team_id !== SYSTEM_TEAM_ID);
-  if (owned) return null;
-  const player = world.players.find((p) => p.id === ABDULLAH_ID) ?? makeAbdullah();
-  const existing = world.listings.find(
-    (l) => l.status === "active" && world.teamPlayers.find((tp) => tp.id === l.team_player_id)?.player_id === ABDULLAH_ID,
-  );
-  if (existing) {
-    const tp = world.teamPlayers.find((x) => x.id === existing.team_player_id);
-    if (!tp) return null;
-    return { listing: { ...existing, price: 100_000 }, player, virtual: false };
-  }
-  return {
-    player,
-    virtual: false,
-    listing: {
-      id: listingId(SYSTEM_TEAM_ID, ABDULLAH_ID),
-      team_player_id: `tp_${SYSTEM_TEAM_ID}_${ABDULLAH_ID}`,
-      seller_team_id: SYSTEM_TEAM_ID,
-      price: 100_000,
-      status: "active",
-      created_at: "2026-01-01T00:00:00.000Z",
-    },
-  };
-}
-
 export function mergeMarket(world: GameWorld): MarketRow[] {
   const players = new Map(world.players.map((p) => [p.id, p]));
   const tps = new Map(world.teamPlayers.map((t) => [t.id, t]));
@@ -119,17 +93,14 @@ export function mergeMarket(world: GameWorld): MarketRow[] {
     .map((l) => {
       const tp = tps.get(l.team_player_id);
       const player = tp ? players.get(tp.player_id) : undefined;
-      if (!player || !tp) return null;
-      const price = isLegend(player) ? 100_000 : l.price;
-      return { listing: { ...l, price }, player, virtual: false };
+      if (!player || !tp || isLegacyAbdullah(player)) return null;
+      return { listing: l, player, virtual: false };
     })
     .filter((x): x is MarketRow => Boolean(x));
 
   const liveIds = new Set(live.map((r) => r.player.id));
-  const featured = abdullahListing(world);
   const extra = virtualMarketRows(world).filter((r) => !liveIds.has(r.player.id));
-  const head = featured && !liveIds.has(featured.player.id) ? [featured] : [];
-  return [...head, ...live, ...extra];
+  return [...live, ...extra];
 }
 
 export function marketCount(world: GameWorld): number {

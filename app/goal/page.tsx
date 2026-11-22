@@ -4,7 +4,7 @@ import { GameShell } from "@/components/GameShell";
 import { PlayerCard } from "@/components/PlayerCard";
 import { PenaltyKick } from "@/components/scene/PenaltyKick";
 import { Button } from "@/components/ui/Button";
-import { makeAbdullah, rosterPlayers } from "@/lib/catalog";
+import { rosterPlayers } from "@/lib/catalog";
 import { useGame } from "@/lib/game-context";
 import { cardLiveOverall } from "@/lib/meta";
 import type { Player } from "@/lib/types";
@@ -14,7 +14,7 @@ import { useCallback, useMemo, useState } from "react";
 
 const DAILY_MAX = 3;
 
-function bestSpecialTaker(roster: Array<{ player: Player; is_starter?: boolean }>, kit?: string): Player {
+function bestSpecialTaker(roster: Array<{ player: Player; is_starter?: boolean }>): Player {
   const specials = roster
     .map((r) => r.player)
     .filter((p) => p.legend || p.tier === "special")
@@ -23,15 +23,14 @@ function bestSpecialTaker(roster: Array<{ player: Player; is_starter?: boolean }
   const pool = rosterPlayers()
     .filter((p) => p.tier === "special" && p.position !== "KL")
     .sort((a, b) => b.overall - a.overall);
-  return pool[0] ?? makeAbdullah();
-  void kit;
+  return pool[0]!;
 }
 
 export default function GoalRoomPage() {
   const { world, userTeam, claimGoalReward } = useGame();
   const router = useRouter();
   const roster = useMemo(() => (userTeam ? rosterOf(world, userTeam.id) : []), [world, userTeam]);
-  const taker = useMemo(() => bestSpecialTaker(roster, userTeam?.kit_primary), [roster, userTeam?.kit_primary]);
+  const taker = useMemo(() => bestSpecialTaker(roster), [roster]);
 
   const today = new Date().toISOString().slice(0, 10);
   const used = userTeam?.goalDay === today ? userTeam.goalShots ?? 0 : 0;

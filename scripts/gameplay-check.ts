@@ -12,7 +12,7 @@ import { CHAMPION_PRIZE, crownSeason, recentForm, seasonOf, weekInSeason } from 
 import { cardRarity, displayOvr } from "../lib/card-rarity";
 import { normalizeStadium } from "../lib/stadium";
 import { photoPortrait, photoBody } from "../lib/player-photo";
-import { makeAbdullah, rosterPlayers } from "../lib/catalog";
+import { rosterPlayers } from "../lib/catalog";
 import {
   DRIBBLE_CLIPS,
   PASS_CLIPS,
@@ -58,28 +58,13 @@ assert(joined.team.id === "team_user-a", `expected humanTeamId, got ${joined.tea
 const again = createUserTeam(joined.world, "user-a", "Ada SK");
 assert(again.team.id === joined.team.id, "same user should reuse team");
 
-const abdullah = joined.world.players.find((p) => p.name === "Abdullah Sarıyıldız");
-assert(abdullah, "Abdullah Sarıyıldız must exist in catalog");
-assert(abdullah!.overall === 999, `Abdullah overall should be 999, got ${abdullah!.overall}`);
-assert(abdullah!.base_value === 100_000, `Abdullah value should be 100000, got ${abdullah!.base_value}`);
-assert(abdullah!.nationality_code === "tr", "Abdullah must be Turkish");
-assert(abdullah!.versatile, "Abdullah must play every position");
 assert(
-  !joined.world.teamPlayers.some((tp) => tp.team_id === joined.team.id && tp.player_id === abdullah!.id),
-  "new human squad must NOT receive Abdullah",
+  !joined.world.players.some((p) => p.name === "Abdullah Sarıyıldız"),
+  "Abdullah Sarıyıldız must not exist in catalog",
 );
 assert(
-  joined.world.teamPlayers.some((tp) => tp.team_id === SYSTEM_TEAM_ID && tp.player_id === abdullah!.id),
-  "Abdullah must sit on the agency",
-);
-assert(
-  joined.world.listings.some(
-    (l) =>
-      l.status === "active" &&
-      l.price === 100_000 &&
-      joined.world.teamPlayers.find((tp) => tp.id === l.team_player_id)?.player_id === abdullah!.id,
-  ),
-  "Abdullah must be listed for 100000",
+  !joined.world.teamPlayers.some((tp) => tp.player_id === "00000000-0000-4000-8000-aaa999000001"),
+  "Abdullah team rows must be gone",
 );
 const roster = rosterPlayers();
 const standards = roster.filter((p) => p.tier === "standard");
@@ -96,15 +81,11 @@ assert(Boolean(zaid!.portrait?.includes("muhammed-zaid")), "Zaid has his portrai
 assert(cardRarity(standards[0]!) === "bronze", "standard card stays the plain frame");
 assert(cardRarity(keepers[0]!) !== "bronze", "goalkeeper card is special");
 assert(world0.players.some((p) => p.position === "KL"), "catalog includes a goalkeeper");
-assert(cardRarity(abdullah!) === "legend", "Abdullah card must be Big Time");
 assert(displayOvr(999) === "99+", "legend overall displays as 99+");
 assert(cardRarity({ overall: 64 }) === "bronze", "low overall is bronze");
 assert(cardRarity({ overall: 82 }) === "featured", "82 is featured");
 assert(cardRarity({ overall: 93 }) === "showtime", "93 is showtime");
-assert(photoPortrait(makeAbdullah()) === "/abdullah-sariyildiz.webp", "Abdullah keeps his photo");
-assert(photoBody(makeAbdullah()).includes("/bodies/abdullah.webp"), "Abdullah 3D body is photoreal full body");
 assert(photoBody({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).includes("/bodies/b"), "pool players get full-body photos");
-assert(photoBody(makeAbdullah()).includes("v=ef3d"), "3D body cache-busts to eFootball set");
 assert(photoPortrait({ id: "tm_pool_1", nationality_code: "tr", age: 22 }).startsWith("/portraits/p"), "pool players get photo busts");
 assert(
   photoPortrait({ id: "a", nationality_code: "tr" }) === photoPortrait({ id: "a", nationality_code: "tr" }),
@@ -115,7 +96,7 @@ assert(normalizeStadium({}).pitch === "lush" && normalizeStadium({}).roof === "o
 assert(hydrateWorld(joined.world).teams[0]?.stadium?.sky, "hydrate fills stadium");
 assert(DRIBBLE_CLIPS.length >= 5 && PASS_CLIPS.length >= 3 && SHOT_CLIPS.length >= 2 && TACKLE_CLIPS.length >= 1 && SAVE_CLIPS.length === 5, "animation set sizes");
 assert(clipForEvent({ eventType: "shot", minute: 12, playerId: "gk1", gk: true, involved: false, attacking: false }).startsWith("save_"), "gk save clip");
-assert(specialSkills(makeAbdullah()).includes("Big Time"), "legend skill chip");
+assert(specialSkills(zaid!).length >= 1, "special skill chip");
 assert(translate("en", "game") === "e-futbol", "en game name");
 assert(translate("tr", "game") === "e-futbol", "tr game name");
 

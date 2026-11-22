@@ -1,11 +1,11 @@
 import {
   ABDULLAH_ID,
+  isLegacyAbdullah,
   AI_CLUBS,
   generateCatalog,
   generateExtraPlayers,
   rosterPlayers,
   isLegend,
-  makeAbdullah,
   playsPosition,
 } from "./catalog";
 import { applyTrainingRecovery, hydrateWorld, isInjured, pushNews, rollInjuries, weeklyWage } from "./career";
@@ -399,57 +399,17 @@ export function createUserTeam(
   };
 }
 
-function legendOnMarket(world: GameWorld): boolean {
-  const p = world.players.find((x) => x.id === ABDULLAH_ID);
-  if (!p || p.overall !== 999 || p.base_value !== 100_000 || !p.versatile || !p.legend) return false;
-  const onClub = world.teamPlayers.some((tp) => tp.player_id === ABDULLAH_ID && tp.team_id !== SYSTEM_TEAM_ID);
-  if (onClub) return false;
-  const onAgency = world.teamPlayers.some((tp) => tp.player_id === ABDULLAH_ID && tp.team_id === SYSTEM_TEAM_ID);
-  const listed = world.listings.some((l) => {
-    if (l.status !== "active") return false;
-    const tp = world.teamPlayers.find((x) => x.id === l.team_player_id);
-    return tp?.player_id === ABDULLAH_ID;
-  });
-  return onAgency && listed;
-}
-
-/** Abdullah Sarıyıldız kadroda değil — ajans listesinde 100.000 ₡. */
+/** Eski kayıtlardan Abdullah Sarıyıldız kartını tamamen sil. */
 export function ensureLegendWorld(world: GameWorld): GameWorld {
-  if (legendOnMarket(world)) return world;
-  const legend = makeAbdullah();
-  let players = world.players.filter((p) => p.id !== ABDULLAH_ID && p.name !== legend.name);
-  players = [legend, ...players];
-
-  const dropClub = world.teamPlayers.filter(
-    (tp) => tp.player_id === ABDULLAH_ID || world.players.find((p) => p.id === tp.player_id)?.name === legend.name,
+  const removedIds = new Set(
+    world.players.filter((p) => isLegacyAbdullah(p) || p.id === ABDULLAH_ID).map((p) => p.id),
   );
-  const dropIds = new Set(dropClub.map((tp) => tp.id));
-  let teamPlayers = world.teamPlayers.filter((tp) => !dropIds.has(tp.id));
-  const listings = world.listings.filter((l) => !dropIds.has(l.team_player_id));
-
-  const row: TeamPlayer = {
-    id: rowId(SYSTEM_TEAM_ID, ABDULLAH_ID),
-    team_id: SYSTEM_TEAM_ID,
-    player_id: ABDULLAH_ID,
-    energy: 100,
-    form: 99,
-    is_starter: false,
-    squad_position: null,
-    acquired_at: new Date().toISOString(),
-    wage: 0,
-    contractYears: 99,
-  };
-  const listing: TransferListing = {
-    id: listingId(SYSTEM_TEAM_ID, ABDULLAH_ID),
-    team_player_id: row.id,
-    seller_team_id: SYSTEM_TEAM_ID,
-    price: 100_000,
-    status: "active",
-    created_at: new Date().toISOString(),
-  };
-  teamPlayers = [...teamPlayers.filter((tp) => tp.player_id !== ABDULLAH_ID), row];
-  const withoutOld = listings.filter((l) => l.id !== listing.id);
-  return { ...world, players, teamPlayers, listings: [...withoutOld, listing] };
+  if (removedIds.size === 0) return world;
+  const players = world.players.filter((p) => !removedIds.has(p.id));
+  const dropTpIds = new Set(world.teamPlayers.filter((tp) => removedIds.has(tp.player_id)).map((tp) => tp.id));
+  const teamPlayers = world.teamPlayers.filter((tp) => !removedIds.has(tp.player_id));
+  const listings = world.listings.filter((l) => !dropTpIds.has(l.team_player_id));
+  return { ...world, players, teamPlayers, listings };
 }
 
 export function leagueTeams(world: GameWorld): Team[] {

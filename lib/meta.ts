@@ -1,7 +1,7 @@
 import { catalogId, clamp, hash32, seededRandom } from "./utils";
 import type { GameWorld, Player, Team, TeamPlayer } from "./types";
 import { SPECIAL_SPECS } from "./roster";
-import { computeOverall, makeAbdullah, rosterPlayers } from "./catalog";
+import { computeOverall, rosterPlayers } from "./catalog";
 import { normalizePosition } from "./positions";
 
 export const PACK_COST_COINS = 2500;
@@ -319,10 +319,7 @@ export function openPack(world: GameWorld, team: Team, pay: "coins" | "gems"): {
     const roll = rand();
     let pick: Player | undefined;
     let fromPool: PackPull["fromPool"] = "standard";
-    if (roll > 0.97) {
-      pick = makeAbdullah();
-      fromPool = "legend";
-    } else if (roll > 0.72) {
+    if (roll > 0.7) {
       const specials = pool.filter((p) => p.tier === "special");
       pick = specials[Math.floor(rand() * specials.length)] ?? pool[Math.floor(rand() * pool.length)];
       fromPool = "special";

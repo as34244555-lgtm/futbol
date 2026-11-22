@@ -41,8 +41,8 @@ const oppBA = opponentOf(world, b.team.id);
 assert(oppAB === b.team.id, `A should face B, faced ${oppAB}`);
 assert(oppBA === a.team.id, `B should face A, faced ${oppBA}`);
 assert(
-  b.world.teamPlayers.some((tp) => tp.team_id === b.team.id && a.world.players.some((p) => p.id === tp.player_id && p.name === "Abdullah Sarıyıldız")),
-  "second human should also receive Abdullah",
+  !b.world.players.some((p) => p.name === "Abdullah Sarıyıldız"),
+  "Abdullah Sarıyıldız must stay removed for second human too",
 );
 
 const live = prepareWeek(b.world);

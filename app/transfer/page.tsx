@@ -3,7 +3,6 @@
 import { GameShell } from "@/components/GameShell";
 import { Portrait } from "@/components/Portrait";
 import { useGame } from "@/lib/game-context";
-import { ABDULLAH_ID } from "@/lib/catalog";
 import { mergeMarket, positionFilters } from "@/lib/market-pool";
 import { formatCoins } from "@/lib/utils";
 import { useMemo, useState } from "react";
@@ -20,7 +19,7 @@ export default function TransferPage() {
     return all
       .filter((x) => (pos === "ALL" ? true : x.player.position === pos))
       .filter((x) => x.player.name.toLowerCase().includes(q.toLowerCase()))
-      .sort((a, b) => Number(b.player.id === ABDULLAH_ID) - Number(a.player.id === ABDULLAH_ID) || b.player.overall - a.player.overall);
+      .sort((a, b) => b.player.overall - a.player.overall);
   }, [all, q, pos]);
   const market = rows.filter((r) => r.listing.seller_team_id !== userTeam?.id).slice(0, shown);
 
