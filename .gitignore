@@ -37,3 +37,24 @@ yarn-error.log*
 # local league snapshot
 /data
 *.json.bak
+
+# Android release secrets (NEVER commit)
+/release-secrets/
+*.jks
+*.keystore
+keystore.properties
+
+# Local Android SDK / Capacitor build noise
+/android/.gradle/
+/android/app/build/
+/android/build/
+/android/local.properties
+/android/captures/
+/store-drop/
+/www/
+# Drop-site secrets must stay untracked (folder may exist for publish)
+play-drop-site/
+efutbol-play-drop/*.aab
+efutbol-play-drop/*.apk
+efutbol-play-drop/*.jks
+efutbol-play-drop/CREDENTIALS.txt
