@@ -1,119 +1,191 @@
 "use client";
 
 import { GameShell } from "@/components/GameShell";
+import { PlayerCard } from "@/components/PlayerCard";
+import { PenaltyKick } from "@/components/scene/PenaltyKick";
 import { Button } from "@/components/ui/Button";
-import Link from "next/link";
-import { useState } from "react";
+import { makeAbdullah, rosterPlayers } from "@/lib/catalog";
+import { useGame } from "@/lib/game-context";
+import { cardLiveOverall } from "@/lib/meta";
+import type { Player } from "@/lib/types";
+import { rosterOf } from "@/lib/world";
+import { useRouter } from "next/navigation";
+import { useCallback, useMemo, useState } from "react";
 
-/** eFootball Goal odası — Şut ve Gol */
+const DAILY_MAX = 3;
+
+function bestSpecialTaker(roster: Array<{ player: Player; is_starter?: boolean }>, kit?: string): Player {
+  const specials = roster
+    .map((r) => r.player)
+    .filter((p) => p.legend || p.tier === "special")
+    .sort((a, b) => b.overall - a.overall);
+  if (specials[0]) return specials[0];
+  const pool = rosterPlayers()
+    .filter((p) => p.tier === "special" && p.position !== "KL")
+    .sort((a, b) => b.overall - a.overall);
+  return pool[0] ?? makeAbdullah();
+  void kit;
+}
+
 export default function GoalRoomPage() {
-  const [power, setPower] = useState(62);
-  const [angle, setAngle] = useState(0);
-  const [result, setResult] = useState<string | null>(null);
-  const [score, setScore] = useState(0);
-  const [attempts, setAttempts] = useState(0);
-  const [flying, setFlying] = useState(false);
+  const { world, userTeam, claimGoalReward } = useGame();
+  const router = useRouter();
+  const roster = useMemo(() => (userTeam ? rosterOf(world, userTeam.id) : []), [world, userTeam]);
+  const taker = useMemo(() => bestSpecialTaker(roster, userTeam?.kit_primary), [roster, userTeam?.kit_primary]);
+
+  const today = new Date().toISOString().slice(0, 10);
+  const used = userTeam?.goalDay === today ? userTeam.goalShots ?? 0 : 0;
+  const remaining = Math.max(0, DAILY_MAX - used);
+
+  const [aimX, setAimX] = useState(0);
+  const [power, setPower] = useState(0.62);
+  const [charging, setCharging] = useState(false);
+  const [shooting, setShooting] = useState(false);
+  const [banner, setBanner] = useState<string | null>(null);
+  const [rewardLine, setRewardLine] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  const onSettled = useCallback(
+    async (result: "goal" | "save" | "miss") => {
+      setShooting(false);
+      setCharging(false);
+      setBanner(result === "goal" ? "GOL!" : result === "save" ? "KALECİ!" : "AUT / DİREK");
+      setBusy(true);
+      const res = await claimGoalReward(result === "goal");
+      setBusy(false);
+      if (res.error) setRewardLine(res.error);
+      else {
+        const parts = [];
+        if (res.coins) parts.push(`+${res.coins} coin`);
+        if (res.gems) parts.push(`+${res.gems} gem`);
+        setRewardLine(
+          `${parts.join(" · ") || "Kayıt alındı"} · Penaltı ${res.shot ?? used + 1}/${res.max ?? DAILY_MAX}`,
+        );
+      }
+    },
+    [claimGoalReward, used],
+  );
 
   const shoot = () => {
-    if (flying) return;
-    setFlying(true);
-    setResult(null);
-    window.setTimeout(() => {
-      const aim = Math.abs(angle);
-      const sweet = power > 48 && power < 86 && aim < 28;
-      const near = power > 35 && power < 95 && aim < 42;
-      setAttempts((n) => n + 1);
-      if (sweet) {
-        setScore((s) => s + 1);
-        setResult("GOL!");
-      } else if (near) {
-        setResult(aim > 20 ? "DIREK!" : "KALECİ!");
-      } else {
-        setResult("AUT");
-      }
-      setFlying(false);
-    }, 520);
+    if (shooting || busy || remaining <= 0) return;
+    setBanner(null);
+    setRewardLine(null);
+    setShooting(true);
   };
+
+  // Power charge while holding
+  const startCharge = () => {
+    if (shooting || remaining <= 0) return;
+    setCharging(true);
+    let p = 0.35;
+    const id = window.setInterval(() => {
+      p = p >= 1 ? 0.35 : p + 0.035;
+      setPower(Number(p.toFixed(3)));
+    }, 40);
+    (window as unknown as { __pkCharge?: number }).__pkCharge = id;
+  };
+  const endCharge = () => {
+    const id = (window as unknown as { __pkCharge?: number }).__pkCharge;
+    if (id) window.clearInterval(id);
+    setCharging(false);
+    shoot();
+  };
+
+  if (!userTeam) return null;
 
   return (
     <GameShell bare>
-      <div className="relative flex h-full w-full">
-        {/* Full-bleed goal scene */}
-        <section className="relative min-w-0 flex-1 overflow-hidden bg-[#0a1a12]">
-          <div
-            className="absolute inset-0"
-            style={{ background: "repeating-linear-gradient(90deg,#0f6b35 0 40px,#148a42 40px 80px)" }}
-          />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_50%_20%,transparent_20%,rgba(0,0,0,0.45)_100%)]" />
+      <div className="relative h-full w-full overflow-hidden">
+        <PenaltyKick
+          taker={taker}
+          kit={userTeam.kit_primary}
+          aimX={aimX}
+          power={power}
+          shooting={shooting}
+          onSettled={(r) => void onSettled(r)}
+          className="absolute inset-0 h-full w-full"
+        />
 
-          {/* Goal frame */}
-          <div className="absolute inset-x-[16%] top-[8%] h-[52%] rounded-b-[2%] border-[3px] border-white/90 bg-black/15 shadow-[0_0_40px_rgba(0,0,0,0.35)]">
-            <div className="absolute inset-0 opacity-40" style={{ backgroundImage: "linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)", backgroundSize: "8% 12%" }} />
-            <div className="absolute inset-x-[18%] top-0 h-[55%] border-x-2 border-b-2 border-white/70" />
+        {/* Top HUD */}
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-start justify-between gap-3 bg-gradient-to-b from-black/70 to-transparent px-[clamp(0.75rem,2vw,1.5rem)] pb-10 pt-3">
+          <div>
+            <p className="text-[10px] font-bold tracking-[0.28em] text-[#ffb04a]">GOAL · GÜNLÜK PENALTI</p>
+            <p className="font-display text-2xl text-white sm:text-3xl">Şut ve Gol</p>
+            <p className="text-xs text-white/70">
+              En iyi özel oyuncu ile · Hak {remaining}/{DAILY_MAX}
+            </p>
           </div>
-
-          {/* Ball */}
-          <div
-            className={`absolute bottom-[14%] left-1/2 h-5 w-5 rounded-full bg-white shadow-[0_0_24px_rgba(255,255,255,0.85)] transition-transform duration-500 ${flying ? "scale-75" : ""}`}
-            style={{
-              transform: flying
-                ? `translate(calc(-50% + ${angle * 3.2}px), -42vh) scale(0.55)`
-                : `translate(calc(-50% + ${angle * 2.2}px), 0)`,
-            }}
-          />
-
-          <div className="absolute left-4 top-4 rounded-xl bg-black/55 px-3 py-2 text-sm backdrop-blur">
-            <span className="text-[#e7c56a]">{score}</span>
-            <span className="text-white/50"> / {attempts}</span>
+          <div className="pointer-events-auto w-[7.5rem] shrink-0 sm:w-[9rem]">
+            <PlayerCard player={taker} compact featured />
+            <p className="mt-1 truncate text-center text-[11px] text-white/80">
+              {taker.name.split(" ").slice(-1)[0]} · {cardLiveOverall(taker)}
+            </p>
           </div>
+        </div>
 
-          {result && (
-            <div className="absolute left-1/2 top-[38%] -translate-x-1/2 rounded-2xl bg-black/75 px-8 py-3 font-display text-4xl text-[#e7c56a] shadow-2xl">
-              {result}
-            </div>
-          )}
+        {banner && (
+          <div className="absolute left-1/2 top-[38%] z-30 -translate-x-1/2 rounded-2xl bg-black/75 px-10 py-4 text-center shadow-2xl">
+            <p className="font-display text-5xl text-[#e7c56a]">{banner}</p>
+            {rewardLine && <p className="mt-2 text-sm text-white/80">{rewardLine}</p>}
+          </div>
+        )}
 
-          {/* Bottom controls overlay */}
-          <div className="absolute inset-x-0 bottom-0 flex items-end gap-4 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-[clamp(0.75rem,2vw,1.5rem)] pb-4 pt-16">
+        {/* Controls */}
+        <div className="absolute inset-x-0 bottom-0 z-20 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-[clamp(0.75rem,2vw,1.5rem)] pb-4 pt-14">
+          <div className="mb-3 flex items-center gap-3">
             <button
               type="button"
-              onClick={() => history.back()}
+              onClick={() => router.push("/dashboard")}
               className="flex min-h-11 items-center gap-1 rounded-r-xl rounded-l-md bg-[#1f8fff] px-5 text-sm font-bold text-white"
             >
               ‹ Geri
             </button>
-            <div className="flex min-w-0 flex-1 flex-wrap items-end gap-4">
-              <label className="min-w-[140px] flex-1 text-xs text-white/70">
-                Açı {angle}
-                <input
-                  type="range"
-                  min={-45}
-                  max={45}
-                  value={angle}
-                  onChange={(e) => setAngle(Number(e.target.value))}
-                  className="mt-1 w-full accent-[#1f8fff]"
-                />
-              </label>
-              <label className="min-w-[140px] flex-1 text-xs text-white/70">
-                Güç {power}
-                <input
-                  type="range"
-                  min={10}
-                  max={100}
-                  value={power}
-                  onChange={(e) => setPower(Number(e.target.value))}
-                  className="mt-1 w-full accent-[#ff7a12]"
-                />
-              </label>
+            <div className="min-w-0 flex-1">
+              <div className="mb-1 flex justify-between text-[11px] text-white/65">
+                <span>Köşe</span>
+                <span>{aimX < -0.35 ? "Sol" : aimX > 0.35 ? "Sağ" : "Orta"}</span>
+              </div>
+              <input
+                type="range"
+                min={-1}
+                max={1}
+                step={0.01}
+                value={aimX}
+                disabled={shooting || remaining <= 0}
+                onChange={(e) => setAimX(Number(e.target.value))}
+                className="w-full accent-[#1f8fff]"
+              />
             </div>
-            <Button size="lg" className="min-w-[7rem] bg-[#ff7a12] text-white hover:bg-[#ff8c2e]" onClick={shoot} disabled={flying}>
-              ŞUT
+            <div className="w-[min(28%,220px)]">
+              <div className="mb-1 flex justify-between text-[11px] text-white/65">
+                <span>Güç</span>
+                <span>{Math.round(power * 100)}</span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-white/15">
+                <div
+                  className={`h-full rounded-full ${charging ? "bg-[#ff9a3c]" : "bg-[#ff7a12]"}`}
+                  style={{ width: `${Math.round(power * 100)}%` }}
+                />
+              </div>
+            </div>
+            <Button
+              size="lg"
+              className="min-w-[8.5rem] bg-[#ff7a12] text-white hover:bg-[#ff8c2e]"
+              disabled={shooting || busy || remaining <= 0}
+              onPointerDown={startCharge}
+              onPointerUp={endCharge}
+              onPointerLeave={() => {
+                if (charging) endCharge();
+              }}
+            >
+              {remaining <= 0 ? "Yarın" : shooting ? "..." : "PENALTI"}
             </Button>
-            <Link href="/match" className="hidden text-sm text-[#7eb6ff] sm:block">
-              Maç →
-            </Link>
           </div>
-        </section>
+          {remaining <= 0 && !banner && (
+            <p className="text-center text-xs text-[#e7c56a]">Günlük 3 penaltı hakkın bitti — yarın ödüllü Goal yeniden açılır.</p>
+          )}
+          {rewardLine && !banner && <p className="text-center text-xs text-white/70">{rewardLine}</p>}
+        </div>
       </div>
     </GameShell>
   );

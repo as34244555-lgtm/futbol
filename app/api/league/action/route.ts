@@ -26,6 +26,7 @@ type Body =
   | { type: "setClub"; kit_primary?: string; kit_secondary?: string; kit_style?: string; stadium?: StadiumPrefs }
   | { type: "importPlayers"; players: Player[]; mode: "merge" | "replace" }
   | { type: "claimRewarded" }
+  | { type: "claimGoalReward"; scored: boolean }
   | { type: "dailyLogin" }
   | { type: "claimQuest"; questId: string }
   | { type: "claimBattle"; tier: number }
@@ -87,6 +88,8 @@ export async function POST(req: Request) {
           );
         case "claimRewarded":
           return NextResponse.json(await actions.claimRewarded(session));
+        case "claimGoalReward":
+          return NextResponse.json(await actions.claimGoalReward(session, Boolean(body.scored)));
         case "dailyLogin":
           return NextResponse.json(await actions.dailyLogin(session));
         case "claimQuest":

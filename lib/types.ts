@@ -109,6 +109,10 @@ export type Team = {
   nation?: string;
   /** Son ödüllü reklam zamanı. */
   rewardedAt?: string;
+  /** Günlük Goal/penaltı günü (YYYY-MM-DD). */
+  goalDay?: string;
+  /** Bugün kullanılan penaltı hakkı (max 3). */
+  goalShots?: number;
   played: number;
   won: number;
   drawn: number;

@@ -87,6 +87,9 @@ type GameContextValue = {
   respondOffer: (offerId: string, accept: boolean) => Promise<string | null>;
   importPlayers: (players: Player[], mode: "merge" | "replace") => Promise<void>;
   claimRewarded: () => Promise<string | null>;
+  claimGoalReward: (
+    scored: boolean,
+  ) => Promise<{ error?: string; coins?: number; gems?: number; shot?: number; max?: number }>;
   dailyLogin: () => Promise<string | null>;
   claimQuest: (questId: string) => Promise<string | null>;
   claimBattle: (tier: number) => Promise<string | null>;
@@ -358,6 +361,22 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     }
   }, [apply]);
 
+  const claimGoalReward = useCallback(async (scored: boolean) => {
+    try {
+      const snap = await postAction({ type: "claimGoalReward", scored });
+      apply(snap);
+      const goal = (snap as { goal?: { coins?: number; gems?: number; shot?: number; max?: number } }).goal;
+      return {
+        coins: goal?.coins,
+        gems: goal?.gems,
+        shot: goal?.shot,
+        max: goal?.max,
+      };
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : "Penaltı ödülü alınamadı" };
+    }
+  }, [apply]);
+
   const dailyLogin = useCallback(async () => {
     try {
       apply(await postAction({ type: "dailyLogin" }));
@@ -448,6 +467,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       respondOffer,
       importPlayers,
       claimRewarded,
+      claimGoalReward,
       dailyLogin,
       claimQuest,
       claimBattle,
@@ -481,6 +501,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       respondOffer,
       importPlayers,
       claimRewarded,
+      claimGoalReward,
       dailyLogin,
       claimQuest,
       claimBattle,

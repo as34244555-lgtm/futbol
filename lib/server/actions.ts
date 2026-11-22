@@ -535,6 +535,54 @@ export async function claimRewarded(session: SessionHint) {
   });
 }
 
+const GOAL_SHOTS_PER_DAY = 3;
+const GOAL_REWARD_COINS = 750;
+const GOAL_REWARD_GEMS = 8;
+
+/** Günlük 3D ödüllü penaltı — gol olursa coin/gem. */
+export async function claimGoalReward(session: SessionHint, scored: boolean) {
+  return mutateLeague((doc) => {
+    doc = withSessionUser(doc, session);
+    const team = teamOf(doc, session.sub);
+    const today = new Date().toISOString().slice(0, 10);
+    const sameDay = team.goalDay === today;
+    const used = sameDay ? team.goalShots ?? 0 : 0;
+    if (used >= GOAL_SHOTS_PER_DAY) {
+      throw new ActionError("Günlük penaltı hakkın bitti (3/3). Yarın tekrar gel.");
+    }
+    const coins = team.coins + (scored ? GOAL_REWARD_COINS : 80);
+    const gems = (team.gems ?? 0) + (scored ? GOAL_REWARD_GEMS : 0);
+    const world = {
+      ...doc.world,
+      teams: doc.world.teams.map((t) =>
+        t.id === team.id
+          ? {
+              ...t,
+              coins,
+              gems,
+              goalDay: today,
+              goalShots: used + 1,
+            }
+          : t,
+      ),
+    };
+    const next = { ...doc, world };
+    return {
+      doc: next,
+      result: {
+        ...snapshot(next, session.sub),
+        goal: {
+          scored,
+          shot: used + 1,
+          max: GOAL_SHOTS_PER_DAY,
+          coins: scored ? GOAL_REWARD_COINS : 80,
+          gems: scored ? GOAL_REWARD_GEMS : 0,
+        },
+      },
+    };
+  });
+}
+
 export async function setTraining(session: SessionHint, training: Training) {
   return mutateLeague((doc) => {
     doc = withSessionUser(doc, session);

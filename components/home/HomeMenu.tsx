@@ -94,7 +94,7 @@ export function HomeMenu() {
 
   const actions = [
     { href: "/match", label: t("menu.match"), color: "bg-[#3aa0ff]", icon: <BallIcon /> },
-    { href: "/goal", label: "Şut ve Gol", color: "bg-[#ff7a12]", icon: <GoalIcon />, alert: true },
+    { href: "/goal", label: "Şut ve Gol", color: "bg-[#ff7a12]", icon: <GoalIcon />, alert: true }, // günlük 3D penaltı
     { href: "/squad", label: "Oyun Planı", color: "bg-[#7bcf2e]", icon: <PlanIcon />, alert: true },
     { href: "/squad", label: t("menu.team"), color: "bg-[#e23b4a]", icon: <ShieldIcon /> },
     { href: "/transfer", label: "Sözleşme", color: "bg-[#9b4dff]", icon: <ContractIcon /> },
