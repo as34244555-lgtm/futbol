@@ -80,6 +80,7 @@ assert(keepers.length >= 2, "special goalkeepers exist outside the 24");
 const zaid = roster.find((p) => p.name === "Muhammed Zaid");
 assert(Boolean(zaid), "Muhammed Zaid is on the special roster");
 assert(zaid!.tier === "special" && zaid!.position === "FV", "Zaid is a special CF");
+assert(zaid!.nationality_code === "sa", "Zaid is Saudi Arabian");
 assert(zaid!.portrait.includes("muhammed-zaid"), "Zaid has his portrait");
 assert(cardRarity(standards[0]!) === "bronze", "standard card stays the plain frame");
 assert(cardRarity(keepers[0]!) !== "bronze", "goalkeeper card is special");

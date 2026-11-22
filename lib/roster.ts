@@ -53,8 +53,8 @@ export const SPECIAL_SPECS: RosterSpec[] = [
   { name: "Yusuf Acar", nationality: "Türkiye", nationality_code: "tr", position: "KANAT", age: 22, attack: 97, defense: 60, tier: "special", portrait: "/portraits/special/yusuf-acar.jpg" },
   {
     name: "Muhammed Zaid",
-    nationality: "Türkiye",
-    nationality_code: "tr",
+    nationality: "Suudi Arabistan",
+    nationality_code: "sa",
     position: "FV",
     age: 22,
     attack: 99,
