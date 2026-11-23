@@ -1,32 +1,14 @@
 "use client";
 
 import { Button } from "@/components/ui/Button";
+import { rememberPassword } from "@/lib/credentials";
 import { useGame } from "@/lib/game-context";
 import { useI18n } from "@/lib/i18n";
 import { NATIONS, flagUrl } from "@/lib/nations";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-const PASS_KEY = "ml-pass";
-
-function rememberPassword(name: string, password: string) {
-  try {
-    const saved = JSON.parse(localStorage.getItem(PASS_KEY) || "{}") as Record<string, string>;
-    saved[name.trim().toLowerCase()] = password;
-    localStorage.setItem(PASS_KEY, JSON.stringify(saved));
-  } catch {
-    /* ignore */
-  }
-}
-
-export function savedPassword(name: string): string | null {
-  try {
-    const saved = JSON.parse(localStorage.getItem(PASS_KEY) || "{}") as Record<string, string>;
-    return saved[name.trim().toLowerCase()] ?? null;
-  } catch {
-    return null;
-  }
-}
+export { lastSavedUser, rememberPassword, savedPassword } from "@/lib/credentials";
 
 export function JoinScreen() {
   const { register } = useGame();

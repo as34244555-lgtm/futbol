@@ -1,5 +1,6 @@
 "use client";
 
+import { HideNextBadge } from "@/components/HideNextBadge";
 import { GameProvider } from "@/lib/game-context";
 import { I18nProvider } from "@/lib/i18n";
 import { loadModelIndex, loadPlayerGlb } from "@/lib/player-glb";
@@ -47,6 +48,7 @@ function LandscapeGate() {
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <I18nProvider>
+      <HideNextBadge />
       <GlbPreload />
       <GameProvider>
         {children}

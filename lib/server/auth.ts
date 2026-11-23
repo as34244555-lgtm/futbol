@@ -1,8 +1,30 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
+import path from "path";
 import { kvConfigured, kvGetRaw, kvSetNx } from "./remote-kv";
 
 const SALT_LEN = 16;
 const KEY_LEN = 32;
+const FILE_SECRET_PATH = path.join(process.cwd(), "data", "auth-secret");
+
+function readFileSecret(): string | null {
+  try {
+    if (!existsSync(FILE_SECRET_PATH)) return null;
+    const existing = readFileSync(FILE_SECRET_PATH, "utf8").trim();
+    return existing.length >= 32 ? existing : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeFileSecret(secret: string): void {
+  try {
+    mkdirSync(path.dirname(FILE_SECRET_PATH), { recursive: true });
+    writeFileSync(FILE_SECRET_PATH, secret, { encoding: "utf8", mode: 0o600 });
+  } catch {
+    /* ignore — memory secret still works for this process */
+  }
+}
 
 export function hashPassword(password: string): string {
   const salt = randomBytes(SALT_LEN).toString("hex");
@@ -39,8 +61,15 @@ async function sharedSecret(): Promise<string> {
     runtimeSecret = created;
     return created;
   }
-  runtimeSecret = randomBytes(32).toString("hex");
-  return runtimeSecret;
+  const fromDisk = readFileSecret();
+  if (fromDisk) {
+    runtimeSecret = fromDisk;
+    return fromDisk;
+  }
+  const created = randomBytes(32).toString("hex");
+  writeFileSecret(created);
+  runtimeSecret = created;
+  return created;
 }
 
 export async function sessionSecret(): Promise<string> {

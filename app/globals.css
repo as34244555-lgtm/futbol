@@ -6,6 +6,15 @@
   color-scheme: dark;
 }
 
+/* Hide Next.js floating "N" badge when not in a shadow root. */
+nextjs-portal [data-next-mark],
+nextjs-portal #next-logo,
+#next-logo[data-next-mark] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 html,
 body {
   min-height: 100%;

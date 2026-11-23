@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/Button";
-import { savedPassword } from "@/components/JoinScreen";
+import { savedPassword } from "@/lib/credentials";
 import { useGame } from "@/lib/game-context";
 import { useI18n } from "@/lib/i18n";
 

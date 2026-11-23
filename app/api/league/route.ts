@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSnapshot, ping } from "@/lib/server/actions";
-import { getSession } from "@/lib/server/session";
+import { getSession, setSessionCookie } from "@/lib/server/session";
 import { runWithRoom } from "@/lib/server/store";
 
 export const dynamic = "force-dynamic";
@@ -9,7 +9,17 @@ export async function GET() {
   try {
     const session = await getSession();
     return await runWithRoom(session?.roomCode, async () => {
-      if (session) return NextResponse.json(await ping(session));
+      if (session) {
+        // Sliding renewal so long play sessions stay signed in.
+        await setSessionCookie({
+          sub: session.sub,
+          name: session.name,
+          teamId: session.teamId,
+          teamName: session.teamName,
+          roomCode: session.roomCode,
+        });
+        return NextResponse.json(await ping(session));
+      }
       return NextResponse.json(await getSnapshot(null));
     });
   } catch (error) {

@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { RegisterPwa } from "@/components/RegisterPwa";
+import { lastSavedUser, rememberPassword, savedPassword } from "@/lib/credentials";
 import { enableNotifications, notifyReady } from "@/lib/notify";
 import type {
   Formation,
@@ -123,12 +124,45 @@ async function fetchLeague(): Promise<LeagueSnap> {
   return json as LeagueSnap;
 }
 
-async function postAction<T = LeagueSnap>(body: unknown): Promise<T> {
+async function silentRelogin(preferredName?: string | null, roomCode?: string): Promise<boolean> {
+  const username = (preferredName || lastSavedUser() || "").trim();
+  if (!username) return false;
+  const password = savedPassword(username);
+  if (!password) return false;
+  try {
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ username, password, roomCode }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+async function postAction<T = LeagueSnap>(
+  body: unknown,
+  opts?: { preferredName?: string | null; roomCode?: string },
+): Promise<T> {
   const res = await fetch("/api/league/action", {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body),
   });
+  if (res.status === 401) {
+    const restored = await silentRelogin(opts?.preferredName, opts?.roomCode);
+    if (restored) {
+      const retry = await fetch("/api/league/action", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const retryJson = (await readJson(retry)) as T & { error?: string };
+      if (!retry.ok) throw new Error(retryJson.error ?? "İşlem başarısız");
+      return retryJson;
+    }
+  }
   const json = (await readJson(res)) as T & { error?: string };
   if (!res.ok) throw new Error(json.error ?? "İşlem başarısız");
   return json;
@@ -147,13 +181,35 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   });
   const [ready, setReady] = useState(false);
   const [watching, setWatching] = useState(false);
+  const restoringRef = useRef(false);
+  const snapRef = useRef(snap);
+  snapRef.current = snap;
 
   const apply = useCallback((s: LeagueSnap) => setSnap(s), []);
 
+  const runAction = useCallback(async <T = LeagueSnap>(body: unknown): Promise<T> => {
+    const current = snapRef.current;
+    return postAction<T>(body, {
+      preferredName: current.me?.username ?? lastSavedUser(),
+      roomCode: current.roomCode,
+    });
+  }, []);
+
   const refresh = useCallback(async () => {
     try {
-      const next = await fetchLeague();
-      setSnap((prev) => (prev.me && !next.me ? prev : next));
+      let next = await fetchLeague();
+      if (!next.me && !restoringRef.current) {
+        restoringRef.current = true;
+        try {
+          const name = lastSavedUser();
+          if (name && (await silentRelogin(name, next.roomCode))) {
+            next = await fetchLeague();
+          }
+        } finally {
+          restoringRef.current = false;
+        }
+      }
+      setSnap(next);
     } catch {
       /* keep last */
     } finally {
@@ -210,6 +266,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       });
       const json = (await readJson(res)) as { error?: string };
       if (!res.ok) return json.error ?? "Kayıt başarısız";
+      rememberPassword(username, password);
       await refresh();
       void enableNotifications();
       return null;
@@ -225,6 +282,7 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     });
     const json = (await readJson(res)) as { error?: string };
     if (!res.ok) return json.error ?? "Giriş başarısız";
+    rememberPassword(username, password);
     await refresh();
     return null;
   }, [refresh]);
@@ -235,40 +293,40 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const setFormation = useCallback(async (formation: Formation) => {
-    apply(await postAction({ type: "setFormation", formation }));
-  }, [apply]);
+    apply(await runAction({ type: "setFormation", formation }));
+  }, [apply, runAction]);
 
   const setTactics = useCallback(async (tactics: Tactic) => {
-    apply(await postAction({ type: "setTactics", tactics }));
-  }, [apply]);
+    apply(await runAction({ type: "setTactics", tactics }));
+  }, [apply, runAction]);
 
   const setClub = useCallback(
     async (patch: { kit_primary?: string; kit_secondary?: string; kit_style?: KitStyle; stadium?: StadiumPrefs }) => {
-      apply(await postAction({ type: "setClub", ...patch }));
+      apply(await runAction({ type: "setClub", ...patch }));
     },
-    [apply],
+    [apply, runAction],
   );
 
   const assignSlot = useCallback(async (slotKey: string, teamPlayerId: string) => {
-    apply(await postAction({ type: "assignSlot", slotKey, teamPlayerId }));
-  }, [apply]);
+    apply(await runAction({ type: "assignSlot", slotKey, teamPlayerId }));
+  }, [apply, runAction]);
 
   const autoPick = useCallback(async () => {
-    apply(await postAction({ type: "autoPick" }));
-  }, [apply]);
+    apply(await runAction({ type: "autoPick" }));
+  }, [apply, runAction]);
 
   const listForSale = useCallback(async (teamPlayerId: string, price: number) => {
     try {
-      apply(await postAction({ type: "listForSale", teamPlayerId, price }));
+      apply(await runAction({ type: "listForSale", teamPlayerId, price }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "İlan açılamadı";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const cancelListing = useCallback(async (listingId: string) => {
-    apply(await postAction({ type: "cancelListing", listingId }));
-  }, [apply]);
+    apply(await runAction({ type: "cancelListing", listingId }));
+  }, [apply, runAction]);
 
   const buyListing = useCallback(
     async (input: {
@@ -279,21 +337,21 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       price?: number;
     }) => {
       try {
-        apply(await postAction({ type: "buyListing", ...input }));
+        apply(await runAction({ type: "buyListing", ...input }));
         return null;
       } catch (e) {
         return e instanceof Error ? e.message : "Satın alınamadı";
       }
     },
-    [apply],
+    [apply, runAction],
   );
 
   const ensureWeekFixtures = useCallback(async () => {
-    apply(await postAction({ type: "ensureFixtures" }));
-  }, [apply]);
+    apply(await runAction({ type: "ensureFixtures" }));
+  }, [apply, runAction]);
 
   const playWeek = useCallback(async (): Promise<MatchSimulationResult | string> => {
-    const json = await postAction<{
+    const json = await runAction<{
       snap: LeagueSnap;
       match: MatchSimulationResult | null;
       error: string | null;
@@ -307,10 +365,10 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       coinsDelta: json.coinsDelta ?? 0,
       pointsDelta: json.pointsDelta ?? 0,
     };
-  }, [apply]);
+  }, [apply, runAction]);
 
   const reportLive = useCallback(async (homeScore: number, awayScore: number): Promise<MatchSimulationResult | string> => {
-    const json = await postAction<{
+    const json = await runAction<{
       snap: LeagueSnap;
       match: MatchSimulationResult | null;
       error: string | null;
@@ -324,46 +382,46 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
       coinsDelta: json.coinsDelta ?? 0,
       pointsDelta: json.pointsDelta ?? 0,
     };
-  }, [apply]);
+  }, [apply, runAction]);
 
   const setTraining = useCallback(async (training: Training) => {
-    apply(await postAction({ type: "setTraining", training }));
-  }, [apply]);
+    apply(await runAction({ type: "setTraining", training }));
+  }, [apply, runAction]);
 
   const markReady = useCallback(async () => {
-    apply(await postAction({ type: "setReady" }));
-  }, [apply]);
+    apply(await runAction({ type: "setReady" }));
+  }, [apply, runAction]);
 
   const makeOffer = useCallback(async (listingId: string, price: number) => {
     try {
-      apply(await postAction({ type: "makeOffer", listingId, price }));
+      apply(await runAction({ type: "makeOffer", listingId, price }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Teklif gönderilemedi";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const respondOffer = useCallback(async (offerId: string, accept: boolean) => {
     try {
-      apply(await postAction({ type: "respondOffer", offerId, accept }));
+      apply(await runAction({ type: "respondOffer", offerId, accept }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Teklif yanıtlanamadı";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const claimRewarded = useCallback(async () => {
     try {
-      apply(await postAction({ type: "claimRewarded" }));
+      apply(await runAction({ type: "claimRewarded" }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Ödül alınamadı";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const claimGoalReward = useCallback(async (scored: boolean) => {
     try {
-      const snap = await postAction({ type: "claimGoalReward", scored });
+      const snap = await runAction({ type: "claimGoalReward", scored });
       apply(snap);
       const goal = (snap as { goal?: { coins?: number; gems?: number; shot?: number; max?: number } }).goal;
       return {
@@ -375,38 +433,38 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Penaltı ödülü alınamadı" };
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const dailyLogin = useCallback(async () => {
     try {
-      apply(await postAction({ type: "dailyLogin" }));
+      apply(await runAction({ type: "dailyLogin" }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Giriş ödülü alınamadı";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const claimQuest = useCallback(async (questId: string) => {
     try {
-      apply(await postAction({ type: "claimQuest", questId }));
+      apply(await runAction({ type: "claimQuest", questId }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Görev alınamadı";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const claimBattle = useCallback(async (tier: number) => {
     try {
-      apply(await postAction({ type: "claimBattle", tier }));
+      apply(await runAction({ type: "claimBattle", tier }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Battle ödülü alınamadı";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const openPackFn = useCallback(async (pay: "coins" | "gems") => {
     try {
-      const res = await postAction<{ snap?: LeagueSnap; pulls?: Array<{ player: Player; fromPool: string }> }>({
+      const res = await runAction<{ snap?: LeagueSnap; pulls?: Array<{ player: Player; fromPool: string }> }>({
         type: "openPack",
         pay,
       });
@@ -416,24 +474,24 @@ export function GameProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       return { error: e instanceof Error ? e.message : "Paket açılamadı" };
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const upgradeCard = useCallback(async (teamPlayerId: string, mode: "level" | "boost" | "train") => {
     try {
-      apply(await postAction({ type: "upgradeCard", teamPlayerId, mode }));
+      apply(await runAction({ type: "upgradeCard", teamPlayerId, mode }));
       return null;
     } catch (e) {
       return e instanceof Error ? e.message : "Geliştirme başarısız";
     }
-  }, [apply]);
+  }, [apply, runAction]);
 
   const advanceTutorial = useCallback(async (done?: boolean) => {
-    apply(await postAction({ type: "advanceTutorial", done }));
-  }, [apply]);
+    apply(await runAction({ type: "advanceTutorial", done }));
+  }, [apply, runAction]);
 
   const importPlayers = useCallback(async (players: Player[], mode: "merge" | "replace") => {
-    apply(await postAction({ type: "importPlayers", players, mode }));
-  }, [apply]);
+    apply(await runAction({ type: "importPlayers", players, mode }));
+  }, [apply, runAction]);
 
   const value = useMemo<GameContextValue>(
     () => ({
